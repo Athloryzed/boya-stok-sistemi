@@ -143,6 +143,9 @@ async def get_maintenance_logs():
 
 @api_router.post("/jobs", response_model=Job)
 async def create_job(job: Job):
+    doc = job.model_dump()
+    await db.jobs.insert_one(doc)
+    return job
 
 @api_router.post("/machines/cleanup")
 async def cleanup_duplicate_machines():
@@ -160,10 +163,6 @@ async def cleanup_duplicate_machines():
         await db.machines.delete_many({"id": {"$in": duplicates_to_delete}})
     
     return {"message": f"Cleaned up {len(duplicates_to_delete)} duplicate machines"}
-
-    doc = job.model_dump()
-    await db.jobs.insert_one(doc)
-    return job
 
 @api_router.get("/jobs", response_model=List[Job])
 async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None):
