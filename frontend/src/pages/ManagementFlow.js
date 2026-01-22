@@ -314,7 +314,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </TabsList>
 
           <TabsContent value="machines">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {machines.map((machine) => {
                 const currentJob = jobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
                 const upcomingJobs = jobs.filter(j => j.machine_id === machine.id && j.status === "pending");
