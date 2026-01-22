@@ -309,15 +309,15 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           </Button>
         </div>
 
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-5xl font-heading font-black text-success">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-4xl sm:text-5xl font-heading font-black text-success">
             PLANLAMA PANELİ
           </h1>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 data-testid="add-job-button"
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Yeni İş Ekle
