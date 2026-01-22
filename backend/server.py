@@ -107,24 +107,6 @@ async def get_machines():
 
 @api_router.put("/machines/{machine_id}/maintenance")
 async def toggle_maintenance(machine_id: str, data: dict = Body(...)):
-
-@api_router.post("/machines/cleanup")
-async def cleanup_duplicate_machines():
-    machines = await db.machines.find({}, {"_id": 0}).to_list(1000)
-    seen_names = {}
-    duplicates_to_delete = []
-    
-    for machine in machines:
-        if machine["name"] in seen_names:
-            duplicates_to_delete.append(machine["id"])
-        else:
-            seen_names[machine["name"]] = machine["id"]
-    
-    if duplicates_to_delete:
-        await db.machines.delete_many({"id": {"$in": duplicates_to_delete}})
-    
-    return {"message": f"Cleaned up {len(duplicates_to_delete)} duplicate machines"}
-
     maintenance = data.get("maintenance", False)
     reason = data.get("reason", "")
     
