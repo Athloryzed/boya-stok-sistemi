@@ -117,6 +117,28 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     ? jobs.filter(job => selectedFormat === "all" || job.format === selectedFormat)
     : [];
 
+  const handleWarehouseRequest = async () => {
+    if (!requestType || !requestQuantity) {
+      toast.error("Lütfen tüm alanları doldurun");
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/warehouse-requests`, {
+        operator_name: operatorName,
+        machine_name: selectedMachine.name,
+        item_type: requestType,
+        quantity: parseInt(requestQuantity)
+      });
+      toast.success("Talep gönderildi!");
+      setIsRequestDialogOpen(false);
+      setRequestType("");
+      setRequestQuantity("");
+    } catch (error) {
+      toast.error("Talep gönderilemedi");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
