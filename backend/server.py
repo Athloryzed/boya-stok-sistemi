@@ -42,6 +42,7 @@ class Job(BaseModel):
     colors: str
     machine_id: str
     machine_name: str
+    format: Optional[str] = None
     notes: Optional[str] = None
     delivery_date: Optional[str] = None
     status: str = "pending"
