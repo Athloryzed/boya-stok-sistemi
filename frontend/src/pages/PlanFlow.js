@@ -658,16 +658,36 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openCloneDialog(job)}
-                          data-testid={`clone-job-${job.id}`}
-                          className="border-success text-success hover:bg-success hover:text-white"
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Sıraya Ekle
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openCloneDialog(job)}
+                            data-testid={`clone-job-${job.id}`}
+                            className="border-success text-success hover:bg-success hover:text-white"
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Sıraya Ekle
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (window.confirm("Bu işi silmek istediğinizden emin misiniz?")) {
+                                try {
+                                  await axios.delete(`${API}/jobs/${job.id}`);
+                                  toast.success("İş silindi!");
+                                  fetchCompletedJobs();
+                                } catch (error) {
+                                  toast.error("İş silinemedi");
+                                }
+                              }
+                            }}
+                            className="border-error text-error hover:bg-error hover:text-white"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
