@@ -431,12 +431,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </Card>
 
               <Card className="bg-surface border-border">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <CardTitle className="text-2xl font-heading">Aylık Analiz</CardTitle>
-                    <div className="flex items-center gap-2">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full md:w-auto">
+                    <CardTitle className="text-xl md:text-2xl font-heading">Aylık Analiz</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-                        <SelectTrigger className="w-32 bg-background border-border text-text-primary">
+                        <SelectTrigger className="w-24 md:w-32 bg-background border-border text-text-primary h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-surface border-border">
@@ -446,7 +446,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         </SelectContent>
                       </Select>
                       <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
-                        <SelectTrigger className="w-32 bg-background border-border text-text-primary">
+                        <SelectTrigger className="w-28 md:w-32 bg-background border-border text-text-primary h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-surface border-border">
@@ -460,35 +460,35 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       </Select>
                     </div>
                   </div>
-                  <Button data-testid="export-monthly-button" onClick={() => handleExportReport("monthly")} className="bg-secondary text-white hover:bg-secondary/90">
+                  <Button data-testid="export-monthly-button" onClick={() => handleExportReport("monthly")} className="bg-secondary text-white hover:bg-secondary/90 w-full md:w-auto" size="sm">
                     <Download className="mr-2 h-4 w-4" />
-                    Excel'e Aktar
+                    Excel
                   </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8">
                     <div>
-                      <h3 className="text-lg font-heading mb-4 text-text-primary">Makine Bazında Koli</h3>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <h3 className="text-base md:text-lg font-heading mb-4 text-text-primary">Makine Bazında Koli</h3>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={prepareChartData(monthlyAnalytics?.machine_stats, "Koli")}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
-                          <XAxis dataKey="name" stroke="#A1A1AA" />
-                          <YAxis stroke="#A1A1AA" />
-                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A" }} labelStyle={{ color: "#FAFAFA" }} />
-                          <Legend />
+                          <XAxis dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+                          <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
+                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} labelStyle={{ color: "#FAFAFA" }} />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
                           <Bar dataKey="Koli" fill="#10B981" />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                     <div>
-                      <h3 className="text-lg font-heading mb-4 text-text-primary">Operatör Bazında Koli</h3>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <h3 className="text-base md:text-lg font-heading mb-4 text-text-primary">Operatör Bazında Koli</h3>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={prepareChartData(monthlyAnalytics?.operator_stats, "Koli")}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
-                          <XAxis dataKey="name" stroke="#A1A1AA" />
-                          <YAxis stroke="#A1A1AA" />
-                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A" }} labelStyle={{ color: "#FAFAFA" }} />
-                          <Legend />
+                          <XAxis dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+                          <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
+                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} labelStyle={{ color: "#FAFAFA" }} />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
                           <Bar dataKey="Koli" fill="#F59E0B" />
                         </BarChart>
                       </ResponsiveContainer>
