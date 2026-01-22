@@ -114,11 +114,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const filteredJobs = selectedMachine
-    ? jobs.filter(job => selectedFormat === "all" || job.format === selectedFormat)
+    ? jobs.filter(job => 
+        (selectedFormat === "all" || job.format === selectedFormat) &&
+        job.status === "pending"
+      )
     : [];
 
-  const currentJob = selectedMachine 
-    ? jobs.find(j => j.machine_id === selectedMachine.id && j.status === "in_progress" && j.operator_name === operatorName)
+  const currentJobOnMachine = selectedMachine 
+    ? jobs.find(j => j.machine_id === selectedMachine.id && j.status === "in_progress")
     : null;
 
   const handleWarehouseRequest = async () => {
