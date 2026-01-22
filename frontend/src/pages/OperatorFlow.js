@@ -17,6 +17,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState("all");
 
   useEffect(() => {
     fetchMachines();
@@ -31,7 +32,13 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const fetchMachines = async () => {
     try {
       const response = await axios.get(`${API}/machines`);
-      setMachines(response.data);
+      const uniqueMachines = response.data.reduce((acc, machine) => {
+        if (!acc.find(m => m.id === machine.id)) {
+          acc.push(machine);
+        }
+        return acc;
+      }, []);
+      setMachines(uniqueMachines);
     } catch (error) {
       toast.error("Makineler yüklenemedi");
     }
@@ -90,6 +97,19 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setLoading(false);
     }
   };
+
+  const getFormatOptions = (machineName) => {
+    if (machineName === "24x24" || machineName === "33x33 (Büyük)") {
+      return ["all", "1/4", "1/8"];
+    } else if (machineName === "33x33 ICM") {
+      return ["all", "33x33", "33x24"];
+    }
+    return ["all"];
+  };
+
+  const filteredJobs = selectedMachine
+    ? jobs.filter(job => selectedFormat === "all" || job.format === selectedFormat)
+    : [];
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -207,7 +227,23 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               </Button>
             </div>
 
-            {jobs.length === 0 ? (
+            {getFormatOptions(selectedMachine?.name).length > 1 && (
+              <div className="flex gap-2 mb-6">
+                {getFormatOptions(selectedMachine?.name).map((format) => (
+                  <Button
+                    key={format}
+                    variant={selectedFormat === format ? "default" : "outline"}
+                    onClick={() => setSelectedFormat(format)}
+                    data-testid={`format-filter-${format}`}
+                    className={selectedFormat === format ? "bg-primary text-black" : ""}
+                  >
+                    {format === "all" ? "Tümü" : format}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {filteredJobs.length === 0 ? (
               <Card className="bg-surface border-border">
                 <CardContent className="p-8 text-center">
                   <p className="text-text-secondary text-lg">Bu makine için bekleyen iş yok.</p>
@@ -215,14 +251,21 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               </Card>
             ) : (
               <div className="space-y-4">
-                {jobs.map((job) => (
+                {filteredJobs.map((job) => (
                   <Card key={job.id} className="bg-surface border-border" data-testid={`job-${job.id}`}>
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="text-xl font-heading font-bold text-text-primary mb-2">
-                            {job.name}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-heading font-bold text-text-primary">
+                              {job.name}
+                            </h3>
+                            {job.format && (
+                              <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                                {job.format}
+                              </span>
+                            )}
+                          </div>
                           <div className="space-y-1 text-text-secondary">
                             <p><span className="font-semibold">Koli:</span> {job.koli_count}</p>
                             <p><span className="font-semibold">Renkler:</span> {job.colors}</p>
@@ -244,7 +287,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                               Başlat
                             </Button>
                           )}
-                          {job.status === "in_progress" && (
+                          {job.status === "in_progress" && job.operator_name === operatorName && (
                             <Button
                               data-testid={`complete-job-${job.id}`}
                               onClick={() => handleCompleteJob(job)}
