@@ -321,6 +321,49 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                 Yeni İş Ekle
               </Button>
             </DialogTrigger>
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-heading font-bold text-text-primary mb-4">Makine Durumları</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {machines.map((machine) => {
+              const currentJob = jobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
+              const pendingCount = jobs.filter(j => j.machine_id === machine.id && j.status === "pending").length;
+              
+              return (
+                <Card
+                  key={machine.id}
+                  className={`bg-surface border ${
+                    machine.maintenance
+                      ? "border-warning"
+                      : currentJob
+                      ? "border-success"
+                      : "border-border"
+                  }`}
+                >
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-heading font-bold text-text-primary mb-2">
+                      {machine.name}
+                    </h3>
+                    {machine.maintenance ? (
+                      <p className="text-sm text-warning font-semibold">BAKIM</p>
+                    ) : currentJob ? (
+                      <div className="space-y-1">
+                        <p className="text-sm text-success font-semibold">ÇALIŞIYOR</p>
+                        <p className="text-xs text-text-secondary truncate">{currentJob.name}</p>
+                        <p className="text-xs text-text-secondary">Op: {currentJob.operator_name}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-text-secondary">Boşta</p>
+                    )}
+                    {pendingCount > 0 && (
+                      <p className="text-xs text-info mt-2">Sırada: {pendingCount} iş</p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
             <DialogContent className="bg-surface border-border max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-heading">Yeni İş Ekle</DialogTitle>
