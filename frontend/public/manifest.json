@@ -1,0 +1,34 @@
+{
+  "short_name": "Buse Kağıt",
+  "name": "Buse Kağıt Üretim Yönetim Sistemi",
+  "description": "Flekso kağıt fabrikası üretim yönetim ve takip sistemi",
+  "icons": [
+    {
+      "src": "/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#FFBF00",
+  "background_color": "#09090B",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "tr-TR",
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "type": "image/png",
+      "sizes": "540x720"
+    }
+  ]
+}
