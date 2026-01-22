@@ -1,0 +1,471 @@
+{
+  "timestamp": "2026-01-22T18:16:34.420574",
+  "summary": {
+    "total_tests": 20,
+    "passed_tests": 20,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  },
+  "detailed_results": [
+    {
+      "test_name": "Root API",
+      "method": "GET",
+      "endpoint": "",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Buse Kağıt API"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Machine Initialization",
+      "method": "POST",
+      "endpoint": "machines/init",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Machines initialized"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get Machines",
+      "method": "GET",
+      "endpoint": "machines",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": [
+        {
+          "id": "4f0f6ed2-0c6b-4169-a313-51516490f6ed",
+          "name": "40x40",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "71d09f98-475b-4611-a874-3e237df52d82",
+          "name": "40x40 ICM",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "1223a86b-e68b-485a-ba04-b387723add82",
+          "name": "33x33 (Büyük)",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "acc11c05-5415-4291-b989-89424c860b63",
+          "name": "33x33 ICM",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "a1d2501f-3cb1-4513-86e5-8af4a71f6261",
+          "name": "33x33 (Eski)",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "19a9bb07-ad38-4720-b02d-d2a7a84818bc",
+          "name": "30x30",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "b1754b2f-1377-4872-a68c-446a5357b8d4",
+          "name": "24x24",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "ff2a9dd4-d625-4590-9a8f-8be8f6a437c9",
+          "name": "Dispanser",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "6dc23a20-6b21-4850-b785-e4aa00c9fa9c",
+          "name": "40x40",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "e1609cdc-b8b3-4acf-aa94-27fc85c5ec9c",
+          "name": "40x40 ICM",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "e7673a37-457e-4052-8853-9030ee7a41de",
+          "name": "33x33 (Büyük)",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "144e29c3-af03-48cc-8583-36e0cea91ac7",
+          "name": "33x33 ICM",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "24b4879d-7f74-4e11-8150-1669524cd063",
+          "name": "33x33 (Eski)",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "c2b95e41-573e-459f-b572-77865854dd0f",
+          "name": "30x30",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "833d45bc-5beb-487a-9d0b-43e33ada5b50",
+          "name": "24x24",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        },
+        {
+          "id": "159a768d-772a-482a-9c8e-334f39fdc612",
+          "name": "Dispanser",
+          "status": "idle",
+          "current_job_id": null,
+          "maintenance": false,
+          "maintenance_reason": null,
+          "maintenance_started": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "test_name": "Put 40x40 in Maintenance",
+      "method": "PUT",
+      "endpoint": "machines/4f0f6ed2-0c6b-4169-a313-51516490f6ed/maintenance",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Maintenance status updated"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Remove 40x40 from Maintenance",
+      "method": "PUT",
+      "endpoint": "machines/4f0f6ed2-0c6b-4169-a313-51516490f6ed/maintenance",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Maintenance status updated"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Create Job",
+      "method": "POST",
+      "endpoint": "jobs",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "id": "be3ede7e-e4fe-4c38-b3ed-785587b83a1e",
+        "name": "Test Job - Kağıt Üretimi",
+        "koli_count": 100,
+        "colors": "Beyaz, Mavi",
+        "machine_id": "4f0f6ed2-0c6b-4169-a313-51516490f6ed",
+        "machine_name": "40x40",
+        "notes": "Test job for API testing",
+        "delivery_date": "2025-01-15",
+        "status": "pending",
+        "operator_name": null,
+        "started_at": null,
+        "completed_at": null,
+        "completed_koli": 0,
+        "created_at": "2026-01-22T18:16:33.767321+00:00"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get All Jobs",
+      "method": "GET",
+      "endpoint": "jobs",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": [
+        {
+          "id": "be3ede7e-e4fe-4c38-b3ed-785587b83a1e",
+          "name": "Test Job - Kağıt Üretimi",
+          "koli_count": 100,
+          "colors": "Beyaz, Mavi",
+          "machine_id": "4f0f6ed2-0c6b-4169-a313-51516490f6ed",
+          "machine_name": "40x40",
+          "notes": "Test job for API testing",
+          "delivery_date": "2025-01-15",
+          "status": "pending",
+          "operator_name": null,
+          "started_at": null,
+          "completed_at": null,
+          "completed_koli": 0,
+          "created_at": "2026-01-22T18:16:33.767321+00:00"
+        }
+      ],
+      "error": null
+    },
+    {
+      "test_name": "Start Job",
+      "method": "PUT",
+      "endpoint": "jobs/be3ede7e-e4fe-4c38-b3ed-785587b83a1e/start",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Job started"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Complete Job",
+      "method": "PUT",
+      "endpoint": "jobs/be3ede7e-e4fe-4c38-b3ed-785587b83a1e/complete",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Job completed"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Start Shift",
+      "method": "POST",
+      "endpoint": "shifts/start",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "id": "fc2fdfab-9d28-4501-91dd-1305a285bc6d",
+        "started_at": "2026-01-22T18:16:33.966014+00:00",
+        "ended_at": null,
+        "status": "active"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get Current Shift",
+      "method": "GET",
+      "endpoint": "shifts/current",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "id": "fc2fdfab-9d28-4501-91dd-1305a285bc6d",
+        "started_at": "2026-01-22T18:16:33.966014+00:00",
+        "ended_at": null,
+        "status": "active"
+      },
+      "error": null
+    },
+    {
+      "test_name": "End Shift",
+      "method": "POST",
+      "endpoint": "shifts/end",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Shift ended"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Weekly Analytics",
+      "method": "GET",
+      "endpoint": "analytics/weekly",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "machine_stats": {
+          "40x40": 100
+        },
+        "operator_stats": {
+          "Test Operator": 100
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Monthly Analytics",
+      "method": "GET",
+      "endpoint": "analytics/monthly",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "machine_stats": {
+          "40x40": 100
+        },
+        "operator_stats": {
+          "Test Operator": 100
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Create Warehouse Request",
+      "method": "POST",
+      "endpoint": "warehouse-requests",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "id": "873c030c-5d56-4b70-b301-76d04fb6f455",
+        "operator_name": "Test Operator",
+        "machine_name": "40x40",
+        "item_type": "Kağıt Rulosu",
+        "quantity": 5,
+        "status": "pending",
+        "created_at": "2026-01-22T18:16:34.222270+00:00"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get Warehouse Requests",
+      "method": "GET",
+      "endpoint": "warehouse-requests",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": [
+        {
+          "id": "873c030c-5d56-4b70-b301-76d04fb6f455",
+          "operator_name": "Test Operator",
+          "machine_name": "40x40",
+          "item_type": "Kağıt Rulosu",
+          "quantity": 5,
+          "status": "pending",
+          "created_at": "2026-01-22T18:16:34.222270+00:00"
+        }
+      ],
+      "error": null
+    },
+    {
+      "test_name": "Complete Warehouse Request",
+      "method": "PUT",
+      "endpoint": "warehouse-requests/873c030c-5d56-4b70-b301-76d04fb6f455/complete",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "message": "Request completed"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Scan Pallet",
+      "method": "POST",
+      "endpoint": "pallets",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": {
+        "id": "229a4d29-f8cb-41cf-a933-f79d0b35cd05",
+        "pallet_code": "PLT-TEST-001",
+        "job_id": "test-job-id",
+        "job_name": "Test Job",
+        "operator_name": "Test Operator",
+        "scanned_at": "2026-01-22T18:16:34.342433+00:00"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get Pallets",
+      "method": "GET",
+      "endpoint": "pallets",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": [
+        {
+          "id": "229a4d29-f8cb-41cf-a933-f79d0b35cd05",
+          "pallet_code": "PLT-TEST-001",
+          "job_id": "test-job-id",
+          "job_name": "Test Job",
+          "operator_name": "Test Operator",
+          "scanned_at": "2026-01-22T18:16:34.342433+00:00"
+        }
+      ],
+      "error": null
+    },
+    {
+      "test_name": "Get Maintenance Logs",
+      "method": "GET",
+      "endpoint": "maintenance-logs",
+      "expected_status": 200,
+      "actual_status": 200,
+      "success": true,
+      "response_data": [
+        {
+          "id": "3703501a-89c0-4f59-a417-e923aa1093b1",
+          "machine_id": "4f0f6ed2-0c6b-4169-a313-51516490f6ed",
+          "machine_name": "40x40",
+          "reason": "Test maintenance",
+          "started_at": "2026-01-22T18:16:33.679101+00:00",
+          "ended_at": "2026-01-22T18:16:33.725964+00:00"
+        }
+      ],
+      "error": null
+    }
+  ]
+}
