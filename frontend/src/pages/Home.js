@@ -147,23 +147,29 @@ const Home = ({ theme, toggleTheme }) => {
         </svg>
       </div>
 
-      {/* Atatürk Portresi - Sol Üst Köşe */}
+      {/* Atatürk Arması - Sol Üst Köşe */}
       <motion.div 
-        className="absolute top-8 left-8 w-32 h-32 rounded-full overflow-hidden shadow-2xl border-4 border-white/30"
+        className="absolute top-8 left-8 w-28 h-28 rounded-full overflow-hidden shadow-2xl border-4 border-white/30 bg-white/90"
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.85, scale: 1 }}
+        animate={{ opacity: 0.9, scale: 1 }}
         transition={{ duration: 1 }}
         whileHover={{ opacity: 1, scale: 1.05 }}
       >
-        <img
-          src="https://images.unsplash.com/photo-1590859808308-3d2d9c515b1a?w=400&h=400&fit=crop"
-          alt="Atatürk"
-          className="w-full h-full object-cover grayscale"
-          onError={(e) => {
-            // Fallback olarak bir placeholder kullan
-            e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white'%3EATATÜRK%3C/text%3E%3C/svg%3E";
-          }}
-        />
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-2">
+          {/* Atatürk Silueti/Profil */}
+          <ellipse cx="100" cy="70" rx="45" ry="55" fill="#1a1a1a"/>
+          <ellipse cx="100" cy="120" rx="35" ry="15" fill="#1a1a1a"/>
+          <rect x="65" y="115" width="70" height="40" fill="#1a1a1a"/>
+          <ellipse cx="105" cy="60" rx="30" ry="35" fill="#1a1a1a"/>
+          <path d="M 75 50 Q 85 30 105 35 Q 125 30 135 50" stroke="#1a1a1a" strokeWidth="8" fill="none"/>
+          <circle cx="95" cy="65" r="3" fill="#1a1a1a"/>
+          <path d="M 85 75 Q 95 78 105 75" stroke="#1a1a1a" strokeWidth="2" fill="none"/>
+          
+          {/* ATATÜRK Yazısı */}
+          <text x="100" y="175" fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" fill="#1a1a1a" textAnchor="middle">
+            ATATÜRK
+          </text>
+        </svg>
       </motion.div>
 
       {/* Parlayan Yıldızlar (Sadece Gece) */}
