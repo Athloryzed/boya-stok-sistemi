@@ -806,6 +806,69 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+
+        <Dialog open={isMachineDetailOpen} onOpenChange={setIsMachineDetailOpen}>
+          <DialogContent className="bg-surface border-border max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading">{selectedMachineDetail?.name} - İşler</DialogTitle>
+            </DialogHeader>
+            {selectedMachineDetail && (
+              <div className="space-y-6">
+                {(() => {
+                  const currentJob = jobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress");
+                  const pendingJobs = jobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending");
+                  
+                  return (
+                    <>
+                      {currentJob && (
+                        <div>
+                          <h3 className="text-lg font-heading mb-3 text-success">Aktif İş</h3>
+                          <Card className="bg-background border-success">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-heading font-bold text-text-primary">{currentJob.name}</h4>
+                                  <p className="text-sm text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                                  <p className="text-sm text-text-secondary">Koli: {currentJob.koli_count}</p>
+                                  {currentJob.format && <p className="text-sm text-text-secondary">Format: {currentJob.format}</p>}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
+
+                      <div>
+                        <h3 className="text-lg font-heading mb-3 text-info">Sıradaki İşler ({pendingJobs.length})</h3>
+                        {pendingJobs.length === 0 ? (
+                          <p className="text-text-secondary">Sırada iş yok</p>
+                        ) : (
+                          <div className="space-y-2 max-h-96 overflow-y-auto">
+                            {pendingJobs.map(job => (
+                              <Card key={job.id} className="bg-background border-border">
+                                <CardContent className="p-4">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h4 className="font-heading font-bold text-text-primary">{job.name}</h4>
+                                      <p className="text-sm text-text-secondary">Koli: {job.koli_count} | Renkler: {job.colors}</p>
+                                      {job.format && <p className="text-sm text-text-secondary">Format: {job.format}</p>}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
