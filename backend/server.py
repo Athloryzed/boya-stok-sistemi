@@ -313,15 +313,32 @@ async def get_weekly_analytics():
     }
 
 @api_router.get("/analytics/monthly")
-async def get_monthly_analytics():
+async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int] = None):
     from datetime import timedelta
-    month_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    month_ago_str = month_ago.isoformat()
     
-    jobs = await db.jobs.find(
-        {"status": "completed", "completed_at": {"$gte": month_ago_str}},
-        {"_id": 0}
-    ).to_list(1000)
+    if year and month:
+        from datetime import date
+        if month == 12:
+            start_date = datetime(year, month, 1, tzinfo=timezone.utc)
+            end_date = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            start_date = datetime(year, month, 1, tzinfo=timezone.utc)
+            end_date = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        start_date_str = start_date.isoformat()
+        end_date_str = end_date.isoformat()
+        
+        jobs = await db.jobs.find(
+            {"status": "completed", "completed_at": {"$gte": start_date_str, "$lt": end_date_str}},
+            {"_id": 0}
+        ).to_list(1000)
+    else:
+        month_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        month_ago_str = month_ago.isoformat()
+        
+        jobs = await db.jobs.find(
+            {"status": "completed", "completed_at": {"$gte": month_ago_str}},
+            {"_id": 0}
+        ).to_list(1000)
     
     machine_stats = {}
     operator_stats = {}
