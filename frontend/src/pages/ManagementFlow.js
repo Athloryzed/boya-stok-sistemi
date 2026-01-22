@@ -36,6 +36,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showMachineStatus, setShowMachineStatus] = useState(false);
 
   const [editFormData, setEditFormData] = useState({
     name: "",
