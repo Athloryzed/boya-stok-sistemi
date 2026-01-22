@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -18,14 +19,30 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [password, setPassword] = useState("");
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [completedJobs, setCompletedJobs] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [jobToClone, setJobToClone] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState("all");
   
   const [formData, setFormData] = useState({
     name: "",
     koli_count: "",
     colors: "",
     machine_id: "",
+    format: "",
+    notes: "",
+    delivery_date: ""
+  });
+
+  const [cloneFormData, setCloneFormData] = useState({
+    name: "",
+    koli_count: "",
+    colors: "",
+    machine_id: "",
+    format: "",
     notes: "",
     delivery_date: ""
   });
@@ -34,6 +51,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     if (authenticated) {
       fetchMachines();
       fetchJobs();
+      fetchCompletedJobs();
     }
   }, [authenticated]);
 
@@ -46,7 +64,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const fetchMachines = async () => {
     try {
       const response = await axios.get(`${API}/machines`);
-      setMachines(response.data);
+      const uniqueMachines = response.data.reduce((acc, machine) => {
+        if (!acc.find(m => m.id === machine.id)) {
+          acc.push(machine);
+        }
+        return acc;
+      }, []);
+      setMachines(uniqueMachines);
     } catch (error) {
       toast.error("Makineler yüklenemedi");
     }
@@ -54,13 +78,46 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
   const fetchJobs = async () => {
     try {
-      const params = selectedMachine ? `?machine_id=${selectedMachine}` : "";
-      const response = await axios.get(`${API}/jobs${params}`);
+      const params = new URLSearchParams();
+      if (selectedMachine && selectedMachine !== "all") {
+        params.append("machine_id", selectedMachine);
+      }
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+      params.append("status", "pending");
+      
+      const response = await axios.get(`${API}/jobs?${params.toString()}`);
       setJobs(response.data);
     } catch (error) {
       toast.error("İşler yüklenemedi");
     }
   };
+
+  const fetchCompletedJobs = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.append("status", "completed");
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+      
+      const response = await axios.get(`${API}/jobs?${params.toString()}`);
+      setCompletedJobs(response.data);
+    } catch (error) {
+      console.error("Completed jobs fetch error:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (authenticated) {
+      const timer = setTimeout(() => {
+        fetchJobs();
+        fetchCompletedJobs();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
 
   const handleLogin = () => {
     if (password === "12341") {
@@ -69,6 +126,24 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     } else {
       toast.error("Yanlış şifre!");
     }
+  };
+
+  const getFormatOptions = (machineName) => {
+    if (machineName === "24x24" || machineName === "33x33 (Büyük)") {
+      return ["1/4", "1/8"];
+    } else if (machineName === "33x33 ICM") {
+      return ["33x33", "33x24"];
+    }
+    return [];
+  };
+
+  const getFormatFilterOptions = (machineName) => {
+    if (machineName === "24x24" || machineName === "33x33 (Büyük)") {
+      return ["all", "1/4", "1/8"];
+    } else if (machineName === "33x33 ICM") {
+      return ["all", "33x33", "33x24"];
+    }
+    return ["all"];
   };
 
   const handleAddJob = async () => {
@@ -83,11 +158,18 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       return;
     }
 
+    const formatOptions = getFormatOptions(machine.name);
+    if (formatOptions.length > 0 && !formData.format) {
+      toast.error("Lütfen format seçin");
+      return;
+    }
+
     try {
       await axios.post(`${API}/jobs`, {
         ...formData,
         koli_count: parseInt(formData.koli_count),
-        machine_name: machine.name
+        machine_name: machine.name,
+        format: formatOptions.length > 0 ? formData.format : null
       });
       toast.success("İş eklendi!");
       setIsDialogOpen(false);
@@ -96,6 +178,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         koli_count: "",
         colors: "",
         machine_id: "",
+        format: "",
         notes: "",
         delivery_date: ""
       });
@@ -104,6 +187,57 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       toast.error("İş eklenemedi");
     }
   };
+
+  const openCloneDialog = (job) => {
+    setJobToClone(job);
+    setCloneFormData({
+      name: job.name,
+      koli_count: job.koli_count.toString(),
+      colors: job.colors,
+      machine_id: job.machine_id,
+      format: job.format || "",
+      notes: job.notes || "",
+      delivery_date: job.delivery_date || ""
+    });
+    setIsCloneDialogOpen(true);
+  };
+
+  const handleCloneJob = async () => {
+    if (!cloneFormData.name || !cloneFormData.koli_count || !cloneFormData.colors || !cloneFormData.machine_id) {
+      toast.error("Lütfen zorunlu alanları doldurun");
+      return;
+    }
+
+    const machine = machines.find(m => m.id === cloneFormData.machine_id);
+    const formatOptions = getFormatOptions(machine.name);
+
+    try {
+      await axios.post(`${API}/jobs/${jobToClone.id}/clone`, {
+        ...cloneFormData,
+        koli_count: parseInt(cloneFormData.koli_count),
+        machine_name: machine.name,
+        format: formatOptions.length > 0 ? cloneFormData.format : null
+      });
+      toast.success("İş sıraya eklendi!");
+      setIsCloneDialogOpen(false);
+      setJobToClone(null);
+      fetchJobs();
+    } catch (error) {
+      toast.error("İş eklenemedi");
+    }
+  };
+
+  const filteredJobs = jobs.filter(job => 
+    selectedFormat === "all" || job.format === selectedFormat
+  );
+
+  const filteredCompletedJobs = completedJobs.filter(job =>
+    selectedFormat === "all" || job.format === selectedFormat
+  );
+
+  const selectedMachineName = selectedMachine && selectedMachine !== "all"
+    ? machines.find(m => m.id === selectedMachine)?.name
+    : null;
 
   if (!authenticated) {
     return (
@@ -227,7 +361,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   <Label className="text-text-primary">Makine *</Label>
                   <Select
                     value={formData.machine_id}
-                    onValueChange={(value) => setFormData({...formData, machine_id: value})}
+                    onValueChange={(value) => setFormData({...formData, machine_id: value, format: ""})}
                   >
                     <SelectTrigger data-testid="job-machine-select" className="bg-background border-border text-text-primary">
                       <SelectValue placeholder="Makine seçin..." />
@@ -246,6 +380,26 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     </SelectContent>
                   </Select>
                 </div>
+                {formData.machine_id && getFormatOptions(machines.find(m => m.id === formData.machine_id)?.name).length > 0 && (
+                  <div>
+                    <Label className="text-text-primary">Format *</Label>
+                    <Select
+                      value={formData.format}
+                      onValueChange={(value) => setFormData({...formData, format: value})}
+                    >
+                      <SelectTrigger data-testid="job-format-select" className="bg-background border-border text-text-primary">
+                        <SelectValue placeholder="Format seçin..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-surface border-border">
+                        {getFormatOptions(machines.find(m => m.id === formData.machine_id)?.name).map((format) => (
+                          <SelectItem key={format} value={format} className="text-text-primary">
+                            {format}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label className="text-text-primary">Not</Label>
                   <Input
@@ -277,90 +431,312 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           </Dialog>
         </div>
 
-        <div className="mb-6">
-          <Select value={selectedMachine || "all"} onValueChange={setSelectedMachine}>
-            <SelectTrigger data-testid="filter-machine-select" className="w-64 bg-surface border-border text-text-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-surface border-border">
-              <SelectItem value="all" className="text-text-primary">Tüm Makineler</SelectItem>
-              {machines.map((machine) => (
-                <SelectItem key={machine.id} value={machine.id} className="text-text-primary">
-                  {machine.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Tabs defaultValue="pending" className="space-y-6">
+          <TabsList className="bg-surface border-border">
+            <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white">
+              Sıradaki İşler
+            </TabsTrigger>
+            <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white">
+              Geçmiş İşler
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-4">
-          {jobs.length === 0 ? (
-            <Card className="bg-surface border-border">
-              <CardContent className="p-8 text-center">
-                <p className="text-text-secondary text-lg">Henüz iş eklenmemiş.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            jobs.map((job) => (
-              <Card
-                key={job.id}
-                className="bg-surface border-border"
-                data-testid={`job-card-${job.id}`}
-              >
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-xl font-heading font-bold text-text-primary">
-                          {job.name}
-                        </h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            job.status === "completed"
-                              ? "bg-success text-white"
-                              : job.status === "in_progress"
-                              ? "bg-warning text-black"
-                              : "bg-info text-white"
-                          }`}
-                        >
-                          {job.status === "completed" ? "Tamamlandı" : job.status === "in_progress" ? "Devam Ediyor" : "Bekliyor"}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-text-secondary">
-                        <div>
-                          <p className="text-sm font-semibold">Makine</p>
-                          <p>{job.machine_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Koli</p>
-                          <p>{job.koli_count}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Renkler</p>
-                          <p>{job.colors}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Teslim</p>
-                          <p>{job.delivery_date || "-"}</p>
-                        </div>
-                      </div>
-                      {job.notes && (
-                        <p className="mt-3 text-text-secondary">
-                          <span className="font-semibold">Not:</span> {job.notes}
-                        </p>
-                      )}
-                      {job.operator_name && (
-                        <p className="mt-2 text-text-secondary">
-                          <span className="font-semibold">Operatör:</span> {job.operator_name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-text-secondary" />
+                <Input
+                  data-testid="search-jobs-input"
+                  placeholder="İş ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-surface border-border text-text-primary"
+                />
+              </div>
+            </div>
+            <Select value={selectedMachine || "all"} onValueChange={setSelectedMachine}>
+              <SelectTrigger data-testid="filter-machine-select" className="w-full md:w-64 bg-surface border-border text-text-primary">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-surface border-border">
+                <SelectItem value="all" className="text-text-primary">Tüm Makineler</SelectItem>
+                {machines.map((machine) => (
+                  <SelectItem key={machine.id} value={machine.id} className="text-text-primary">
+                    {machine.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedMachineName && getFormatFilterOptions(selectedMachineName).length > 1 && (
+            <div className="flex gap-2">
+              {getFormatFilterOptions(selectedMachineName).map((format) => (
+                <Button
+                  key={format}
+                  variant={selectedFormat === format ? "default" : "outline"}
+                  onClick={() => setSelectedFormat(format)}
+                  data-testid={`format-filter-${format}`}
+                  className={selectedFormat === format ? "bg-success text-white" : ""}
+                >
+                  {format === "all" ? "Tümü" : format}
+                </Button>
+              ))}
+            </div>
           )}
-        </div>
+
+          <TabsContent value="pending">
+            <div className="space-y-4">
+              {filteredJobs.length === 0 ? (
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-8 text-center">
+                    <p className="text-text-secondary text-lg">Henüz iş eklenmemiş.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredJobs.map((job) => (
+                  <Card
+                    key={job.id}
+                    className="bg-surface border-border"
+                    data-testid={`job-card-${job.id}`}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-heading font-bold text-text-primary">
+                              {job.name}
+                            </h3>
+                            {job.format && (
+                              <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                                {job.format}
+                              </span>
+                            )}
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                job.status === "in_progress"
+                                  ? "bg-warning text-black"
+                                  : "bg-info text-white"
+                              }`}
+                            >
+                              {job.status === "in_progress" ? "Devam Ediyor" : "Bekliyor"}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-text-secondary">
+                            <div>
+                              <p className="text-sm font-semibold">Makine</p>
+                              <p>{job.machine_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Koli</p>
+                              <p>{job.koli_count}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Renkler</p>
+                              <p>{job.colors}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Teslim</p>
+                              <p>{job.delivery_date || "-"}</p>
+                            </div>
+                          </div>
+                          {job.notes && (
+                            <p className="mt-3 text-text-secondary">
+                              <span className="font-semibold">Not:</span> {job.notes}
+                            </p>
+                          )}
+                          {job.operator_name && (
+                            <p className="mt-2 text-text-secondary">
+                              <span className="font-semibold">Operatör:</span> {job.operator_name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="completed">
+            <div className="space-y-4">
+              {filteredCompletedJobs.length === 0 ? (
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-8 text-center">
+                    <p className="text-text-secondary text-lg">Henüz tamamlanmış iş yok.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredCompletedJobs.map((job) => (
+                  <Card
+                    key={job.id}
+                    className="bg-surface border-border"
+                    data-testid={`completed-job-${job.id}`}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-heading font-bold text-text-primary">
+                              {job.name}
+                            </h3>
+                            {job.format && (
+                              <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                                {job.format}
+                              </span>
+                            )}
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-success text-white">
+                              Tamamlandı
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-text-secondary">
+                            <div>
+                              <p className="text-sm font-semibold">Makine</p>
+                              <p>{job.machine_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Koli</p>
+                              <p>{job.completed_koli} / {job.koli_count}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Renkler</p>
+                              <p>{job.colors}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">Operatör</p>
+                              <p>{job.operator_name || "-"}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCloneDialog(job)}
+                          data-testid={`clone-job-${job.id}`}
+                          className="border-success text-success hover:bg-success hover:text-white"
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Sıraya Ekle
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <Dialog open={isCloneDialogOpen} onOpenChange={setIsCloneDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading">İşi Sıraya Ekle</DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                İş bilgilerini düzenleyip sıraya ekleyebilirsiniz.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-text-primary">İş Adı *</Label>
+                <Input
+                  data-testid="clone-job-name-input"
+                  value={cloneFormData.name}
+                  onChange={(e) => setCloneFormData({...cloneFormData, name: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Koli Sayısı *</Label>
+                <Input
+                  data-testid="clone-job-koli-input"
+                  type="number"
+                  value={cloneFormData.koli_count}
+                  onChange={(e) => setCloneFormData({...cloneFormData, koli_count: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Renkler *</Label>
+                <Input
+                  data-testid="clone-job-colors-input"
+                  value={cloneFormData.colors}
+                  onChange={(e) => setCloneFormData({...cloneFormData, colors: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Makine *</Label>
+                <Select
+                  value={cloneFormData.machine_id}
+                  onValueChange={(value) => setCloneFormData({...cloneFormData, machine_id: value, format: ""})}
+                >
+                  <SelectTrigger data-testid="clone-job-machine-select" className="bg-background border-border text-text-primary">
+                    <SelectValue placeholder="Makine seçin..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface border-border">
+                    {machines.map((machine) => (
+                      <SelectItem
+                        key={machine.id}
+                        value={machine.id}
+                        disabled={machine.maintenance}
+                        className="text-text-primary"
+                      >
+                        {machine.name} {machine.maintenance && "(BAKIM)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {cloneFormData.machine_id && getFormatOptions(machines.find(m => m.id === cloneFormData.machine_id)?.name).length > 0 && (
+                <div>
+                  <Label className="text-text-primary">Format *</Label>
+                  <Select
+                    value={cloneFormData.format}
+                    onValueChange={(value) => setCloneFormData({...cloneFormData, format: value})}
+                  >
+                    <SelectTrigger data-testid="clone-job-format-select" className="bg-background border-border text-text-primary">
+                      <SelectValue placeholder="Format seçin..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {getFormatOptions(machines.find(m => m.id === cloneFormData.machine_id)?.name).map((format) => (
+                        <SelectItem key={format} value={format} className="text-text-primary">
+                          {format}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div>
+                <Label className="text-text-primary">Not</Label>
+                <Input
+                  data-testid="clone-job-notes-input"
+                  value={cloneFormData.notes}
+                  onChange={(e) => setCloneFormData({...cloneFormData, notes: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Tahmini Teslim Tarihi</Label>
+                <Input
+                  data-testid="clone-job-delivery-input"
+                  type="date"
+                  value={cloneFormData.delivery_date}
+                  onChange={(e) => setCloneFormData({...cloneFormData, delivery_date: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <Button
+                data-testid="submit-clone-button"
+                onClick={handleCloneJob}
+                className="w-full bg-success text-white hover:bg-success/90"
+              >
+                Sıraya Ekle
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
