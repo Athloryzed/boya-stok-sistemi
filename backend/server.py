@@ -148,12 +148,17 @@ async def create_job(job: Job):
     return job
 
 @api_router.get("/jobs", response_model=List[Job])
-async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None):
+async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None):
     query = {}
     if status:
         query["status"] = status
     if machine_id:
         query["machine_id"] = machine_id
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"colors": {"$regex": search, "$options": "i"}}
+        ]
     jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", 1).to_list(1000)
     return jobs
 
