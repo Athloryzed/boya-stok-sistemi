@@ -328,31 +328,42 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               </div>
             )}
 
-            {currentJob && (
-              <Card className="bg-success/20 border-success mb-6">
+            {currentJobOnMachine && (
+              <Card className={`border-2 mb-6 ${currentJobOnMachine.operator_name === operatorName ? 'bg-success/20 border-success' : 'bg-warning/20 border-warning'}`}>
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-heading font-bold text-success mb-3">Şu An Yaptığınız İş</h3>
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-xl font-heading font-bold text-text-primary">
+                      {currentJobOnMachine.operator_name === operatorName ? "Şu An Yaptığınız İş" : "Bu Makinede Devam Eden İş"}
+                    </h3>
+                    {currentJobOnMachine.operator_name !== operatorName && (
+                      <span className="px-3 py-1 bg-warning text-black text-sm font-semibold rounded-full">
+                        {currentJobOnMachine.operator_name}
+                      </span>
+                    )}
+                  </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-lg font-heading font-bold text-text-primary">{currentJob.name}</h4>
-                      {currentJob.format && (
+                      <h4 className="text-lg font-heading font-bold text-text-primary">{currentJobOnMachine.name}</h4>
+                      {currentJobOnMachine.format && (
                         <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
-                          {currentJob.format}
+                          {currentJobOnMachine.format}
                         </span>
                       )}
                     </div>
-                    <p className="text-text-secondary"><span className="font-semibold">Koli:</span> {currentJob.koli_count}</p>
-                    <p className="text-text-secondary"><span className="font-semibold">Renkler:</span> {currentJob.colors}</p>
-                    {currentJob.notes && <p className="text-text-secondary"><span className="font-semibold">Not:</span> {currentJob.notes}</p>}
-                    <Button
-                      data-testid={`complete-current-job`}
-                      onClick={() => handleCompleteJob(currentJob)}
-                      disabled={loading}
-                      className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Bu İşi Tamamla
-                    </Button>
+                    <p className="text-text-secondary"><span className="font-semibold">Koli:</span> {currentJobOnMachine.koli_count}</p>
+                    <p className="text-text-secondary"><span className="font-semibold">Renkler:</span> {currentJobOnMachine.colors}</p>
+                    {currentJobOnMachine.notes && <p className="text-text-secondary"><span className="font-semibold">Not:</span> {currentJobOnMachine.notes}</p>}
+                    {currentJobOnMachine.operator_name === operatorName && (
+                      <Button
+                        data-testid={`complete-current-job`}
+                        onClick={() => handleCompleteJob(currentJobOnMachine)}
+                        disabled={loading}
+                        className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Bu İşi Tamamla
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
