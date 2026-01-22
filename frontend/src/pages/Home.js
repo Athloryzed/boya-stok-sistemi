@@ -147,6 +147,25 @@ const Home = ({ theme, toggleTheme }) => {
         </svg>
       </div>
 
+      {/* Atatürk Portresi - Sol Üst Köşe */}
+      <motion.div 
+        className="absolute top-8 left-8 w-32 h-32 rounded-full overflow-hidden shadow-2xl border-4 border-white/30"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 0.85, scale: 1 }}
+        transition={{ duration: 1 }}
+        whileHover={{ opacity: 1, scale: 1.05 }}
+      >
+        <img
+          src="https://images.unsplash.com/photo-1590859808308-3d2d9c515b1a?w=400&h=400&fit=crop"
+          alt="Atatürk"
+          className="w-full h-full object-cover grayscale"
+          onError={(e) => {
+            // Fallback olarak bir placeholder kullan
+            e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='white'%3EATATÜRK%3C/text%3E%3C/svg%3E";
+          }}
+        />
+      </motion.div>
+
       {/* Parlayan Yıldızlar (Sadece Gece) */}
       {timeOfDay === "night" && (
         <div className="absolute inset-0 overflow-hidden">
