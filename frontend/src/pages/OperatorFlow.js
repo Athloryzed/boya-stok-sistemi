@@ -117,6 +117,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     ? jobs.filter(job => selectedFormat === "all" || job.format === selectedFormat)
     : [];
 
+  const currentJob = selectedMachine 
+    ? jobs.find(j => j.machine_id === selectedMachine.id && j.status === "in_progress" && j.operator_name === operatorName)
+    : null;
+
   const handleWarehouseRequest = async () => {
     if (!requestType || !requestQuantity) {
       toast.error("Lütfen tüm alanları doldurun");
