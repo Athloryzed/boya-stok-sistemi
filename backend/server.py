@@ -162,6 +162,28 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", 1).to_list(1000)
     return jobs
 
+@api_router.post("/jobs/{job_id}/clone", response_model=Job)
+async def clone_job(job_id: str, updates: dict = Body(...)):
+    original_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not original_job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    new_job = Job(
+        name=updates.get("name", original_job["name"]),
+        koli_count=updates.get("koli_count", original_job["koli_count"]),
+        colors=updates.get("colors", original_job["colors"]),
+        machine_id=updates.get("machine_id", original_job["machine_id"]),
+        machine_name=updates.get("machine_name", original_job["machine_name"]),
+        format=updates.get("format", original_job.get("format")),
+        notes=updates.get("notes", original_job.get("notes")),
+        delivery_date=updates.get("delivery_date", original_job.get("delivery_date"))
+    )
+    
+    doc = new_job.model_dump()
+    await db.jobs.insert_one(doc)
+    return new_job
+
+
 @api_router.put("/jobs/{job_id}/start")
 async def start_job(job_id: str, data: dict = Body(...)):
     operator_name = data.get("operator_name")
