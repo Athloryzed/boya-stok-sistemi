@@ -1,52 +1,56 @@
-import { useEffect } from "react";
-import "@/App.css";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import "@/App.css";
+import Home from "./pages/Home";
+import OperatorFlow from "./pages/OperatorFlow";
+import PlanFlow from "./pages/PlanFlow";
+import ManagementFlow from "./pages/ManagementFlow";
+import WarehouseFlow from "./pages/WarehouseFlow";
+import { Toaster } from "./components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+export const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
+function App() {
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    setTheme(savedTheme);
+    document.documentElement.className = savedTheme;
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.className = newTheme;
   };
 
   useEffect(() => {
-    helloWorldApi();
+    const initMachines = async () => {
+      try {
+        await axios.post(`${API}/machines/init`);
+      } catch (error) {
+        console.error("Machine initialization error:", error);
+      }
+    };
+    initMachines();
   }, []);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
+    <div className={`App ${theme}`}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
+          <Route path="/operator" element={<OperatorFlow theme={theme} toggleTheme={toggleTheme} />} />
+          <Route path="/plan" element={<PlanFlow theme={theme} toggleTheme={toggleTheme} />} />
+          <Route path="/management" element={<ManagementFlow theme={theme} toggleTheme={toggleTheme} />} />
+          <Route path="/warehouse" element={<WarehouseFlow theme={theme} toggleTheme={toggleTheme} />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

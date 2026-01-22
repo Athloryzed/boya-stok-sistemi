@@ -1,0 +1,272 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { toast } from "sonner";
+import axios from "axios";
+import { API } from "../App";
+
+const OperatorFlow = ({ theme, toggleTheme }) => {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [operatorName, setOperatorName] = useState("");
+  const [selectedMachine, setSelectedMachine] = useState(null);
+  const [machines, setMachines] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchMachines();
+  }, []);
+
+  useEffect(() => {
+    if (selectedMachine) {
+      fetchJobs();
+    }
+  }, [selectedMachine]);
+
+  const fetchMachines = async () => {
+    try {
+      const response = await axios.get(`${API}/machines`);
+      setMachines(response.data);
+    } catch (error) {
+      toast.error("Makineler yüklenemedi");
+    }
+  };
+
+  const fetchJobs = async () => {
+    try {
+      const response = await axios.get(`${API}/jobs?machine_id=${selectedMachine.id}&status=pending`);
+      setJobs(response.data);
+    } catch (error) {
+      toast.error("İşler yüklenemedi");
+    }
+  };
+
+  const handleNameSubmit = () => {
+    if (!operatorName.trim()) {
+      toast.error("Lütfen adınızı girin");
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleMachineSelect = (machine) => {
+    if (machine.maintenance) {
+      toast.error("Bu makine bakımda!");
+      return;
+    }
+    setSelectedMachine(machine);
+    setStep(3);
+  };
+
+  const handleStartJob = async (job) => {
+    setLoading(true);
+    try {
+      await axios.put(`${API}/jobs/${job.id}/start`, {
+        operator_name: operatorName
+      });
+      toast.success("İş başlatıldı!");
+      fetchJobs();
+    } catch (error) {
+      toast.error("İş başlatılamadı");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteJob = async (job) => {
+    setLoading(true);
+    try {
+      await axios.put(`${API}/jobs/${job.id}/complete`);
+      toast.success("İş tamamlandı!");
+      fetchJobs();
+    } catch (error) {
+      toast.error("İş tamamlanamadı");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/")}
+            data-testid="back-button"
+            className="border-border bg-surface hover:bg-surface-highlight"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Ana Sayfa
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTheme}
+            data-testid="theme-toggle"
+            className="border-border bg-surface hover:bg-surface-highlight"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+        </div>
+
+        <h1 className="text-5xl font-heading font-black text-primary mb-12">
+          OPERATÖR PANELİ
+        </h1>
+
+        {step === 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md mx-auto"
+          >
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <CardTitle className="text-2xl font-heading">Adınızı Girin</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  data-testid="operator-name-input"
+                  placeholder="Operatör adı..."
+                  value={operatorName}
+                  onChange={(e) => setOperatorName(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
+                  className="mb-4 bg-background border-border text-text-primary text-lg h-14"
+                />
+                <Button
+                  data-testid="submit-name-button"
+                  onClick={handleNameSubmit}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-14 text-lg font-heading"
+                >
+                  Devam Et
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {step === 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h2 className="text-2xl font-heading mb-6 text-text-primary">Makine Seçin</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {machines.map((machine) => (
+                <button
+                  key={machine.id}
+                  data-testid={`machine-${machine.name}`}
+                  onClick={() => handleMachineSelect(machine)}
+                  disabled={machine.maintenance}
+                  className={`p-6 rounded-xl border-2 transition-all btn-scale ${
+                    machine.maintenance
+                      ? "bg-surface border-warning opacity-50 cursor-not-allowed maintenance-stripes"
+                      : "bg-surface border-border machine-card-hover"
+                  }`}
+                >
+                  <div className="text-center">
+                    <h3 className="text-xl font-heading font-bold text-text-primary mb-2">
+                      {machine.name}
+                    </h3>
+                    {machine.maintenance && (
+                      <p className="text-sm text-warning font-bold">BAKIM</p>
+                    )}
+                    {!machine.maintenance && (
+                      <p className="text-sm text-text-secondary">
+                        {machine.status === "idle" ? "Boşta" : "Çalışıyor"}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {step === 3 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-heading text-text-primary">
+                {selectedMachine?.name} - İşler
+              </h2>
+              <Button
+                variant="outline"
+                onClick={() => setStep(2)}
+                data-testid="change-machine-button"
+                className="border-border bg-surface hover:bg-surface-highlight"
+              >
+                Makine Değiştir
+              </Button>
+            </div>
+
+            {jobs.length === 0 ? (
+              <Card className="bg-surface border-border">
+                <CardContent className="p-8 text-center">
+                  <p className="text-text-secondary text-lg">Bu makine için bekleyen iş yok.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {jobs.map((job) => (
+                  <Card key={job.id} className="bg-surface border-border" data-testid={`job-${job.id}`}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-heading font-bold text-text-primary mb-2">
+                            {job.name}
+                          </h3>
+                          <div className="space-y-1 text-text-secondary">
+                            <p><span className="font-semibold">Koli:</span> {job.koli_count}</p>
+                            <p><span className="font-semibold">Renkler:</span> {job.colors}</p>
+                            {job.notes && <p><span className="font-semibold">Not:</span> {job.notes}</p>}
+                            {job.delivery_date && (
+                              <p><span className="font-semibold">Teslim:</span> {job.delivery_date}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          {job.status === "pending" && (
+                            <Button
+                              data-testid={`start-job-${job.id}`}
+                              onClick={() => handleStartJob(job)}
+                              disabled={loading}
+                              className="bg-success text-white hover:bg-success/90"
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                              Başlat
+                            </Button>
+                          )}
+                          {job.status === "in_progress" && (
+                            <Button
+                              data-testid={`complete-job-${job.id}`}
+                              onClick={() => handleCompleteJob(job)}
+                              disabled={loading}
+                              className="bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Tamamla
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default OperatorFlow;
