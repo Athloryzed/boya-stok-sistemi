@@ -184,6 +184,25 @@ async def clone_job(job_id: str, updates: dict = Body(...)):
     return new_job
 
 
+
+@api_router.put("/jobs/{job_id}", response_model=Job)
+async def update_job(job_id: str, updates: dict = Body(...)):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    await db.jobs.update_one({"id": job_id}, {"$set": updates})
+    
+    updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    return Job(**updated_job)
+
+@api_router.delete("/jobs/{job_id}")
+async def delete_job(job_id: str):
+    result = await db.jobs.delete_one({"id": job_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"message": "Job deleted"}
+
 @api_router.put("/jobs/{job_id}/start")
 async def start_job(job_id: str, data: dict = Body(...)):
     operator_name = data.get("operator_name")
