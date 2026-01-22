@@ -634,6 +634,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <p className="text-sm text-text-secondary">Koli: {job.completed_koli} / {job.koli_count}</p>
                                 <p className="text-sm text-text-secondary">Operatör: {job.operator_name}</p>
                               </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleDeleteJob(job.id)} 
+                                className="text-error hover:bg-error hover:text-white"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
