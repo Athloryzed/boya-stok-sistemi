@@ -186,17 +186,19 @@ async def start_job(job_id: str, data: dict = Body(...)):
     return {"message": "Job started"}
 
 @api_router.put("/jobs/{job_id}/complete")
-async def complete_job(job_id: str):
+async def complete_job(job_id: str, data: dict = Body(None)):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    
+    completed_koli = data.get("completed_koli", job["koli_count"]) if data else job["koli_count"]
     
     await db.jobs.update_one(
         {"id": job_id},
         {"$set": {
             "status": "completed",
             "completed_at": datetime.now(timezone.utc).isoformat(),
-            "completed_koli": job["koli_count"]
+            "completed_koli": completed_koli
         }}
     )
     
