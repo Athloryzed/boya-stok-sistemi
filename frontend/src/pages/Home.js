@@ -149,27 +149,23 @@ const Home = ({ theme, toggleTheme }) => {
 
       {/* Atatürk Arması - Sol Üst Köşe */}
       <motion.div 
-        className="absolute top-8 left-8 w-28 h-28 rounded-full overflow-hidden shadow-2xl border-4 border-white/30 bg-white/90"
+        className="absolute top-8 left-8 w-28 h-28 rounded-full overflow-hidden shadow-2xl border-4 border-white/40"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 0.9, scale: 1 }}
         transition={{ duration: 1 }}
         whileHover={{ opacity: 1, scale: 1.05 }}
+        style={{
+          boxShadow: "0 0 30px rgba(255,255,255,0.3), 0 4px 20px rgba(0,0,0,0.4)"
+        }}
       >
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-2">
-          {/* Atatürk Silueti/Profil */}
-          <ellipse cx="100" cy="70" rx="45" ry="55" fill="#1a1a1a"/>
-          <ellipse cx="100" cy="120" rx="35" ry="15" fill="#1a1a1a"/>
-          <rect x="65" y="115" width="70" height="40" fill="#1a1a1a"/>
-          <ellipse cx="105" cy="60" rx="30" ry="35" fill="#1a1a1a"/>
-          <path d="M 75 50 Q 85 30 105 35 Q 125 30 135 50" stroke="#1a1a1a" strokeWidth="8" fill="none"/>
-          <circle cx="95" cy="65" r="3" fill="#1a1a1a"/>
-          <path d="M 85 75 Q 95 78 105 75" stroke="#1a1a1a" strokeWidth="2" fill="none"/>
-          
-          {/* ATATÜRK Yazısı */}
-          <text x="100" y="175" fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" fill="#1a1a1a" textAnchor="middle">
-            ATATÜRK
-          </text>
-        </svg>
+        <img
+          src="https://customer-assets.emergentagent.com/job_flexo-factory/artifacts/hxwzn26z_10107451113522.jpg"
+          alt="Atatürk"
+          className="w-full h-full object-cover"
+          style={{
+            filter: "grayscale(100%) contrast(1.1) brightness(1.05)"
+          }}
+        />
       </motion.div>
 
       {/* Parlayan Yıldızlar (Sadece Gece) */}
