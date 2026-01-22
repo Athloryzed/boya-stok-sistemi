@@ -52,7 +52,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
   const fetchJobs = async () => {
     try {
-      const response = await axios.get(`${API}/jobs?machine_id=${selectedMachine.id}&status=pending`);
+      const response = await axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`);
       setJobs(response.data);
     } catch (error) {
       toast.error("İşler yüklenemedi");
