@@ -89,3 +89,69 @@
   backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Touch-friendly buttons */
+  button, .btn-scale {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better text sizing on mobile */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Smooth scrolling on mobile */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 191, 0, 0.3);
+    border-radius: 2px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* iOS Safe Area */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Disable pull-to-refresh on mobile Chrome */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Better tap highlight */
+* {
+  -webkit-tap-highlight-color: rgba(255, 191, 0, 0.2);
+}
