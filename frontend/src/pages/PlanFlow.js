@@ -323,6 +323,115 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                 Yeni İş Ekle
               </Button>
             </DialogTrigger>
+            <DialogContent className="bg-surface border-border max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-heading">Yeni İş Ekle</DialogTitle>
+                <DialogDescription className="text-text-secondary">
+                  Yeni bir iş tanımlamak için aşağıdaki formu doldurun.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-text-primary">İş Adı *</Label>
+                  <Input
+                    data-testid="job-name-input"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+                <div>
+                  <Label className="text-text-primary">Koli Sayısı *</Label>
+                  <Input
+                    data-testid="job-koli-input"
+                    type="number"
+                    value={formData.koli_count}
+                    onChange={(e) => setFormData({...formData, koli_count: e.target.value})}
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+                <div>
+                  <Label className="text-text-primary">Renkler *</Label>
+                  <Input
+                    data-testid="job-colors-input"
+                    value={formData.colors}
+                    onChange={(e) => setFormData({...formData, colors: e.target.value})}
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+                <div>
+                  <Label className="text-text-primary">Makine *</Label>
+                  <Select
+                    value={formData.machine_id}
+                    onValueChange={(value) => setFormData({...formData, machine_id: value, format: ""})}
+                  >
+                    <SelectTrigger data-testid="job-machine-select" className="bg-background border-border text-text-primary">
+                      <SelectValue placeholder="Makine seçin..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {machines.map((machine) => (
+                        <SelectItem
+                          key={machine.id}
+                          value={machine.id}
+                          disabled={machine.maintenance}
+                          className="text-text-primary"
+                        >
+                          {machine.name} {machine.maintenance && "(BAKIM)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.machine_id && getFormatOptions(machines.find(m => m.id === formData.machine_id)?.name).length > 0 && (
+                  <div>
+                    <Label className="text-text-primary">Format *</Label>
+                    <Select
+                      value={formData.format}
+                      onValueChange={(value) => setFormData({...formData, format: value})}
+                    >
+                      <SelectTrigger data-testid="job-format-select" className="bg-background border-border text-text-primary">
+                        <SelectValue placeholder="Format seçin..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-surface border-border">
+                        {getFormatOptions(machines.find(m => m.id === formData.machine_id)?.name).map((format) => (
+                          <SelectItem key={format} value={format} className="text-text-primary">
+                            {format}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-text-primary">Not</Label>
+                  <Input
+                    data-testid="job-notes-input"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+                <div>
+                  <Label className="text-text-primary">Tahmini Teslim Tarihi</Label>
+                  <Input
+                    data-testid="job-delivery-input"
+                    type="date"
+                    value={formData.delivery_date}
+                    onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+                <Button
+                  data-testid="submit-job-button"
+                  onClick={handleAddJob}
+                  className="w-full bg-success text-white hover:bg-success/90"
+                >
+                  İş Ekle
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <div className="mb-8">
           <h2 className="text-xl md:text-2xl font-heading font-bold text-text-primary mb-4">Makine Durumları</h2>
