@@ -1,0 +1,107 @@
+{
+  "identity": {
+    "name": "Buse Kağıt",
+    "mission": "Industrial Precision meets Digital Efficiency.",
+    "archetype": "The Performance Pro (Industrial Safety + Fintech Clarity)",
+    "tone": "Robust, Reliable, High-Contrast, Efficient"
+  },
+  "typography": {
+    "headings": {
+      "family": "Barlow Condensed, sans-serif",
+      "weights": ["600", "700", "900"],
+      "usage": "All section titles, machine names, and key metrics."
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "General text, instructions, form labels."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "Machine IDs, Order Codes, Barcode values."
+    },
+    "import_url": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+  },
+  "colors": {
+    "palette": {
+      "primary": "#FFBF00",
+      "primary_foreground": "#000000",
+      "secondary": "#007AFF",
+      "background": "#09090B",
+      "surface": "#18181B",
+      "surface_highlight": "#27272A",
+      "text_primary": "#FAFAFA",
+      "text_secondary": "#A1A1AA",
+      "border": "#27272A"
+    },
+    "semantic": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "info": "#3B82F6",
+      "maintenance": "repeating-linear-gradient(45deg, #FACC15, #FACC15 10px, #000000 10px, #000000 20px)"
+    },
+    "theme_strategy": "Dark Mode Default for Operators (Eye strain reduction), Light Mode Toggle for Office."
+  },
+  "layout": {
+    "spacing_scale": "Generous. Use p-6 or p-8 for containers. Gap-4 for dense grids, Gap-8 for layout sections.",
+    "grid_system": {
+      "home": "Bento Grid (1x4 or 2x2 depending on screen). Each module (Yönetim, Operatör, Plan, Depo) gets a massive card.",
+      "dashboard": "Dense Grid. 12-column system. Charts span 4-8 cols. Stats span 2-3 cols.",
+      "operator": "Touch-First Grid. Large buttons (min-height 64px). 2 columns max on mobile."
+    },
+    "container_style": "Rounded-xl. 1px Border (Zinc-800). Subtle inner glow for active states."
+  },
+  "components": {
+    "buttons": {
+      "style": "Sharp or slightly rounded (rounded-md). High contrast. Primary buttons use Safety Amber (#FFBF00) with Black text.",
+      "hover": "Transform -translate-y-1. Shadow-lg."
+    },
+    "cards": {
+      "style": "Flat background (Zinc-900). 1px Border. No heavy drop shadows, use 'inner glow' or border highlight.",
+      "interaction": "Hover: Border color changes to Primary (#FFBF00)."
+    },
+    "inputs": {
+      "style": "Filled background (Zinc-950). Border-b-2 (Underline style) or Full Border. Large text size (16px) to prevent zoom on mobile."
+    },
+    "tables": {
+      "style": "Compact. Zebra striping optional. Header uppercase + tracking-widest (Barlow Condensed)."
+    },
+    "modals": {
+      "style": "Backdrop blur-xl. Border-1px. Dark overlay."
+    }
+  },
+  "assets": {
+    "images": {
+      "home_bg": "https://images.unsplash.com/photo-1767294274634-613a3545e36d?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "operator_bg": "https://images.unsplash.com/photo-1693031630177-b897fb9d7154?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "warehouse_bg": "https://images.unsplash.com/photo-1729551610640-e8adee1172e3?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "plan_bg": "https://images.unsplash.com/photo-1761819951977-022b27502018?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": "Lucide React. Use 'Factory', 'Settings', 'ClipboardList', 'Package', 'Wrench', 'AlertTriangle'."
+  },
+  "motion": {
+    "library": "Framer Motion",
+    "transitions": "Spring physics (stiffness: 300, damping: 30). No linear easings.",
+    "micro_interactions": "Buttons scale down (0.95) on click. Cards lift on hover.",
+    "page_transitions": "Slide in from right for drill-down. Fade in for tabs."
+  },
+  "functionality_rules": {
+    "passwords": {
+      "plan": "12341",
+      "management": "432122"
+    },
+    "machines": [
+      "40x40", "40x40 ICM", "33x33 (Büyük)", "33x33 ICM", 
+      "33x33 (Eski)", "30x30", "24x24", "Dispanser"
+    ]
+  },
+  "universal_guidelines": {
+    "design_philosophy": "Avoid 'AI Slop'. No generic gradients. Use texture, noise, and precise borders.",
+    "accessibility": "All interactive elements MUST have data-testid. Contrast ratio > 4.5:1.",
+    "code_style": "Use Shadcn components but customize them via Tailwind classes. Do not use default Vercel look.",
+    "responsive": "Mobile-first. Touch targets > 44px. No horizontal scroll on mobile.",
+    "testing": "Add data-testid to every button, input, and card."
+  },
+  "instructions_to_main_agent": "1. Install 'framer-motion' and 'lucide-react'. 2. Set up the Tailwind config with the custom colors. 3. Create the 'Layout' component with the industrial theme (Sidebar/Navbar). 4. Implement the 4 main modules as separate routes. 5. Use the provided images for section backgrounds with a dark overlay (bg-black/60) to ensure text readability."
+}
