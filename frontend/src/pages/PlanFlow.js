@@ -481,16 +481,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </div>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="bg-surface border-border">
-            <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white">
+          <TabsList className="bg-surface border-border w-full grid grid-cols-2">
+            <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
               Sıradaki İşler
             </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white">
+            <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
               Geçmiş İşler
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-text-secondary" />
@@ -499,12 +499,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   placeholder="İş ara..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-surface border-border text-text-primary"
+                  className="pl-10 bg-surface border-border text-text-primary h-12 text-base"
                 />
               </div>
             </div>
             <Select value={selectedMachine || "all"} onValueChange={setSelectedMachine}>
-              <SelectTrigger data-testid="filter-machine-select" className="w-full md:w-64 bg-surface border-border text-text-primary">
+              <SelectTrigger data-testid="filter-machine-select" className="w-full bg-surface border-border text-text-primary h-12">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-surface border-border">
