@@ -26,6 +26,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [jobToClone, setJobToClone] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFormat, setSelectedFormat] = useState("all");
+  const [isMachineDetailOpen, setIsMachineDetailOpen] = useState(false);
+  const [selectedMachineDetail, setSelectedMachineDetail] = useState(null);
   
   const [formData, setFormData] = useState({
     name: "",
