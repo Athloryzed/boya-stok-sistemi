@@ -21,6 +21,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState("all");
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [requestType, setRequestType] = useState("");
+  const [requestQuantity, setRequestQuantity] = useState("");
 
   useEffect(() => {
     fetchMachines();
