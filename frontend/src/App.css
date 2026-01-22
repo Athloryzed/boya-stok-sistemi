@@ -1,34 +1,91 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+.App {
+  min-height: 100vh;
+  background: #09090B;
+  color: #FAFAFA;
+  font-family: 'Inter', sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.light {
+  background: #FFFFFF;
+  color: #000000;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.light .bg-background {
+  background: #FFFFFF !important;
 }
 
-.App-link {
-    color: #61dafb;
+.light .bg-surface {
+  background: #F4F4F5 !important;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.light .bg-surface-highlight {
+  background: #E4E4E7 !important;
+}
+
+.light .text-text-primary {
+  color: #09090B !important;
+}
+
+.light .text-text-secondary {
+  color: #52525B !important;
+}
+
+.light .border-border {
+  border-color: #E4E4E7 !important;
+}
+
+.machine-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.machine-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: #FFBF00;
+  box-shadow: 0 10px 30px rgba(255, 191, 0, 0.2);
+}
+
+.btn-scale {
+  transition: transform 0.2s ease;
+}
+
+.btn-scale:active {
+  transform: scale(0.95);
+}
+
+.maintenance-stripes {
+  background: repeating-linear-gradient(
+    45deg,
+    #FACC15,
+    #FACC15 10px,
+    #000000 10px,
+    #000000 20px
+  );
+}
+
+.scanner-border {
+  border: 3px dashed #FFBF00;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.glass-effect {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light .glass-effect {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
