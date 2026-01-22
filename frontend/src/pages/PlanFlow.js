@@ -334,13 +334,17 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               return (
                 <Card
                   key={machine.id}
-                  className={`bg-surface border ${
+                  className={`bg-surface border cursor-pointer machine-card-hover ${
                     machine.maintenance
                       ? "border-warning"
                       : currentJob
                       ? "border-success"
                       : "border-border"
                   }`}
+                  onClick={() => {
+                    setSelectedMachineDetail(machine);
+                    setIsMachineDetailOpen(true);
+                  }}
                 >
                   <CardContent className="p-4">
                     <h3 className="text-lg font-heading font-bold text-text-primary mb-2">
