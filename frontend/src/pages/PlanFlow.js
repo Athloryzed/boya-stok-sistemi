@@ -190,6 +190,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             <DialogContent className="bg-surface border-border max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-heading">Yeni İş Ekle</DialogTitle>
+                <DialogDescription className="text-text-secondary">
+                  Yeni bir iş tanımlamak için aşağıdaki formu doldurun.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
