@@ -325,6 +325,36 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               </div>
             )}
 
+            {currentJob && (
+              <Card className="bg-success/20 border-success mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-heading font-bold text-success mb-3">Şu An Yaptığınız İş</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-lg font-heading font-bold text-text-primary">{currentJob.name}</h4>
+                      {currentJob.format && (
+                        <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                          {currentJob.format}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-text-secondary"><span className="font-semibold">Koli:</span> {currentJob.koli_count}</p>
+                    <p className="text-text-secondary"><span className="font-semibold">Renkler:</span> {currentJob.colors}</p>
+                    {currentJob.notes && <p className="text-text-secondary"><span className="font-semibold">Not:</span> {currentJob.notes}</p>}
+                    <Button
+                      data-testid={`complete-current-job`}
+                      onClick={() => handleCompleteJob(currentJob)}
+                      disabled={loading}
+                      className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Bu İşi Tamamla
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {filteredJobs.length === 0 ? (
               <Card className="bg-surface border-border">
                 <CardContent className="p-8 text-center">
