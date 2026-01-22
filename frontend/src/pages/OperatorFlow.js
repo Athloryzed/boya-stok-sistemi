@@ -245,14 +245,64 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               <h2 className="text-2xl font-heading text-text-primary">
                 {selectedMachine?.name} - İşler
               </h2>
-              <Button
-                variant="outline"
-                onClick={() => setStep(2)}
-                data-testid="change-machine-button"
-                className="border-border bg-surface hover:bg-surface-highlight"
-              >
-                Makine Değiştir
-              </Button>
+              <div className="flex gap-2">
+                <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      data-testid="warehouse-request-button"
+                      className="bg-warning text-black hover:bg-warning/90"
+                    >
+                      <Package className="mr-2 h-4 w-4" />
+                      Depodan İstek
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-surface border-border">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-heading">Depodan Malzeme Talebi</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-text-primary">Malzeme Türü *</Label>
+                        <Select value={requestType} onValueChange={setRequestType}>
+                          <SelectTrigger data-testid="request-type-select" className="bg-background border-border text-text-primary">
+                            <SelectValue placeholder="Seçin..." />
+                          </SelectTrigger>
+                          <SelectContent className="bg-surface border-border">
+                            <SelectItem value="Bobin" className="text-text-primary">Bobin</SelectItem>
+                            <SelectItem value="Koli" className="text-text-primary">Koli</SelectItem>
+                            <SelectItem value="Diğer" className="text-text-primary">Diğer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-text-primary">Miktar *</Label>
+                        <Input
+                          data-testid="request-quantity-input"
+                          type="number"
+                          value={requestQuantity}
+                          onChange={(e) => setRequestQuantity(e.target.value)}
+                          className="bg-background border-border text-text-primary"
+                        />
+                      </div>
+                      <Button
+                        data-testid="submit-request-button"
+                        onClick={handleWarehouseRequest}
+                        className="w-full bg-warning text-black hover:bg-warning/90"
+                      >
+                        Talep Gönder
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(2)}
+                  data-testid="change-machine-button"
+                  className="border-border bg-surface hover:bg-surface-highlight"
+                >
+                  Makine Değiştir
+                </Button>
+              </div>
             </div>
 
             {getFormatOptions(selectedMachine?.name).length > 1 && (
