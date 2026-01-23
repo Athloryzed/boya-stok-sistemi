@@ -821,6 +821,149 @@ async def mark_single_message_read(message_id: str):
     )
     return {"success": result.modified_count > 0}
 
+# ==================== ZİYARETÇİ TAKİP ====================
+
+def parse_user_agent(user_agent: str) -> dict:
+    """User agent string'inden cihaz bilgisi çıkar"""
+    ua = user_agent.lower()
+    
+    # Cihaz tipi
+    if "mobile" in ua or "android" in ua and "mobile" in ua:
+        device_type = "Mobil"
+    elif "tablet" in ua or "ipad" in ua:
+        device_type = "Tablet"
+    else:
+        device_type = "Masaüstü"
+    
+    # İşletim sistemi
+    if "windows" in ua:
+        os = "Windows"
+    elif "mac" in ua or "macintosh" in ua:
+        os = "MacOS"
+    elif "iphone" in ua:
+        os = "iOS"
+        device_type = "Mobil"
+    elif "ipad" in ua:
+        os = "iOS"
+        device_type = "Tablet"
+    elif "android" in ua:
+        os = "Android"
+    elif "linux" in ua:
+        os = "Linux"
+    else:
+        os = "Bilinmeyen"
+    
+    # Tarayıcı
+    if "chrome" in ua and "edg" not in ua:
+        browser = "Chrome"
+    elif "firefox" in ua:
+        browser = "Firefox"
+    elif "safari" in ua and "chrome" not in ua:
+        browser = "Safari"
+    elif "edg" in ua:
+        browser = "Edge"
+    elif "opera" in ua or "opr" in ua:
+        browser = "Opera"
+    else:
+        browser = "Diğer"
+    
+    # Cihaz modeli tahmini
+    if "iphone" in ua:
+        device_model = "iPhone"
+    elif "ipad" in ua:
+        device_model = "iPad"
+    elif "samsung" in ua:
+        device_model = "Samsung"
+    elif "huawei" in ua:
+        device_model = "Huawei"
+    elif "xiaomi" in ua or "redmi" in ua:
+        device_model = "Xiaomi"
+    elif "pixel" in ua:
+        device_model = "Google Pixel"
+    elif "windows" in ua:
+        device_model = "PC"
+    elif "macintosh" in ua:
+        device_model = "Mac"
+    else:
+        device_model = device_type
+    
+    return {
+        "device_type": device_type,
+        "device_model": device_model,
+        "browser": browser,
+        "os": os
+    }
+
+from fastapi import Request
+
+@api_router.post("/visitors/log")
+async def log_visitor(request: Request, data: dict = Body(...)):
+    """Ziyaretçi kaydı oluştur"""
+    # IP adresini al
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        ip_address = forwarded_for.split(",")[0].strip()
+    else:
+        ip_address = request.client.host if request.client else "Bilinmeyen"
+    
+    user_agent = data.get("user_agent", "")
+    page_visited = data.get("page_visited", "/")
+    
+    # User agent'ı parse et
+    device_info = parse_user_agent(user_agent)
+    
+    visitor = Visitor(
+        ip_address=ip_address,
+        user_agent=user_agent,
+        device_type=device_info["device_type"],
+        device_model=device_info["device_model"],
+        browser=device_info["browser"],
+        os=device_info["os"],
+        page_visited=page_visited
+    )
+    
+    await db.visitors.insert_one(visitor.model_dump())
+    return {"message": "Ziyaret kaydedildi", "visitor_id": visitor.id}
+
+@api_router.get("/visitors")
+async def get_visitors(limit: int = 100):
+    """Ziyaretçi listesini getir"""
+    visitors = await db.visitors.find({}, {"_id": 0}).sort("visited_at", -1).to_list(limit)
+    return visitors
+
+@api_router.get("/visitors/stats")
+async def get_visitor_stats():
+    """Ziyaretçi istatistikleri"""
+    total = await db.visitors.count_documents({})
+    
+    # Son 24 saat
+    from datetime import timedelta
+    day_ago = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    today_count = await db.visitors.count_documents({"visited_at": {"$gte": day_ago}})
+    
+    # Son 7 gün
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    week_count = await db.visitors.count_documents({"visited_at": {"$gte": week_ago}})
+    
+    # Cihaz dağılımı
+    device_pipeline = [
+        {"$group": {"_id": "$device_type", "count": {"$sum": 1}}}
+    ]
+    device_stats = await db.visitors.aggregate(device_pipeline).to_list(10)
+    
+    return {
+        "total_visitors": total,
+        "today": today_count,
+        "this_week": week_count,
+        "device_distribution": {item["_id"]: item["count"] for item in device_stats}
+    }
+
+@api_router.delete("/visitors/clear")
+async def clear_visitors():
+    """Tüm ziyaretçi kayıtlarını temizle"""
+    result = await db.visitors.delete_many({})
+    return {"message": f"{result.deleted_count} kayıt silindi"}
+
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):
     """Hafta bazında günlük üretim analitiği"""
