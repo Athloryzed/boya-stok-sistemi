@@ -516,6 +516,20 @@ async def export_analytics(period: str = "weekly"):
 async def create_warehouse_request(request: WarehouseRequest):
     doc = request.model_dump()
     await db.warehouse_requests.insert_one(doc)
+    
+    # WebSocket ile depo'ya bildirim gönder
+    await manager.broadcast({
+        "type": "new_warehouse_request",
+        "data": {
+            "id": request.id,
+            "operator_name": request.operator_name,
+            "machine_name": request.machine_name,
+            "item_type": request.item_type,
+            "quantity": request.quantity,
+            "created_at": request.created_at
+        }
+    })
+    
     return request
 
 @api_router.get("/warehouse-requests", response_model=List[WarehouseRequest])
