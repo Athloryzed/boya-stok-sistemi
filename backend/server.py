@@ -87,6 +87,26 @@ class PalletScan(BaseModel):
     operator_name: str
     scanned_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Boya (Paint) Models
+class Paint(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    stock_kg: float = 0.0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PaintMovement(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    paint_id: str
+    paint_name: str
+    movement_type: str  # "add", "remove", "to_machine", "from_machine"
+    amount_kg: float
+    machine_id: Optional[str] = None
+    machine_name: Optional[str] = None
+    note: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 @api_router.get("/")
 async def root():
     return {"message": "Buse Kağıt API"}
@@ -482,6 +502,158 @@ async def scan_pallet(pallet: PalletScan):
 async def get_pallets():
     pallets = await db.pallets.find({}, {"_id": 0}).sort("scanned_at", -1).to_list(100)
     return pallets
+
+# ==================== BOYA (PAINT) ENDPOINTS ====================
+
+# Başlangıç boyaları
+INITIAL_PAINTS = [
+    "Siyah", "Beyaz", "Kırmızı", "Mavi", "Yeşil", "Sarı",
+    "Turuncu", "Mor", "Pembe", "Kahverengi", "Gri", "Turkuaz"
+]
+
+@api_router.post("/paints/init")
+async def init_paints():
+    """Başlangıç boyalarını oluştur"""
+    existing = await db.paints.count_documents({})
+    if existing == 0:
+        paints = [Paint(name=name).model_dump() for name in INITIAL_PAINTS]
+        await db.paints.insert_many(paints)
+        return {"message": f"{len(INITIAL_PAINTS)} boya eklendi"}
+    return {"message": "Boyalar zaten mevcut"}
+
+@api_router.get("/paints", response_model=List[Paint])
+async def get_paints():
+    """Tüm boyaları listele"""
+    paints = await db.paints.find({}, {"_id": 0}).sort("name", 1).to_list(100)
+    return paints
+
+@api_router.post("/paints", response_model=Paint)
+async def create_paint(paint: Paint):
+    """Yeni boya ekle"""
+    doc = paint.model_dump()
+    await db.paints.insert_one(doc)
+    return paint
+
+@api_router.delete("/paints/{paint_id}")
+async def delete_paint(paint_id: str):
+    """Boya sil"""
+    result = await db.paints.delete_one({"id": paint_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Boya bulunamadı")
+    return {"message": "Boya silindi"}
+
+@api_router.post("/paints/transaction")
+async def paint_transaction(data: dict = Body(...)):
+    """Boya hareketi kaydet (stok ekleme, çıkarma, makineye gönderme, makineden alma)"""
+    paint_id = data.get("paint_id")
+    movement_type = data.get("movement_type")  # "add", "remove", "to_machine", "from_machine"
+    amount_kg = float(data.get("amount_kg", 0))
+    machine_id = data.get("machine_id")
+    machine_name = data.get("machine_name")
+    note = data.get("note", "")
+    
+    # Boya bul
+    paint = await db.paints.find_one({"id": paint_id}, {"_id": 0})
+    if not paint:
+        raise HTTPException(status_code=404, detail="Boya bulunamadı")
+    
+    # Stok güncelle
+    current_stock = paint.get("stock_kg", 0)
+    
+    if movement_type == "add" or movement_type == "from_machine":
+        new_stock = current_stock + amount_kg
+    elif movement_type == "remove" or movement_type == "to_machine":
+        if current_stock < amount_kg:
+            raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {current_stock} kg")
+        new_stock = current_stock - amount_kg
+    else:
+        raise HTTPException(status_code=400, detail="Geçersiz hareket tipi")
+    
+    # Stok güncelle
+    await db.paints.update_one({"id": paint_id}, {"$set": {"stock_kg": new_stock}})
+    
+    # Hareket kaydı oluştur
+    movement = PaintMovement(
+        paint_id=paint_id,
+        paint_name=paint["name"],
+        movement_type=movement_type,
+        amount_kg=amount_kg,
+        machine_id=machine_id,
+        machine_name=machine_name,
+        note=note
+    )
+    await db.paint_movements.insert_one(movement.model_dump())
+    
+    return {
+        "message": "Hareket kaydedildi",
+        "new_stock": new_stock,
+        "movement_id": movement.id
+    }
+
+@api_router.get("/paints/movements", response_model=List[PaintMovement])
+async def get_paint_movements(paint_id: Optional[str] = None, limit: int = 100):
+    """Boya hareketlerini listele"""
+    query = {}
+    if paint_id:
+        query["paint_id"] = paint_id
+    movements = await db.paint_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return movements
+
+@api_router.get("/paints/analytics")
+async def get_paint_analytics(period: str = "weekly"):
+    """Boya tüketim analitiği"""
+    from datetime import timedelta
+    
+    if period == "weekly":
+        date_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    else:
+        date_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    date_ago_str = date_ago.isoformat()
+    
+    # Tüketim hareketleri (remove, to_machine)
+    movements = await db.paint_movements.find(
+        {
+            "movement_type": {"$in": ["remove", "to_machine"]},
+            "created_at": {"$gte": date_ago_str}
+        },
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Boya bazında tüketim
+    paint_consumption = {}
+    machine_consumption = {}
+    daily_consumption = {}
+    
+    for mov in movements:
+        paint_name = mov["paint_name"]
+        amount = mov["amount_kg"]
+        machine_name = mov.get("machine_name", "Bilinmeyen")
+        
+        # Boya bazında
+        if paint_name not in paint_consumption:
+            paint_consumption[paint_name] = 0
+        paint_consumption[paint_name] += amount
+        
+        # Makine bazında
+        if machine_name and machine_name != "Bilinmeyen":
+            if machine_name not in machine_consumption:
+                machine_consumption[machine_name] = 0
+            machine_consumption[machine_name] += amount
+        
+        # Günlük bazda
+        date_str = mov["created_at"][:10]
+        if date_str not in daily_consumption:
+            daily_consumption[date_str] = 0
+        daily_consumption[date_str] += amount
+    
+    return {
+        "period": period,
+        "paint_consumption": paint_consumption,
+        "machine_consumption": machine_consumption,
+        "daily_consumption": daily_consumption,
+        "total_consumed": sum(paint_consumption.values())
+    }
 
 app.include_router(api_router)
 
