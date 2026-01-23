@@ -379,30 +379,39 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {movements.map((mov) => (
-                          <tr key={mov.id} className="border-b border-border" data-testid={`movement-${mov.id}`}>
-                            <td className="p-2 md:p-3 text-sm">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-4 h-4 rounded-full border"
-                                  style={{ 
-                                    backgroundColor: getPaintColor(mov.paint_name),
-                                    borderColor: mov.paint_name === "Beyaz" ? "#ccc" : getPaintColor(mov.paint_name)
-                                  }}
-                                />
-                                <span className="text-text-primary font-semibold">{mov.paint_name}</span>
-                              </div>
-                            </td>
-                            <td className={`p-2 md:p-3 text-sm ${getMovementTypeColor(mov.movement_type)}`}>
-                              {getMovementTypeLabel(mov.movement_type)}
-                            </td>
-                            <td className="p-2 md:p-3 text-text-secondary text-sm">{mov.amount_kg} L</td>
-                            <td className="p-2 md:p-3 text-text-secondary text-sm hidden md:table-cell">{mov.machine_name || "-"}</td>
-                            <td className="p-2 md:p-3 text-text-secondary text-sm hidden md:table-cell">
-                              {new Date(mov.created_at).toLocaleString("tr-TR")}
-                            </td>
-                          </tr>
-                        ))}
+                        {movements.map((mov) => {
+                          const date = new Date(mov.created_at);
+                          const formattedDate = date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" });
+                          const formattedTime = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+                          
+                          return (
+                            <tr key={mov.id} className="border-b border-border" data-testid={`movement-${mov.id}`}>
+                              <td className="p-2 md:p-3 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="w-4 h-4 rounded-full border"
+                                    style={{ 
+                                      backgroundColor: getPaintColor(mov.paint_name),
+                                      borderColor: mov.paint_name === "Beyaz" ? "#ccc" : getPaintColor(mov.paint_name)
+                                    }}
+                                  />
+                                  <span className="text-text-primary font-semibold">{mov.paint_name}</span>
+                                </div>
+                              </td>
+                              <td className={`p-2 md:p-3 text-sm ${getMovementTypeColor(mov.movement_type)}`}>
+                                {getMovementTypeLabel(mov.movement_type)}
+                              </td>
+                              <td className="p-2 md:p-3 text-text-secondary text-sm">{mov.amount_kg} L</td>
+                              <td className="p-2 md:p-3 text-text-secondary text-sm hidden md:table-cell">{mov.machine_name || "-"}</td>
+                              <td className="p-2 md:p-3 text-sm">
+                                <div className="flex flex-col">
+                                  <span className="text-text-primary font-semibold">{formattedTime}</span>
+                                  <span className="text-text-secondary text-xs">{formattedDate}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
