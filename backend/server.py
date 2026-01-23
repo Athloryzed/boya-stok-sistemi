@@ -601,6 +601,12 @@ async def delete_paint(paint_id: str):
         raise HTTPException(status_code=404, detail="Boya bulunamadı")
     return {"message": "Boya silindi"}
 
+@api_router.delete("/paints/movements/clear")
+async def clear_paint_movements():
+    """Tüm boya hareketlerini temizle"""
+    result = await db.paint_movements.delete_many({})
+    return {"message": f"{result.deleted_count} hareket silindi"}
+
 @api_router.post("/paints/transaction")
 async def paint_transaction(data: dict = Body(...)):
     """Boya hareketi kaydet (stok ekleme, çıkarma, makineye gönderme, makineden alma)"""
