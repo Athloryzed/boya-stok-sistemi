@@ -107,6 +107,18 @@ class PaintMovement(BaseModel):
     note: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Makine Mesaj Modeli
+class MachineMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    machine_id: str
+    machine_name: str
+    sender_role: str  # "yonetim" veya "plan"
+    sender_name: str
+    message: str
+    is_read: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 @api_router.get("/")
 async def root():
     return {"message": "Buse Kağıt API"}
@@ -503,11 +515,14 @@ async def get_pallets():
 
 # ==================== BOYA (PAINT) ENDPOINTS ====================
 
-# Başlangıç boyaları
+# Başlangıç boyaları (Güncellenmiş liste)
 INITIAL_PAINTS = [
-    "Siyah", "Beyaz", "Kırmızı", "Mavi", "Yeşil", "Sarı",
-    "Turuncu", "Mor", "Pembe", "Kahverengi", "Gri", "Turkuaz"
+    "Siyah", "Beyaz", "Mavi", "Lacivert", "Refleks", "Kırmızı",
+    "Magenta", "Rhodam", "Sarı", "Gold", "Gümüş", "Pasta"
 ]
+
+# Düşük stok eşiği (kg/L)
+LOW_STOCK_THRESHOLD = 5.0
 
 @api_router.post("/paints/init")
 async def init_paints():
