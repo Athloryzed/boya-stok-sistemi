@@ -79,6 +79,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setJobs(jobsRes.data);
       setWeeklyAnalytics(weeklyRes.data);
       setMonthlyAnalytics(monthlyRes.data);
+      setDailyAnalytics(dailyRes.data);
       setMaintenanceLogs(logsRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
