@@ -265,6 +265,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  const handleMarkMessageRead = async (messageId) => {
+    try {
+      await axios.put(`${API}/messages/mark-read/${messageId}`);
+      fetchData();
+    } catch (error) {
+      console.error("Mark read error:", error);
+    }
+  };
+
   const prepareChartData = (data, label) => {
     if (!data) return [];
     return Object.entries(data).map(([name, value]) => ({ name, [label]: value }));
