@@ -34,6 +34,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [messageText, setMessageText] = useState("");
   const [incomingMessages, setIncomingMessages] = useState([]);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [isEditJobOpen, setIsEditJobOpen] = useState(false);
+  const [jobToEdit, setJobToEdit] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "", koli_count: "", colors: "", format: "", notes: "", delivery_date: ""
+  });
   
   const [formData, setFormData] = useState({
     name: "",
