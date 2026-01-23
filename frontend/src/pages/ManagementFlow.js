@@ -57,12 +57,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, logsRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
         axios.get(`${API}/analytics/weekly`),
         axios.get(`${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`),
+        axios.get(`${API}/analytics/daily`),
         axios.get(`${API}/maintenance-logs`)
       ]);
       setCurrentShift(shiftRes.data);
