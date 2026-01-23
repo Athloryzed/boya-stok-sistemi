@@ -39,7 +39,7 @@ const Home = ({ theme, toggleTheme }) => {
     },
     {
       title: "Boya",
-      icon: Package,
+      icon: Droplet,
       path: "/paint",
       color: "#EC4899",
       testId: "paint-module"
