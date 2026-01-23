@@ -487,9 +487,20 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   }}
                 >
                   <CardContent className="p-2 md:p-4">
-                    <h3 className="text-sm md:text-lg font-heading font-bold text-text-primary mb-1 md:mb-2 truncate">
-                      {machine.name}
-                    </h3>
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-sm md:text-lg font-heading font-bold text-text-primary mb-1 md:mb-2 truncate flex-1">
+                        {machine.name}
+                      </h3>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={(e) => { e.stopPropagation(); openMessageDialog(machine); }}
+                        className="h-6 w-6 p-0 text-blue-500 hover:bg-blue-500/10"
+                        data-testid={`message-${machine.name}`}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
                     {machine.maintenance ? (
                       <p className="text-xs md:text-sm text-warning font-semibold">BAKIM</p>
                     ) : currentJob ? (
@@ -510,6 +521,33 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             })}
           </div>
         </div>
+
+        {/* MESAJ DIALOG */}
+        <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading flex items-center gap-2">
+                <MessageSquare className="h-6 w-6 text-blue-500" />
+                Mesaj Gönder - {selectedMachineForMessage?.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-text-primary">Mesajınız</Label>
+                <Textarea
+                  data-testid="message-input"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Operatöre göndermek istediğiniz mesajı yazın..."
+                  className="bg-background border-border text-text-primary min-h-[100px]"
+                />
+              </div>
+              <Button data-testid="send-message-button" onClick={handleSendMessage} className="w-full bg-blue-500 text-white hover:bg-blue-600">
+                <Send className="mr-2 h-4 w-4" /> Mesaj Gönder
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Tabs defaultValue="pending" className="space-y-6">
           <TabsList className="bg-surface border-border w-full grid grid-cols-2">
