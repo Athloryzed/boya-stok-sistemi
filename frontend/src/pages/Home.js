@@ -265,15 +265,15 @@ const Home = ({ theme, toggleTheme }) => {
           </Button>
         </div>
 
-        <div className="container mx-auto px-6 py-12">
+        <div className="container mx-auto px-6 py-12 pt-24 md:pt-12">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-12 md:mb-16"
           >
             <h1 
-              className="text-6xl md:text-7xl font-heading font-black mb-4 tracking-tight"
+              className="text-5xl md:text-6xl lg:text-7xl font-heading font-black mb-4 tracking-tight"
               style={{
                 textShadow: "0 4px 20px rgba(0,0,0,0.3), 0 0 40px rgba(255,191,0,0.5)",
                 color: "#FFBF00"
@@ -281,7 +281,7 @@ const Home = ({ theme, toggleTheme }) => {
             >
               BUSE KAĞIT
             </h1>
-            <p className="text-xl font-body text-white drop-shadow-lg">
+            <p className="text-lg md:text-xl font-body text-white drop-shadow-lg">
               Üretim Yönetim Sistemi
             </p>
           </motion.div>
