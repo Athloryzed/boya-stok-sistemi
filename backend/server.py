@@ -309,24 +309,17 @@ async def get_weekly_analytics():
     ).to_list(1000)
     
     machine_stats = {}
-    operator_stats = {}
     
     for job in jobs:
         machine = job["machine_name"]
-        operator = job.get("operator_name", "Unknown")
         koli = job["completed_koli"]
         
         if machine not in machine_stats:
             machine_stats[machine] = 0
         machine_stats[machine] += koli
-        
-        if operator not in operator_stats:
-            operator_stats[operator] = 0
-        operator_stats[operator] += koli
     
     return {
-        "machine_stats": machine_stats,
-        "operator_stats": operator_stats
+        "machine_stats": machine_stats
     }
 
 @api_router.get("/analytics/monthly")
