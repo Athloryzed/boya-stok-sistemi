@@ -386,6 +386,43 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
           <TabsContent value="analytics">
             <div className="space-y-6">
+              {/* Günlük Analiz */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-xl md:text-2xl font-heading">Günlük Üretim (Son 7 Gün)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={dailyAnalytics?.daily_stats || []}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
+                      <XAxis dataKey="date" stroke="#A1A1AA" tick={{ fontSize: 10 }} />
+                      <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} 
+                        labelStyle={{ color: "#FAFAFA" }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-surface border border-border p-3 rounded">
+                                <p className="text-text-primary font-semibold">{data.date}</p>
+                                <p className="text-primary">Toplam: {data.total_koli} Koli</p>
+                                {data.machines && Object.entries(data.machines).map(([machine, koli]) => (
+                                  <p key={machine} className="text-text-secondary text-sm">{machine}: {koli}</p>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="total_koli" fill="#FFBF00" name="Toplam Koli" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Haftalık Analiz */}
               <Card className="bg-surface border-border">
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 w-full md:w-auto">
