@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Settings, Users, ClipboardList, Package, Sun, Moon } from "lucide-react";
+import { Settings, Users, ClipboardList, Package, Sun, Moon, Droplet } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 const Home = ({ theme, toggleTheme }) => {
