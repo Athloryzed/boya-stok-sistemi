@@ -10,6 +10,11 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
 - **Depo**: Şifresiz - Malzeme talepleri
 - **Boya**: Şifre `432122` - Boya stok yönetimi
 
+## Son Güncelleme: 23 Ocak 2025
+
+### Düzeltilen Sorunlar ✅
+- **Mobil Sekme Menüsü Düzeltmesi**: Yönetim panelindeki sekmeler (Makine, Mesaj, Analiz, Boya, Ziyaret, Bakım) artık mobil cihazlarda 2x3 grid düzeninde tam görünür. Masaüstünde ise yatay düzende gösteriliyor.
+
 ## Tamamlanan Özellikler
 
 ### Ana Modüller ✅
@@ -19,9 +24,10 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
    - Günlük/Haftalık/Aylık analitik (hafta seçimli)
    - Bakım kayıtları
    - Excel rapor dışa aktarma
-   - **Boya Stok Tablosu** (YENİ)
-   - **Makineye Mesaj Gönderme** (YENİ)
-   - **Düşük Stok Uyarısı** (YENİ)
+   - **Boya Stok Tablosu**
+   - **Makineye Mesaj Gönderme**
+   - **Düşük Stok Uyarısı**
+   - **Mobil Responsive Sekme Menüsü** (23 Ocak 2025)
 
 2. **Operatör Paneli**
    - Makine seçimi
