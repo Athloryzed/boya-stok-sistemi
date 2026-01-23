@@ -116,11 +116,15 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
 
 ## Bekleyen Görevler (Backlog)
 
-### P1 - Yüksek Öncelik
-- [ ] Depo için gerçek zamanlı bildirimler (WebSocket)
-
 ### P2 - Orta Öncelik
-- [ ] QR/Barkod tarama özelliği
+- [ ] QR/Barkod tarama özelliği (temel altyapı var)
+
+## Gerçek Zamanlı Bildirim Sistemi ✅ (YENİ - WebSocket)
+- **Depo panelinde WebSocket bağlantısı**: Anlık malzeme talebi bildirimi
+- **Canlı bağlantı durumu**: Yeşil "Canlı" / Kırmızı "Bağlantı Yok" göstergesi
+- **Pop-up bildirim**: Yeni talep geldiğinde animasyonlu ve sesli bildirim
+- **Otomatik yeniden bağlanma**: Bağlantı koptuğunda 3 sn sonra otomatik yeniden bağlanma
+- **Fallback polling**: WebSocket çalışmazsa 5 saniyede bir kontrol
 
 ## Test Durumu
 - Boya modülü: %100 çalışıyor
