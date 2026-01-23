@@ -668,6 +668,115 @@ async def get_paint_analytics(period: str = "weekly"):
         "total_consumed": sum(paint_consumption.values())
     }
 
+@api_router.get("/paints/low-stock")
+async def get_low_stock_paints():
+    """Düşük stoklu boyaları listele (5L altı)"""
+    paints = await db.paints.find({"stock_kg": {"$lt": LOW_STOCK_THRESHOLD}}, {"_id": 0}).to_list(100)
+    return {
+        "threshold": LOW_STOCK_THRESHOLD,
+        "low_stock_paints": paints
+    }
+
+# ==================== MAKİNE MESAJ SİSTEMİ ====================
+
+@api_router.post("/messages", response_model=MachineMessage)
+async def send_message(data: dict = Body(...)):
+    """Plan veya Yönetim'den makineye mesaj gönder"""
+    machine_id = data.get("machine_id")
+    machine_name = data.get("machine_name")
+    sender_role = data.get("sender_role")  # "yonetim" veya "plan"
+    sender_name = data.get("sender_name", sender_role.title())
+    message_text = data.get("message")
+    
+    if not all([machine_id, sender_role, message_text]):
+        raise HTTPException(status_code=400, detail="Eksik bilgi")
+    
+    message = MachineMessage(
+        machine_id=machine_id,
+        machine_name=machine_name or "",
+        sender_role=sender_role,
+        sender_name=sender_name,
+        message=message_text
+    )
+    
+    await db.machine_messages.insert_one(message.model_dump())
+    return message
+
+@api_router.get("/messages/{machine_id}")
+async def get_machine_messages(machine_id: str, limit: int = 50):
+    """Bir makinenin mesajlarını getir"""
+    messages = await db.machine_messages.find(
+        {"machine_id": machine_id}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    return list(reversed(messages))  # En eski en üstte
+
+@api_router.get("/messages/{machine_id}/unread")
+async def get_unread_messages(machine_id: str):
+    """Okunmamış mesaj sayısını getir"""
+    count = await db.machine_messages.count_documents({
+        "machine_id": machine_id,
+        "is_read": False
+    })
+    return {"unread_count": count}
+
+@api_router.put("/messages/{machine_id}/mark-read")
+async def mark_messages_read(machine_id: str):
+    """Bir makinenin tüm mesajlarını okundu olarak işaretle"""
+    result = await db.machine_messages.update_many(
+        {"machine_id": machine_id, "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    return {"marked_read": result.modified_count}
+
+@api_router.get("/analytics/daily-by-week")
+async def get_daily_analytics_by_week(week_offset: int = 0):
+    """Hafta bazında günlük üretim analitiği"""
+    from datetime import timedelta
+    
+    # Hedef haftayı hesapla
+    today = datetime.now(timezone.utc)
+    # Pazartesi'yi bul
+    days_since_monday = today.weekday()
+    this_monday = today - timedelta(days=days_since_monday)
+    target_monday = this_monday + timedelta(weeks=week_offset)
+    target_sunday = target_monday + timedelta(days=6)
+    
+    daily_stats = []
+    for i in range(7):
+        date = target_monday + timedelta(days=i)
+        start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = start_of_day + timedelta(days=1)
+        
+        jobs = await db.jobs.find(
+            {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        total_koli = sum(job["completed_koli"] for job in jobs)
+        machine_breakdown = {}
+        for job in jobs:
+            machine = job["machine_name"]
+            if machine not in machine_breakdown:
+                machine_breakdown[machine] = 0
+            machine_breakdown[machine] += job["completed_koli"]
+        
+        day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
+        daily_stats.append({
+            "date": start_of_day.strftime("%d %b"),
+            "day_name": day_names[i],
+            "full_date": start_of_day.strftime("%Y-%m-%d"),
+            "total_koli": total_koli,
+            "machines": machine_breakdown
+        })
+    
+    return {
+        "week_start": target_monday.strftime("%d %b %Y"),
+        "week_end": target_sunday.strftime("%d %b %Y"),
+        "week_offset": week_offset,
+        "daily_stats": daily_stats
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
