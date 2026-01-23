@@ -119,8 +119,8 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     fetchData();
     connectWebSocket();
     
-    // Fallback: Her 30 saniyede bir kontrol et (WebSocket çalışmazsa)
-    const interval = setInterval(fetchData, 30000);
+    // Fallback: Her 5 saniyede bir kontrol et (WebSocket çalışmazsa)
+    const interval = setInterval(fetchData, 5000);
     
     return () => {
       clearInterval(interval);
