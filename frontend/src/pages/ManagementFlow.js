@@ -358,29 +358,60 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         )}
 
         <Tabs defaultValue="machines" className="space-y-6">
-          <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <TabsList className="bg-surface border-border inline-flex min-w-max gap-1">
-              <TabsTrigger value="machines" data-testid="machines-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs px-3 py-2 whitespace-nowrap">
+          {/* Mobile: 2-row grid layout, Desktop: horizontal scroll */}
+          <div className="block md:hidden">
+            <div className="grid grid-cols-3 gap-2">
+              <TabsList className="bg-surface border-border col-span-3 grid grid-cols-3 h-auto p-1">
+                <TabsTrigger value="machines" data-testid="machines-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Makine
+                </TabsTrigger>
+                <TabsTrigger value="messages" data-testid="messages-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs py-2">
+                  Mesaj
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                      {unreadMessagesCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="analytics" data-testid="analytics-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Analiz
+                </TabsTrigger>
+                <TabsTrigger value="paints" data-testid="paints-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Boya
+                </TabsTrigger>
+                <TabsTrigger value="visitors" data-testid="visitors-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Ziyaret
+                </TabsTrigger>
+                <TabsTrigger value="maintenance" data-testid="maintenance-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Bakım
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+          {/* Desktop: Horizontal tabs */}
+          <div className="hidden md:block">
+            <TabsList className="bg-surface border-border inline-flex">
+              <TabsTrigger value="machines" data-testid="machines-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-4">
                 Makineler
               </TabsTrigger>
-              <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs px-3 py-2 whitespace-nowrap">
-                <Inbox className="h-3 w-3 mr-1" /> Mesajlar
+              <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-sm px-4">
+                <Inbox className="h-4 w-4 mr-1" /> Mesajlar
                 {unreadMessagesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
                     {unreadMessagesCount}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs px-3 py-2 whitespace-nowrap">
+              <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-4">
                 Analiz
               </TabsTrigger>
-              <TabsTrigger value="paints" data-testid="paints-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs px-3 py-2 whitespace-nowrap">
-                <Droplet className="h-3 w-3 mr-1" /> Boyalar
+              <TabsTrigger value="paints" data-testid="paints-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-4">
+                <Droplet className="h-4 w-4 mr-1" /> Boyalar
               </TabsTrigger>
-              <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs px-3 py-2 whitespace-nowrap">
-                <Users className="h-3 w-3 mr-1" /> Ziyaret
+              <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-4">
+                <Users className="h-4 w-4 mr-1" /> Ziyaretçiler
               </TabsTrigger>
-              <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs px-3 py-2 whitespace-nowrap">
+              <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-4">
                 Bakım
               </TabsTrigger>
             </TabsList>
