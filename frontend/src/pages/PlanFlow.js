@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -28,6 +29,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [selectedFormat, setSelectedFormat] = useState("all");
   const [isMachineDetailOpen, setIsMachineDetailOpen] = useState(false);
   const [selectedMachineDetail, setSelectedMachineDetail] = useState(null);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [selectedMachineForMessage, setSelectedMachineForMessage] = useState(null);
+  const [messageText, setMessageText] = useState("");
   
   const [formData, setFormData] = useState({
     name: "",
