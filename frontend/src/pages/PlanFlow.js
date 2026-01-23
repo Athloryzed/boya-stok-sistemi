@@ -1123,6 +1123,81 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
+        {/* İŞ DÜZENLEME DIALOG */}
+        <Dialog open={isEditJobOpen} onOpenChange={setIsEditJobOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading">İş Düzenle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-text-primary">İş Adı *</Label>
+                <Input
+                  data-testid="edit-job-name-input"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Koli Sayısı *</Label>
+                <Input
+                  data-testid="edit-job-koli-input"
+                  type="number"
+                  value={editFormData.koli_count}
+                  onChange={(e) => setEditFormData({...editFormData, koli_count: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Renkler *</Label>
+                <Input
+                  data-testid="edit-job-colors-input"
+                  value={editFormData.colors}
+                  onChange={(e) => setEditFormData({...editFormData, colors: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Format</Label>
+                <Input
+                  data-testid="edit-job-format-input"
+                  value={editFormData.format}
+                  onChange={(e) => setEditFormData({...editFormData, format: e.target.value})}
+                  placeholder="Opsiyonel"
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Not</Label>
+                <Input
+                  data-testid="edit-job-notes-input"
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Tahmini Teslim Tarihi</Label>
+                <Input
+                  data-testid="edit-job-delivery-input"
+                  type="date"
+                  value={editFormData.delivery_date}
+                  onChange={(e) => setEditFormData({...editFormData, delivery_date: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <Button
+                data-testid="submit-edit-button"
+                onClick={handleUpdateJob}
+                className="w-full bg-success text-white hover:bg-success/90"
+              >
+                Güncelle
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
