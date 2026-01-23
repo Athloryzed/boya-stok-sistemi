@@ -36,6 +36,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
   const [paints, setPaints] = useState([]);
   const [lowStockPaints, setLowStockPaints] = useState([]);
+  const [incomingMessages, setIncomingMessages] = useState([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   
   // Dialog states
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
