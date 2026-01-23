@@ -375,7 +375,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                           <th className="text-left p-2 md:p-3 font-heading text-text-primary text-sm">İşlem</th>
                           <th className="text-left p-2 md:p-3 font-heading text-text-primary text-sm">Miktar</th>
                           <th className="text-left p-2 md:p-3 font-heading text-text-primary text-sm hidden md:table-cell">Makine</th>
-                          <th className="text-left p-2 md:p-3 font-heading text-text-primary text-sm hidden md:table-cell">Tarih</th>
+                          <th className="text-left p-2 md:p-3 font-heading text-text-primary text-sm">Tarih/Saat</th>
                         </tr>
                       </thead>
                       <tbody>
