@@ -213,6 +213,55 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  const openEditJob = (job) => {
+    setJobToEdit(job);
+    setEditFormData({
+      name: job.name,
+      koli_count: job.koli_count.toString(),
+      colors: job.colors,
+      format: job.format || "",
+      notes: job.notes || "",
+      delivery_date: job.delivery_date || ""
+    });
+    setIsEditJobOpen(true);
+  };
+
+  const handleUpdateJob = async () => {
+    if (!editFormData.name || !editFormData.koli_count || !editFormData.colors) {
+      toast.error("Lütfen zorunlu alanları doldurun");
+      return;
+    }
+    try {
+      await axios.put(`${API}/jobs/${jobToEdit.id}`, {
+        name: editFormData.name,
+        koli_count: parseInt(editFormData.koli_count),
+        colors: editFormData.colors,
+        format: editFormData.format || null,
+        notes: editFormData.notes,
+        delivery_date: editFormData.delivery_date
+      });
+      toast.success("İş güncellendi!");
+      setIsEditJobOpen(false);
+      setJobToEdit(null);
+      fetchJobs();
+      fetchCompletedJobs();
+    } catch (error) {
+      toast.error("İş güncellenemedi");
+    }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm("Bu işi silmek istediğinizden emin misiniz?")) return;
+    try {
+      await axios.delete(`${API}/jobs/${jobId}`);
+      toast.success("İş silindi!");
+      fetchJobs();
+      fetchCompletedJobs();
+    } catch (error) {
+      toast.error("İş silinemedi");
+    }
+  };
+
   const handleAddJob = async () => {
     if (!formData.name || !formData.koli_count || !formData.colors || !formData.machine_id) {
       toast.error("Lütfen zorunlu alanları doldurun");
