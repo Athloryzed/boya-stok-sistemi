@@ -333,7 +333,13 @@ async def get_weekly_analytics():
     for job in jobs:
         machine = job["machine_name"]
         koli = job["completed_koli"]
-        
+        if machine not in machine_stats:
+            machine_stats[machine] = 0
+        machine_stats[machine] += koli
+    
+    return {
+        "machine_stats": machine_stats
+    }
 
 @api_router.get("/analytics/daily")
 async def get_daily_analytics():
@@ -366,14 +372,6 @@ async def get_daily_analytics():
         })
     
     return {"daily_stats": list(reversed(daily_stats))}
-
-        if machine not in machine_stats:
-            machine_stats[machine] = 0
-        machine_stats[machine] += koli
-    
-    return {
-        "machine_stats": machine_stats
-    }
 
 @api_router.get("/analytics/monthly")
 async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int] = None):
