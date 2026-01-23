@@ -831,6 +831,29 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             </p>
                           )}
                         </div>
+                        {/* Düzenle ve Sil Butonları */}
+                        <div className="flex flex-col gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEditJob(job)}
+                            className="text-blue-500 border-blue-500 hover:bg-blue-500/10"
+                            data-testid={`edit-job-${job.id}`}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            <span className="hidden md:inline">Düzenle</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="text-red-500 border-red-500 hover:bg-red-500/10"
+                            data-testid={`delete-job-${job.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            <span className="hidden md:inline">Sil</span>
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
