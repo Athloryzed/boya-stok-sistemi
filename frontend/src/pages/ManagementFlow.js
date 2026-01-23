@@ -25,6 +25,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [jobs, setJobs] = useState([]);
   const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
   const [monthlyAnalytics, setMonthlyAnalytics] = useState(null);
+  const [dailyAnalytics, setDailyAnalytics] = useState(null);
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
   const [selectedMachineForMaintenance, setSelectedMachineForMaintenance] = useState(null);
