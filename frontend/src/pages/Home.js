@@ -36,6 +36,13 @@ const Home = ({ theme, toggleTheme }) => {
       path: "/warehouse",
       color: "#F59E0B",
       testId: "warehouse-module"
+    },
+    {
+      title: "Boya",
+      icon: Package,
+      path: "/paint",
+      color: "#EC4899",
+      testId: "paint-module"
     }
   ];
 
