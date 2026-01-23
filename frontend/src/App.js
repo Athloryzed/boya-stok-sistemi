@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import axios from "axios";
 import "@/App.css";
 import Home from "./pages/Home";
@@ -12,6 +12,28 @@ import { Toaster } from "./components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
+
+// Ziyaretçi takip bileşeni
+function VisitorTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    const logVisit = async () => {
+      try {
+        await axios.post(`${API}/visitors/log`, {
+          user_agent: navigator.userAgent,
+          page_visited: location.pathname
+        });
+      } catch (error) {
+        console.log("Visitor log error:", error);
+      }
+    };
+    
+    logVisit();
+  }, [location.pathname]);
+  
+  return null;
+}
 
 function App() {
   const [theme, setTheme] = useState("dark");
@@ -43,6 +65,7 @@ function App() {
   return (
     <div className={`App ${theme}`}>
       <BrowserRouter>
+        <VisitorTracker />
         <Routes>
           <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
           <Route path="/operator" element={<OperatorFlow theme={theme} toggleTheme={toggleTheme} />} />
