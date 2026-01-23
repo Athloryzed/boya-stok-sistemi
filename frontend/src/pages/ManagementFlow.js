@@ -453,19 +453,6 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div>
-                      <h3 className="text-base md:text-lg font-heading mb-4 text-text-primary">Operatör Bazında Koli</h3>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <BarChart data={prepareChartData(weeklyAnalytics?.operator_stats, "Koli")}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
-                          <XAxis dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-                          <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
-                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} labelStyle={{ color: "#FAFAFA" }} />
-                          <Legend wrapperStyle={{ fontSize: 12 }} />
-                          <Bar dataKey="Koli" fill="#007AFF" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
