@@ -31,6 +31,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [lastNotificationMessage, setLastNotificationMessage] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
 
