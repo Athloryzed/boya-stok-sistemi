@@ -7,6 +7,7 @@ import OperatorFlow from "./pages/OperatorFlow";
 import PlanFlow from "./pages/PlanFlow";
 import ManagementFlow from "./pages/ManagementFlow";
 import WarehouseFlow from "./pages/WarehouseFlow";
+import PaintFlow from "./pages/PaintFlow";
 import { Toaster } from "./components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
