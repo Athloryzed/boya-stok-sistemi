@@ -113,8 +113,8 @@ const Home = ({ theme, toggleTheme }) => {
         style={{ background: getBackgroundGradient() }}
       />
 
-      {/* Türk Bayrağı - Dalgalanan Animasyon */}
-      <div className="absolute top-8 right-8 w-32 h-20 overflow-hidden rounded-md shadow-2xl" style={{ opacity: 0.3 }}>
+      {/* Türk Bayrağı - Mobilde Üstte Ortada, Masaüstünde Sağ Üstte */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 md:left-auto md:right-8 md:top-8 md:transform-none w-24 h-16 md:w-32 md:h-20 overflow-hidden rounded-md shadow-2xl" style={{ opacity: 0.3 }}>
         <svg
           viewBox="0 0 1200 800"
           xmlns="http://www.w3.org/2000/svg"
@@ -154,9 +154,9 @@ const Home = ({ theme, toggleTheme }) => {
         </svg>
       </div>
 
-      {/* Atatürk Arması - Sol Üst Köşe */}
+      {/* Atatürk Arması - Mobilde Üstte Ortada (Bayrak yanında), Masaüstünde Sol Üstte */}
       <motion.div 
-        className="absolute top-8 left-8 w-28 h-28 rounded-full overflow-hidden shadow-2xl border-4 border-white/40"
+        className="absolute top-4 left-4 md:top-8 md:left-8 w-16 h-16 md:w-28 md:h-28 rounded-full overflow-hidden shadow-2xl border-2 md:border-4 border-white/40"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 0.9, scale: 1 }}
         transition={{ duration: 1 }}
