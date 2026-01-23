@@ -151,6 +151,19 @@ class MachineMessage(BaseModel):
     is_read: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Ziyaretçi Takip Modeli
+class Visitor(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ip_address: str
+    user_agent: str
+    device_type: str  # "mobile", "tablet", "desktop"
+    device_model: str
+    browser: str
+    os: str
+    page_visited: str
+    visited_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 @api_router.get("/")
 async def root():
     return {"message": "Buse Kağıt API"}
