@@ -26,17 +26,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
-    // WebSocket URL'ini oluştur
-    let wsUrl;
-    
-    // Localhost'ta direkt bağlan, preview'da farklı URL kullan
-    if (window.location.hostname === 'localhost') {
-      wsUrl = 'ws://localhost:8001/ws/warehouse';
-    } else {
-      // Preview ortamı - wss kullan
-      const apiUrl = new URL(API);
-      wsUrl = `wss://${apiUrl.host}/ws/warehouse`;
-    }
+    // WebSocket URL'ini environment variable'dan türet
+    const apiUrl = new URL(API);
+    const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${apiUrl.host}/ws/warehouse`;
     
     console.log("Connecting to WebSocket:", wsUrl);
     
