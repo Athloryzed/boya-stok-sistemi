@@ -143,6 +143,28 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     setShowNotification(false);
   };
 
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedMachine) return;
+    
+    setSendingReply(true);
+    try {
+      await axios.post(`${API}/messages`, {
+        machine_id: selectedMachine.id,
+        machine_name: selectedMachine.name,
+        sender_role: "operator",
+        sender_name: operatorName,
+        message: replyText
+      });
+      setReplyText("");
+      fetchMessages();
+      toast.success("Mesaj gönderildi!");
+    } catch (error) {
+      toast.error("Mesaj gönderilemedi");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
   const handleNameSubmit = () => {
     if (!operatorName.trim()) {
       toast.error("Lütfen adınızı girin");
