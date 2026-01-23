@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -32,6 +32,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [selectedMachineForMessage, setSelectedMachineForMessage] = useState(null);
   const [messageText, setMessageText] = useState("");
+  const [incomingMessages, setIncomingMessages] = useState([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   
   const [formData, setFormData] = useState({
     name: "",
