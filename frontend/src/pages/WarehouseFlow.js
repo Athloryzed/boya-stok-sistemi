@@ -26,10 +26,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
-    // WebSocket URL'ini oluştur
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = API.replace(/^https?:\/\//, '').replace('/api', '');
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/warehouse`;
+    // WebSocket URL'ini oluştur - API URL'inden host'u al
+    const apiUrl = new URL(API);
+    const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${apiUrl.host}/ws/warehouse`;
     
     console.log("Connecting to WebSocket:", wsUrl);
     
