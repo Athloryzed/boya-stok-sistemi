@@ -684,6 +684,109 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </Card>
           </TabsContent>
 
+          {/* ZİYARETÇİLER TAB */}
+          <TabsContent value="visitors">
+            <div className="space-y-6">
+              {/* İstatistik Kartları */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-text-secondary text-sm">Toplam</p>
+                    <p className="text-3xl font-bold text-primary">{visitorStats?.total_visitors || 0}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-text-secondary text-sm">Bugün</p>
+                    <p className="text-3xl font-bold text-success">{visitorStats?.today || 0}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-text-secondary text-sm">Bu Hafta</p>
+                    <p className="text-3xl font-bold text-info">{visitorStats?.this_week || 0}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-4">
+                    <p className="text-text-secondary text-sm text-center mb-2">Cihaz Dağılımı</p>
+                    <div className="flex justify-center gap-4 text-xs">
+                      {visitorStats?.device_distribution && Object.entries(visitorStats.device_distribution).map(([device, count]) => (
+                        <div key={device} className="flex items-center gap-1">
+                          {device === "Mobil" ? <Smartphone className="h-3 w-3" /> : device === "Tablet" ? <Tablet className="h-3 w-3" /> : <Monitor className="h-3 w-3" />}
+                          <span className="text-text-primary">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Ziyaretçi Listesi */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
+                    <Users className="h-6 w-6 text-blue-500" /> Son Ziyaretçiler
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {visitors.length === 0 ? (
+                    <p className="text-text-secondary text-center py-8">Henüz ziyaretçi kaydı yok.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full" data-testid="visitors-table">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-3 font-heading text-text-primary text-sm">IP Adresi</th>
+                            <th className="text-left p-3 font-heading text-text-primary text-sm">Cihaz</th>
+                            <th className="text-left p-3 font-heading text-text-primary text-sm hidden md:table-cell">Tarayıcı</th>
+                            <th className="text-left p-3 font-heading text-text-primary text-sm hidden md:table-cell">İşletim Sistemi</th>
+                            <th className="text-left p-3 font-heading text-text-primary text-sm hidden md:table-cell">Sayfa</th>
+                            <th className="text-left p-3 font-heading text-text-primary text-sm">Tarih/Saat</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visitors.map((visitor) => {
+                            const date = new Date(visitor.visited_at);
+                            const formattedTime = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+                            const formattedDate = date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" });
+                            
+                            return (
+                              <tr key={visitor.id} className="border-b border-border">
+                                <td className="p-3 text-text-primary font-mono text-sm">{visitor.ip_address}</td>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    {visitor.device_type === "Mobil" ? (
+                                      <Smartphone className="h-4 w-4 text-blue-500" />
+                                    ) : visitor.device_type === "Tablet" ? (
+                                      <Tablet className="h-4 w-4 text-purple-500" />
+                                    ) : (
+                                      <Monitor className="h-4 w-4 text-green-500" />
+                                    )}
+                                    <span className="text-text-primary text-sm">{visitor.device_model}</span>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-text-secondary text-sm hidden md:table-cell">{visitor.browser}</td>
+                                <td className="p-3 text-text-secondary text-sm hidden md:table-cell">{visitor.os}</td>
+                                <td className="p-3 text-text-secondary text-sm hidden md:table-cell">{visitor.page_visited}</td>
+                                <td className="p-3">
+                                  <div className="flex flex-col">
+                                    <span className="text-text-primary font-semibold text-sm">{formattedTime}</span>
+                                    <span className="text-text-secondary text-xs">{formattedDate}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* BAKIM TAB */}
           <TabsContent value="maintenance">
             <Card className="bg-surface border-border">
