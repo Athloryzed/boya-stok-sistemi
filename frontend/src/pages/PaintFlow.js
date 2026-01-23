@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package } from "lucide-react";
+import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package, AlertTriangle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -14,7 +14,24 @@ import axios from "axios";
 import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F8B500", "#2ECC71"];
+// Boya renk haritası (gerçek renklere yakın)
+const PAINT_COLORS = {
+  "Siyah": "#1a1a1a",
+  "Beyaz": "#f5f5f5",
+  "Mavi": "#2196F3",
+  "Lacivert": "#1a237e",
+  "Refleks": "#00e5ff",
+  "Kırmızı": "#f44336",
+  "Magenta": "#e91e63",
+  "Rhodam": "#9c27b0",
+  "Sarı": "#ffeb3b",
+  "Gold": "#ffc107",
+  "Gümüş": "#9e9e9e",
+  "Pasta": "#bcaaa4"
+};
+
+// Düşük stok eşiği
+const LOW_STOCK_THRESHOLD = 5;
 
 const PaintFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -25,6 +42,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [movements, setMovements] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [analyticsPeriod, setAnalyticsPeriod] = useState("weekly");
+  const [lowStockPaints, setLowStockPaints] = useState([]);
   
   // Dialog states
   const [isAddStockOpen, setIsAddStockOpen] = useState(false);
@@ -48,20 +66,21 @@ const PaintFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      // Önce boyaları başlat
       await axios.post(`${API}/paints/init`);
       
-      const [paintsRes, machinesRes, movementsRes, analyticsRes] = await Promise.all([
+      const [paintsRes, machinesRes, movementsRes, analyticsRes, lowStockRes] = await Promise.all([
         axios.get(`${API}/paints`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/paints/movements?limit=50`),
-        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`)
+        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`),
+        axios.get(`${API}/paints/low-stock`)
       ]);
       
       setPaints(paintsRes.data);
       setMachines(machinesRes.data);
       setMovements(movementsRes.data);
       setAnalytics(analyticsRes.data);
+      setLowStockPaints(lowStockRes.data.low_stock_paints || []);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
@@ -150,6 +169,10 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     return colors[type] || "text-gray-500";
   };
 
+  const getPaintColor = (paintName) => {
+    return PAINT_COLORS[paintName] || "#888888";
+  };
+
   const prepareChartData = (data) => {
     if (!data) return [];
     return Object.entries(data).map(([name, value]) => ({
@@ -204,9 +227,30 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           </Button>
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-heading font-black text-pink-500 mb-8">
+        <h1 className="text-4xl md:text-5xl font-heading font-black text-pink-500 mb-4">
           BOYA YÖNETİMİ
         </h1>
+
+        {/* Düşük Stok Uyarısı */}
+        {lowStockPaints.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-500/20 border border-red-500 rounded-lg"
+          >
+            <div className="flex items-center gap-2 text-red-500 font-bold mb-2">
+              <AlertTriangle className="h-5 w-5" />
+              DÜŞÜK STOK UYARISI ({LOW_STOCK_THRESHOLD}L altı)
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {lowStockPaints.map(paint => (
+                <span key={paint.id} className="px-3 py-1 bg-red-500/30 rounded-full text-sm text-red-200">
+                  {paint.name}: {paint.stock_kg.toFixed(1)} L
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         <Tabs defaultValue="stock" className="space-y-6">
           <TabsList className="bg-surface border-border grid grid-cols-3 w-full md:w-auto">
@@ -227,74 +271,89 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           {/* STOK TAB */}
           <TabsContent value="stock">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-              {paints.map((paint, index) => (
-                <motion.div
-                  key={paint.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card 
-                    className="bg-surface border-border hover:border-pink-500 transition-all cursor-pointer"
-                    data-testid={`paint-card-${paint.name}`}
+              {paints.map((paint, index) => {
+                const isLowStock = paint.stock_kg < LOW_STOCK_THRESHOLD;
+                const paintColor = getPaintColor(paint.name);
+                
+                return (
+                  <motion.div
+                    key={paint.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <CardContent className="p-4">
-                      <div 
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full mb-3 mx-auto"
-                        style={{ 
-                          backgroundColor: COLORS[index % COLORS.length],
-                          boxShadow: `0 4px 14px ${COLORS[index % COLORS.length]}40`
-                        }}
-                      />
-                      <h3 className="text-base md:text-lg font-heading font-bold text-text-primary text-center mb-1">
-                        {paint.name}
-                      </h3>
-                      <p className="text-xl md:text-2xl font-bold text-pink-500 text-center mb-3">
-                        {paint.stock_kg.toFixed(1)} kg
-                      </p>
-                      
-                      <div className="grid grid-cols-2 gap-1">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openDialog(paint, "add")}
-                          className="text-green-500 border-green-500/50 hover:bg-green-500/10 h-8"
-                          data-testid={`add-stock-${paint.name}`}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openDialog(paint, "remove")}
-                          className="text-red-500 border-red-500/50 hover:bg-red-500/10 h-8"
-                          data-testid={`remove-stock-${paint.name}`}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openDialog(paint, "to_machine")}
-                          className="text-blue-500 border-blue-500/50 hover:bg-blue-500/10 h-8"
-                          data-testid={`to-machine-${paint.name}`}
-                        >
-                          <Send className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => openDialog(paint, "from_machine")}
-                          className="text-yellow-500 border-yellow-500/50 hover:bg-yellow-500/10 h-8"
-                          data-testid={`from-machine-${paint.name}`}
-                        >
-                          <RotateCcw className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                    <Card 
+                      className={`bg-surface border-2 transition-all cursor-pointer ${
+                        isLowStock ? "border-red-500 animate-pulse" : "border-border hover:border-pink-500"
+                      }`}
+                      data-testid={`paint-card-${paint.name}`}
+                    >
+                      <CardContent className="p-4">
+                        <div 
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-full mb-3 mx-auto border-2"
+                          style={{ 
+                            backgroundColor: paintColor,
+                            borderColor: paint.name === "Beyaz" ? "#ccc" : paintColor,
+                            boxShadow: `0 4px 14px ${paintColor}40`
+                          }}
+                        />
+                        <h3 className="text-base md:text-lg font-heading font-bold text-text-primary text-center mb-1">
+                          {paint.name}
+                        </h3>
+                        <p className={`text-xl md:text-2xl font-bold text-center mb-3 ${isLowStock ? "text-red-500" : "text-pink-500"}`}>
+                          {paint.stock_kg.toFixed(1)} L
+                        </p>
+                        
+                        {isLowStock && (
+                          <div className="flex items-center justify-center gap-1 text-red-500 text-xs mb-2">
+                            <AlertTriangle className="h-3 w-3" />
+                            Düşük Stok!
+                          </div>
+                        )}
+                        
+                        <div className="grid grid-cols-2 gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openDialog(paint, "add")}
+                            className="text-green-500 border-green-500/50 hover:bg-green-500/10 h-8"
+                            data-testid={`add-stock-${paint.name}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openDialog(paint, "remove")}
+                            className="text-red-500 border-red-500/50 hover:bg-red-500/10 h-8"
+                            data-testid={`remove-stock-${paint.name}`}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openDialog(paint, "to_machine")}
+                            className="text-blue-500 border-blue-500/50 hover:bg-blue-500/10 h-8"
+                            data-testid={`to-machine-${paint.name}`}
+                          >
+                            <Send className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openDialog(paint, "from_machine")}
+                            className="text-yellow-500 border-yellow-500/50 hover:bg-yellow-500/10 h-8"
+                            data-testid={`from-machine-${paint.name}`}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -322,11 +381,22 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                       <tbody>
                         {movements.map((mov) => (
                           <tr key={mov.id} className="border-b border-border" data-testid={`movement-${mov.id}`}>
-                            <td className="p-2 md:p-3 text-text-primary font-semibold text-sm">{mov.paint_name}</td>
+                            <td className="p-2 md:p-3 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-4 h-4 rounded-full border"
+                                  style={{ 
+                                    backgroundColor: getPaintColor(mov.paint_name),
+                                    borderColor: mov.paint_name === "Beyaz" ? "#ccc" : getPaintColor(mov.paint_name)
+                                  }}
+                                />
+                                <span className="text-text-primary font-semibold">{mov.paint_name}</span>
+                              </div>
+                            </td>
                             <td className={`p-2 md:p-3 text-sm ${getMovementTypeColor(mov.movement_type)}`}>
                               {getMovementTypeLabel(mov.movement_type)}
                             </td>
-                            <td className="p-2 md:p-3 text-text-secondary text-sm">{mov.amount_kg} kg</td>
+                            <td className="p-2 md:p-3 text-text-secondary text-sm">{mov.amount_kg} L</td>
                             <td className="p-2 md:p-3 text-text-secondary text-sm hidden md:table-cell">{mov.machine_name || "-"}</td>
                             <td className="p-2 md:p-3 text-text-secondary text-sm hidden md:table-cell">
                               {new Date(mov.created_at).toLocaleString("tr-TR")}
@@ -369,7 +439,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                     {analyticsPeriod === "weekly" ? "Haftalık" : "Aylık"} Toplam Tüketim
                   </p>
                   <p className="text-4xl font-bold text-pink-500">
-                    {analytics?.total_consumed?.toFixed(1) || 0} kg
+                    {analytics?.total_consumed?.toFixed(1) || 0} L
                   </p>
                 </CardContent>
               </Card>
@@ -388,13 +458,13 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, value }) => `${name}: ${value}kg`}
+                          label={({ name, value }) => `${name}: ${value}L`}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
                         >
                           {prepareChartData(analytics?.paint_consumption).map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={getPaintColor(entry.name)} />
                           ))}
                         </Pie>
                         <Tooltip />
@@ -415,7 +485,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                         <XAxis dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
                         <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
                         <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A" }} />
-                        <Bar dataKey="value" fill="#EC4899" name="Tüketim (kg)" />
+                        <Bar dataKey="value" fill="#EC4899" name="Tüketim (L)" />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -434,7 +504,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                       <XAxis dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 10 }} />
                       <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
                       <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A" }} />
-                      <Bar dataKey="value" fill="#EC4899" name="Tüketim (kg)" />
+                      <Bar dataKey="value" fill="#EC4899" name="Tüketim (L)" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -447,13 +517,20 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-heading text-green-500">
+              <DialogTitle className="text-2xl font-heading text-green-500 flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-full border"
+                  style={{ 
+                    backgroundColor: selectedPaint ? getPaintColor(selectedPaint.name) : "#888",
+                    borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
+                  }}
+                />
                 Stok Ekle - {selectedPaint?.name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-text-primary">Miktar (kg)</Label>
+                <Label className="text-text-primary">Miktar (L)</Label>
                 <Input
                   data-testid="add-stock-amount"
                   type="number"
@@ -489,14 +566,21 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         <Dialog open={isRemoveStockOpen} onOpenChange={setIsRemoveStockOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-heading text-red-500">
+              <DialogTitle className="text-2xl font-heading text-red-500 flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-full border"
+                  style={{ 
+                    backgroundColor: selectedPaint ? getPaintColor(selectedPaint.name) : "#888",
+                    borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
+                  }}
+                />
                 Stok Çıkar - {selectedPaint?.name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-text-secondary">Mevcut stok: {selectedPaint?.stock_kg.toFixed(1)} kg</p>
+              <p className="text-text-secondary">Mevcut stok: {selectedPaint?.stock_kg.toFixed(1)} L</p>
               <div>
-                <Label className="text-text-primary">Miktar (kg)</Label>
+                <Label className="text-text-primary">Miktar (L)</Label>
                 <Input
                   data-testid="remove-stock-amount"
                   type="number"
@@ -532,12 +616,19 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         <Dialog open={isToMachineOpen} onOpenChange={setIsToMachineOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-heading text-blue-500">
+              <DialogTitle className="text-2xl font-heading text-blue-500 flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-full border"
+                  style={{ 
+                    backgroundColor: selectedPaint ? getPaintColor(selectedPaint.name) : "#888",
+                    borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
+                  }}
+                />
                 Makineye Gönder - {selectedPaint?.name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-text-secondary">Mevcut stok: {selectedPaint?.stock_kg.toFixed(1)} kg</p>
+              <p className="text-text-secondary">Mevcut stok: {selectedPaint?.stock_kg.toFixed(1)} L</p>
               <div>
                 <Label className="text-text-primary">Makine</Label>
                 <Select value={selectedMachine} onValueChange={setSelectedMachine}>
@@ -554,7 +645,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                 </Select>
               </div>
               <div>
-                <Label className="text-text-primary">Miktar (kg)</Label>
+                <Label className="text-text-primary">Miktar (L)</Label>
                 <Input
                   data-testid="to-machine-amount"
                   type="number"
@@ -590,7 +681,14 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         <Dialog open={isFromMachineOpen} onOpenChange={setIsFromMachineOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-heading text-yellow-500">
+              <DialogTitle className="text-2xl font-heading text-yellow-500 flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-full border"
+                  style={{ 
+                    backgroundColor: selectedPaint ? getPaintColor(selectedPaint.name) : "#888",
+                    borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
+                  }}
+                />
                 Makineden Al - {selectedPaint?.name}
               </DialogTitle>
             </DialogHeader>
@@ -611,7 +709,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                 </Select>
               </div>
               <div>
-                <Label className="text-text-primary">Miktar (kg)</Label>
+                <Label className="text-text-primary">Miktar (L)</Label>
                 <Input
                   data-testid="from-machine-amount"
                   type="number"
