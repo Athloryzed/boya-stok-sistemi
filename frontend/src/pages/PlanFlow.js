@@ -117,6 +117,28 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  const fetchIncomingMessages = async () => {
+    try {
+      const [messagesRes, unreadRes] = await Promise.all([
+        axios.get(`${API}/messages/all/incoming`),
+        axios.get(`${API}/messages/all/unread-count`)
+      ]);
+      setIncomingMessages(messagesRes.data);
+      setUnreadMessagesCount(unreadRes.data.unread_count);
+    } catch (error) {
+      console.error("Messages fetch error:", error);
+    }
+  };
+
+  const handleMarkMessageRead = async (messageId) => {
+    try {
+      await axios.put(`${API}/messages/mark-read/${messageId}`);
+      fetchIncomingMessages();
+    } catch (error) {
+      console.error("Mark read error:", error);
+    }
+  };
+
   useEffect(() => {
     if (authenticated) {
       const timer = setTimeout(() => {
