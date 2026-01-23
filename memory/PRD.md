@@ -51,11 +51,13 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
    - Haftalık/Aylık tüketim analitikleri
    - **Düşük Stok Uyarısı (5L altı)** (YENİ)
 
-### Mesajlaşma Sistemi ✅ (YENİ)
+### Mesajlaşma Sistemi ✅ (İKİ YÖNLÜ)
 - Yönetim ve Plan panelinden makineye mesaj gönderme
+- **Operatör yanıt yazabilme** (YENİ)
 - Operatör tarafında mesaj alma ve bildirim
 - Sohbet ekranı ile mesaj geçmişi görüntüleme
 - Okunmamış mesaj sayısı badge
+- Farklı renklerle gönderen ayırt etme (Yönetim: sarı, Plan: yeşil, Operatör: mavi)
 
 ### Genel Özellikler ✅
 - PWA (Progressive Web App) desteği
