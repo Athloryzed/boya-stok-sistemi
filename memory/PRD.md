@@ -35,7 +35,8 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
    - Makine durumu görüntüleme
    - Geçmiş işler ve iş klonlama
    - İş arama
-   - **Makineye Mesaj Gönderme** (YENİ)
+   - **Makineye Mesaj Gönderme**
+   - **"Mesajlar" sekmesi - Operatör mesajlarını takip** (YENİ)
 
 4. **Depo Paneli**
    - Malzeme talepleri listesi
