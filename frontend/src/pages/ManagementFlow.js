@@ -71,7 +71,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
@@ -80,7 +80,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`),
         axios.get(`${API}/maintenance-logs`),
         axios.get(`${API}/paints`),
-        axios.get(`${API}/paints/low-stock`)
+        axios.get(`${API}/paints/low-stock`),
+        axios.get(`${API}/messages/all/incoming`),
+        axios.get(`${API}/messages/all/unread-count`)
       ]);
       setCurrentShift(shiftRes.data);
       const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
@@ -95,6 +97,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setMaintenanceLogs(logsRes.data);
       setPaints(paintsRes.data);
       setLowStockPaints(lowStockRes.data.low_stock_paints || []);
+      setIncomingMessages(messagesRes.data);
+      setUnreadMessagesCount(unreadRes.data.unread_count);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
