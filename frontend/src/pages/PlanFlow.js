@@ -579,12 +579,20 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="bg-surface border-border w-full grid grid-cols-2">
+          <TabsList className="bg-surface border-border w-full grid grid-cols-3">
             <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
               Sıradaki İşler
             </TabsTrigger>
             <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
               Geçmiş İşler
+            </TabsTrigger>
+            <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base relative">
+              <Inbox className="h-4 w-4 mr-1 hidden md:inline" /> Mesajlar
+              {unreadMessagesCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {unreadMessagesCount}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -631,6 +639,77 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               ))}
             </div>
           )}
+
+          {/* MESAJLAR TAB */}
+          <TabsContent value="messages">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
+                  <Inbox className="h-6 w-6 text-blue-500" /> Operatör Mesajları
+                  {unreadMessagesCount > 0 && (
+                    <span className="bg-red-500 text-white text-sm px-2 py-1 rounded-full">
+                      {unreadMessagesCount} yeni
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {incomingMessages.length === 0 ? (
+                  <p className="text-text-secondary text-center py-8">Henüz operatör mesajı yok.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {incomingMessages.map((msg) => (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`p-4 rounded-lg border ${msg.is_read ? "bg-background border-border" : "bg-blue-500/10 border-blue-500"}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-heading font-bold text-text-primary">{msg.sender_name}</span>
+                              <span className="text-xs px-2 py-0.5 bg-success/20 text-success rounded-full">{msg.machine_name}</span>
+                              {!msg.is_read && (
+                                <span className="text-xs px-2 py-0.5 bg-blue-500 text-white rounded-full">Yeni</span>
+                              )}
+                            </div>
+                            <p className="text-text-primary">{msg.message}</p>
+                            <p className="text-xs text-text-secondary mt-2">
+                              {new Date(msg.created_at).toLocaleString("tr-TR")}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            {!msg.is_read && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMarkMessageRead(msg.id)}
+                                className="text-green-500 border-green-500 hover:bg-green-500/10"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const machine = machines.find(m => m.id === msg.machine_id);
+                                if (machine) openMessageDialog(machine);
+                              }}
+                              className="text-blue-500 border-blue-500 hover:bg-blue-500/10"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="pending">
             <div className="space-y-4">
