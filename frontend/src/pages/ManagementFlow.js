@@ -358,31 +358,33 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         )}
 
         <Tabs defaultValue="machines" className="space-y-6">
-          <TabsList className="bg-surface border-border flex flex-wrap">
-            <TabsTrigger value="machines" data-testid="machines-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
-              Makineler
-            </TabsTrigger>
-            <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative">
-              <Inbox className="h-4 w-4 mr-1" /> Mesajlar
-              {unreadMessagesCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
-              Analiz
-            </TabsTrigger>
-            <TabsTrigger value="paints" data-testid="paints-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
-              <Droplet className="h-4 w-4 mr-1" /> Boyalar
-            </TabsTrigger>
-            <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
-              <Users className="h-4 w-4 mr-1" /> Ziyaretçiler
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
-              Bakım
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2">
+            <TabsList className="bg-surface border-border inline-flex min-w-max">
+              <TabsTrigger value="machines" data-testid="machines-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs md:text-sm px-2 md:px-4">
+                Makineler
+              </TabsTrigger>
+              <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs md:text-sm px-2 md:px-4">
+                <Inbox className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Mesajlar
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[10px]">
+                    {unreadMessagesCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs md:text-sm px-2 md:px-4">
+                Analiz
+              </TabsTrigger>
+              <TabsTrigger value="paints" data-testid="paints-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs md:text-sm px-2 md:px-4">
+                <Droplet className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Boyalar
+              </TabsTrigger>
+              <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs md:text-sm px-2 md:px-4">
+                <Users className="h-3 w-3 md:h-4 md:w-4 mr-1" /> Ziyaretçiler
+              </TabsTrigger>
+              <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs md:text-sm px-2 md:px-4">
+                Bakım
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* MAKİNELER TAB */}
           <TabsContent value="machines">
