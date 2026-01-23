@@ -152,6 +152,33 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     return ["all"];
   };
 
+  const openMessageDialog = (machine) => {
+    setSelectedMachineForMessage(machine);
+    setMessageText("");
+    setIsMessageDialogOpen(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) {
+      toast.error("Mesaj boş olamaz");
+      return;
+    }
+    try {
+      await axios.post(`${API}/messages`, {
+        machine_id: selectedMachineForMessage.id,
+        machine_name: selectedMachineForMessage.name,
+        sender_role: "plan",
+        sender_name: "Plan",
+        message: messageText
+      });
+      toast.success("Mesaj gönderildi!");
+      setIsMessageDialogOpen(false);
+      setMessageText("");
+    } catch (error) {
+      toast.error("Mesaj gönderilemedi");
+    }
+  };
+
   const handleAddJob = async () => {
     if (!formData.name || !formData.koli_count || !formData.colors || !formData.machine_id) {
       toast.error("Lütfen zorunlu alanları doldurun");
