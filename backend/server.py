@@ -852,6 +852,22 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
 
 app.include_router(api_router)
 
+# WebSocket endpoint - Depo bildirimleri için
+@app.websocket("/ws/warehouse")
+async def warehouse_websocket(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Bağlantıyı canlı tutmak için ping-pong
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logging.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
