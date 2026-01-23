@@ -356,6 +356,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             <TabsTrigger value="machines" data-testid="machines-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
               Makineler
             </TabsTrigger>
+            <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative">
+              <Inbox className="h-4 w-4 mr-1" /> Mesajlar
+              {unreadMessagesCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {unreadMessagesCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
               Analiz
             </TabsTrigger>
