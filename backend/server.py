@@ -729,6 +729,33 @@ async def mark_messages_read(machine_id: str):
     )
     return {"marked_read": result.modified_count}
 
+@api_router.get("/messages/all/incoming")
+async def get_all_incoming_messages(limit: int = 100):
+    """Tüm operatör mesajlarını getir (Yönetim için)"""
+    messages = await db.machine_messages.find(
+        {"sender_role": "operator"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    return messages
+
+@api_router.get("/messages/all/unread-count")
+async def get_all_unread_count():
+    """Tüm okunmamış operatör mesaj sayısı"""
+    count = await db.machine_messages.count_documents({
+        "sender_role": "operator",
+        "is_read": False
+    })
+    return {"unread_count": count}
+
+@api_router.put("/messages/mark-read/{message_id}")
+async def mark_single_message_read(message_id: str):
+    """Tek bir mesajı okundu olarak işaretle"""
+    result = await db.machine_messages.update_one(
+        {"id": message_id},
+        {"$set": {"is_read": True}}
+    )
+    return {"success": result.modified_count > 0}
+
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):
     """Hafta bazında günlük üretim analitiği"""
