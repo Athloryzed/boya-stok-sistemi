@@ -376,6 +376,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             <TabsTrigger value="paints" data-testid="paints-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
               <Droplet className="h-4 w-4 mr-1" /> Boyalar
             </TabsTrigger>
+            <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
+              <Users className="h-4 w-4 mr-1" /> Ziyaretçiler
+            </TabsTrigger>
             <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black">
               Bakım
             </TabsTrigger>
