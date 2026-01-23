@@ -314,6 +314,39 @@ async def get_weekly_analytics():
         machine = job["machine_name"]
         koli = job["completed_koli"]
         
+
+@api_router.get("/analytics/daily")
+async def get_daily_analytics():
+    from datetime import timedelta
+    
+    # Son 7 günün her günü için
+    daily_stats = []
+    for i in range(7):
+        date = datetime.now(timezone.utc) - timedelta(days=i)
+        start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = start_of_day + timedelta(days=1)
+        
+        jobs = await db.jobs.find(
+            {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        total_koli = sum(job["completed_koli"] for job in jobs)
+        machine_breakdown = {}
+        for job in jobs:
+            machine = job["machine_name"]
+            if machine not in machine_breakdown:
+                machine_breakdown[machine] = 0
+            machine_breakdown[machine] += job["completed_koli"]
+        
+        daily_stats.append({
+            "date": start_of_day.strftime("%d %b"),
+            "total_koli": total_koli,
+            "machines": machine_breakdown
+        })
+    
+    return {"daily_stats": list(reversed(daily_stats))}
+
         if machine not in machine_stats:
             machine_stats[machine] = 0
         machine_stats[machine] += koli
