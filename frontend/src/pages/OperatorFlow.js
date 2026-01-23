@@ -336,8 +336,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={`p-3 rounded-lg max-w-[80%] ${
-                        msg.sender_role === "yonetim" 
-                          ? "bg-primary/20 border border-primary ml-auto" 
+                        msg.sender_role === "operator" 
+                          ? "bg-secondary/20 border border-secondary ml-auto" 
+                          : msg.sender_role === "yonetim"
+                          ? "bg-primary/20 border border-primary"
                           : "bg-success/20 border border-success"
                       }`}
                     >
@@ -349,6 +351,27 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                   ))
                 )}
                 <div ref={messagesEndRef} />
+              </div>
+              
+              {/* Yanıt Yazma Alanı */}
+              <div className="mt-3 flex gap-2">
+                <Input
+                  data-testid="reply-input"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && !sendingReply && handleSendReply()}
+                  placeholder="Yanıt yazın..."
+                  className="bg-background border-border text-text-primary flex-1"
+                  disabled={sendingReply}
+                />
+                <Button 
+                  data-testid="send-reply-button"
+                  onClick={handleSendReply}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="bg-secondary text-white hover:bg-secondary/90"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </DialogContent>
