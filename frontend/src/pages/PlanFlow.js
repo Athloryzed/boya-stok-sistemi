@@ -60,6 +60,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       fetchMachines();
       fetchJobs();
       fetchCompletedJobs();
+      fetchIncomingMessages();
+      
+      // Mesajları periyodik olarak kontrol et
+      const interval = setInterval(fetchIncomingMessages, 10000);
+      return () => clearInterval(interval);
     }
   }, [authenticated]);
 
