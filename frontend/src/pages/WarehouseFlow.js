@@ -179,9 +179,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         }
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, [connectWebSocket]);
+        }
+      };
+    }
+  }, [authenticated, connectWebSocket]);
 
   useEffect(() => {
     return () => {
