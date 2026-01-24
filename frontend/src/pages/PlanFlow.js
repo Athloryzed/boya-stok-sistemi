@@ -583,16 +583,29 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             <CardHeader>
               <CardTitle className="text-3xl font-heading text-center">PLAN GİRİŞİ</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Input
-                data-testid="plan-password-input"
-                type="password"
-                placeholder="Şifre..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                className="mb-4 bg-background border-border text-text-primary text-lg h-14"
-              />
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-text-primary">Kullanıcı Adı</Label>
+                <Input
+                  data-testid="plan-username-input"
+                  placeholder="Kullanıcı adı..."
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Şifre</Label>
+                <Input
+                  data-testid="plan-password-input"
+                  type="password"
+                  placeholder="Şifre..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
+                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
+                />
+              </div>
               <Button
                 data-testid="plan-login-button"
                 onClick={handleLogin}
@@ -603,7 +616,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               <Button
                 variant="outline"
                 onClick={() => navigate("/")}
-                className="w-full mt-4 border-border bg-background hover:bg-surface-highlight"
+                className="w-full border-border bg-background hover:bg-surface-highlight"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Ana Sayfa
