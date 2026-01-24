@@ -16,6 +16,10 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [userData, setUserData] = useState(null);
   const [warehouseRequests, setWarehouseRequests] = useState([]);
   const [pallets, setPallets] = useState([]);
   const [shipmentLogs, setShipmentLogs] = useState([]);
@@ -31,6 +35,50 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [shipmentLogForm, setShipmentLogForm] = useState({ delivered_koli: 0, partial: false });
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+
+  // Oturum kontrolü
+  useEffect(() => {
+    const savedSession = localStorage.getItem("depo_session");
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        setUserData(session);
+        setAuthenticated(true);
+      } catch (e) {
+        localStorage.removeItem("depo_session");
+      }
+    }
+  }, []);
+
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
+      toast.error("Kullanıcı adı ve şifre gerekli");
+      return;
+    }
+    try {
+      const response = await axios.post(`${API}/users/login`, {
+        username: username,
+        password: password,
+        role: "depo"
+      });
+      const user = response.data;
+      setUserData(user);
+      localStorage.setItem("depo_session", JSON.stringify(user));
+      setAuthenticated(true);
+      toast.success("Giriş başarılı!");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Giriş başarısız");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("depo_session");
+    setUserData(null);
+    setAuthenticated(false);
+    setUsername("");
+    setPassword("");
+    toast.success("Çıkış yapıldı");
+  };
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
