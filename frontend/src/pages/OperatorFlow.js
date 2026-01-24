@@ -335,6 +335,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 )}
               </Button>
             )}
+            {step > 1 && (
+              <Button variant="outline" onClick={handleLogout} data-testid="logout-button" className="border-border bg-surface hover:bg-surface-highlight">
+                Çıkış Yap
+              </Button>
+            )}
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
