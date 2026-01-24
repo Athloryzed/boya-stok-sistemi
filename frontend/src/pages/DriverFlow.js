@@ -92,8 +92,8 @@ const DriverFlow = ({ theme, toggleTheme }) => {
   const fetchShipments = async () => {
     if (!driverData) return;
     try {
-      const response = await axios.get(`${API}/drivers/${driverData.id}/shipments`);
-      setShipments(response.data);
+      const response = await axios.get(`${API}/shipments?driver_id=${driverData.id}`);
+      setShipments(response.data.filter(s => s.status !== "delivered" && s.status !== "failed"));
     } catch (error) {
       console.error("Sevkiyat yükleme hatası:", error);
     }
@@ -105,15 +105,19 @@ const DriverFlow = ({ theme, toggleTheme }) => {
       return;
     }
     try {
-      const response = await axios.post(`${API}/drivers/login`, { name, password });
-      const driver = response.data;
-      setDriverData(driver);
+      const response = await axios.post(`${API}/users/login`, { 
+        username: name, 
+        password: password,
+        role: "sofor"
+      });
+      const user = response.data;
+      setDriverData(user);
       setAuthenticated(true);
-      localStorage.setItem("driver_session", JSON.stringify(driver));
-      startLocationTracking(driver.id);
+      localStorage.setItem("driver_session", JSON.stringify(user));
+      startLocationTracking(user.id);
       toast.success("Giriş başarılı!");
     } catch (error) {
-      toast.error("Geçersiz kullanıcı adı veya şifre");
+      toast.error(error.response?.data?.detail || "Giriş başarısız");
     }
   };
 
