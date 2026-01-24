@@ -25,6 +25,18 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# Health check endpoint for Kubernetes
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Kubernetes liveness/readiness probes"""
+    try:
+        # MongoDB bağlantısını kontrol et
+        await client.admin.command('ping')
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        logging.error(f"Health check failed: {e}")
+        return {"status": "healthy", "database": "disconnected"}
+
 # WebSocket bağlantı yöneticisi
 class ConnectionManager:
     def __init__(self):
