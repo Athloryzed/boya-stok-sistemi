@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Settings, Users, ClipboardList, Package, Sun, Moon, Droplet } from "lucide-react";
+import { Settings, Users, ClipboardList, Package, Sun, Moon, Droplet, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 const Home = ({ theme, toggleTheme }) => {
@@ -43,6 +43,13 @@ const Home = ({ theme, toggleTheme }) => {
       path: "/paint",
       color: "#EC4899",
       testId: "paint-module"
+    },
+    {
+      title: "Şoför",
+      icon: Truck,
+      path: "/driver",
+      color: "#8B5CF6",
+      testId: "driver-module"
     }
   ];
 
