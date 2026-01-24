@@ -77,6 +77,8 @@ class Job(BaseModel):
     format: Optional[str] = None
     notes: Optional[str] = None
     delivery_date: Optional[str] = None
+    delivery_address: Optional[str] = None
+    delivery_phone: Optional[str] = None
     status: str = "pending"
     operator_name: Optional[str] = None
     started_at: Optional[str] = None
