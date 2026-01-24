@@ -1157,6 +1157,71 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Kullanıcı Ekleme Dialog */}
+        <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">Yeni Kullanıcı Ekle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Kullanıcı Adı *</Label>
+                <Input
+                  value={newUserData.username}
+                  onChange={(e) => setNewUserData({...newUserData, username: e.target.value})}
+                  placeholder="kullanici_adi"
+                  className="bg-background border-border"
+                />
+              </div>
+              <div>
+                <Label>Şifre *</Label>
+                <Input
+                  type="password"
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                  placeholder="Şifre"
+                  className="bg-background border-border"
+                />
+              </div>
+              <div>
+                <Label>Rol *</Label>
+                <Select value={newUserData.role} onValueChange={(value) => setNewUserData({...newUserData, role: value})}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Rol seçin" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface border-border">
+                    <SelectItem value="operator">Operatör</SelectItem>
+                    <SelectItem value="plan">Planlama</SelectItem>
+                    <SelectItem value="depo">Depo</SelectItem>
+                    <SelectItem value="sofor">Şoför</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Görünen İsim</Label>
+                <Input
+                  value={newUserData.display_name}
+                  onChange={(e) => setNewUserData({...newUserData, display_name: e.target.value})}
+                  placeholder="Ahmet Yılmaz"
+                  className="bg-background border-border"
+                />
+              </div>
+              <div>
+                <Label>Telefon</Label>
+                <Input
+                  value={newUserData.phone}
+                  onChange={(e) => setNewUserData({...newUserData, phone: e.target.value})}
+                  placeholder="0555 123 4567"
+                  className="bg-background border-border"
+                />
+              </div>
+              <Button onClick={handleCreateUser} className="w-full bg-primary hover:bg-primary/90 text-black">
+                Kullanıcı Oluştur
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
