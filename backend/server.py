@@ -775,6 +775,112 @@ async def get_paint_movements(paint_id: Optional[str] = None, limit: int = 100):
     movements = await db.paint_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return movements
 
+# ==================== KULLANICI YÖNETİMİ ====================
+
+@api_router.post("/users", response_model=User)
+async def create_user(data: dict = Body(...)):
+    """Yeni kullanıcı oluştur"""
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    role = data.get("role", "")
+    display_name = data.get("display_name", username)
+    phone = data.get("phone", "")
+    
+    if not username or not password or not role:
+        raise HTTPException(status_code=400, detail="Kullanıcı adı, şifre ve rol zorunludur")
+    
+    if role not in ["operator", "plan", "depo", "sofor"]:
+        raise HTTPException(status_code=400, detail="Geçersiz rol")
+    
+    # Kullanıcı adı kontrolü
+    existing = await db.users.find_one({"username": username, "is_active": True})
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten kullanılıyor")
+    
+    user = User(
+        username=username,
+        password=password,
+        role=role,
+        display_name=display_name,
+        phone=phone
+    )
+    await db.users.insert_one(user.model_dump())
+    
+    # Şifreyi döndürmeden önce kaldır
+    user_dict = user.model_dump()
+    user_dict.pop("password", None)
+    return user
+
+@api_router.get("/users")
+async def get_users(role: Optional[str] = None):
+    """Kullanıcıları listele"""
+    query = {"is_active": True}
+    if role:
+        query["role"] = role
+    users = await db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).to_list(200)
+    return users
+
+@api_router.post("/users/login")
+async def user_login(data: dict = Body(...)):
+    """Kullanıcı girişi (rol bazlı)"""
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    expected_role = data.get("role")  # Hangi sayfadan giriş yapılıyor
+    
+    user = await db.users.find_one({
+        "username": username,
+        "password": password,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+    
+    # Rol kontrolü
+    if expected_role and user["role"] != expected_role:
+        raise HTTPException(status_code=403, detail=f"Bu sayfaya erişim yetkiniz yok. Yetkiniz: {user['role']}")
+    
+    # Şifreyi döndürme
+    user.pop("password", None)
+    return user
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str):
+    """Kullanıcı sil (pasif yap)"""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": False}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    return {"success": True}
+
+@api_router.put("/users/{user_id}/location")
+async def update_user_location(user_id: str, data: dict = Body(...)):
+    """Kullanıcı konumunu güncelle (şoförler için)"""
+    lat = data.get("lat")
+    lng = data.get("lng")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "current_location_lat": lat,
+            "current_location_lng": lng,
+            "location_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"success": True}
+
+@api_router.get("/users/drivers/locations")
+async def get_driver_locations():
+    """Tüm şoförlerin konumlarını getir"""
+    drivers = await db.users.find({
+        "role": "sofor",
+        "is_active": True,
+        "current_location_lat": {"$ne": None}
+    }, {"_id": 0, "password": 0}).to_list(100)
+    return drivers
+
 @api_router.get("/paints/analytics")
 async def get_paint_analytics(period: str = "weekly"):
     """Boya tüketim analitiği"""
