@@ -225,6 +225,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       toast.error("Lütfen adınızı girin");
       return;
     }
+    saveSession(operatorName);
     setStep(2);
   };
 
@@ -234,6 +235,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       return;
     }
     setSelectedMachine(machine);
+    saveSession(operatorName, machine);
     setStep(3);
   };
 
