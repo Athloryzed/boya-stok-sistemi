@@ -812,22 +812,50 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="bg-surface border-border w-full grid grid-cols-3">
-            <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
-              Sıradaki İşler
-            </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
-              Geçmiş İşler
-            </TabsTrigger>
-            <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base relative">
-              <Inbox className="h-4 w-4 mr-1 hidden md:inline" /> Mesajlar
-              {unreadMessagesCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          {/* Mobile: 2x2 grid, Desktop: horizontal */}
+          <div className="block md:hidden">
+            <TabsList className="bg-surface border-border w-full grid grid-cols-2 gap-1 h-auto p-1">
+              <TabsTrigger value="pending" data-testid="pending-jobs-tab-mobile" className="data-[state=active]:bg-success data-[state=active]:text-white text-xs py-2">
+                İşler
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="completed-jobs-tab-mobile" className="data-[state=active]:bg-success data-[state=active]:text-white text-xs py-2">
+                Geçmiş
+              </TabsTrigger>
+              <TabsTrigger value="shipments" data-testid="shipments-tab-mobile" className="data-[state=active]:bg-success data-[state=active]:text-white text-xs py-2">
+                <Truck className="h-3 w-3 mr-1" /> Sevkiyat
+              </TabsTrigger>
+              <TabsTrigger value="messages" data-testid="messages-tab-mobile" className="data-[state=active]:bg-success data-[state=active]:text-white text-xs py-2 relative">
+                Mesaj
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                    {unreadMessagesCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          {/* Desktop */}
+          <div className="hidden md:block">
+            <TabsList className="bg-surface border-border w-full grid grid-cols-4">
+              <TabsTrigger value="pending" data-testid="pending-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
+                Sıradaki İşler
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="completed-jobs-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
+                Geçmiş İşler
+              </TabsTrigger>
+              <TabsTrigger value="shipments" data-testid="shipments-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base">
+                <Truck className="h-4 w-4 mr-1" /> Sevkiyat
+              </TabsTrigger>
+              <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-success data-[state=active]:text-white text-sm md:text-base relative">
+                <Inbox className="h-4 w-4 mr-1 hidden md:inline" /> Mesajlar
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {unreadMessagesCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <div className="flex flex-col gap-4">
             <div className="flex-1">
