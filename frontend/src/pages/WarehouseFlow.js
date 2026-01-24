@@ -296,6 +296,60 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     setManualCode("");
   };
 
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <Card className="bg-surface border-border">
+            <CardHeader>
+              <CardTitle className="text-3xl font-heading text-center text-warning">DEPO GİRİŞİ</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-text-primary">Kullanıcı Adı</Label>
+                <Input
+                  placeholder="Kullanıcı adı..."
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Şifre</Label>
+                <Input
+                  type="password"
+                  placeholder="Şifre..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
+                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
+                />
+              </div>
+              <Button
+                onClick={handleLogin}
+                className="w-full bg-warning text-black hover:bg-warning/90 h-14 text-lg font-heading"
+              >
+                Giriş Yap
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="w-full border-border bg-background hover:bg-surface-highlight"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Ana Sayfa
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
