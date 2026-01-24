@@ -80,15 +80,6 @@ const DriverFlow = ({ theme, toggleTheme }) => {
     }
   }, [startLocationTracking]);
 
-  // Sevkiyatları getir
-  useEffect(() => {
-    if (authenticated && driverData) {
-      fetchShipments();
-      const interval = setInterval(fetchShipments, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [authenticated, driverData]);
-
   const fetchShipments = async () => {
     if (!driverData) return;
     try {
@@ -98,6 +89,16 @@ const DriverFlow = ({ theme, toggleTheme }) => {
       console.error("Sevkiyat yükleme hatası:", error);
     }
   };
+
+  // Sevkiyatları getir
+  useEffect(() => {
+    if (authenticated && driverData) {
+      fetchShipments();
+      const interval = setInterval(fetchShipments, 10000);
+      return () => clearInterval(interval);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, driverData]);
 
   const handleLogin = async () => {
     if (!name || !password) {
