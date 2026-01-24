@@ -70,14 +70,6 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
   });
 
-  useEffect(() => {
-    if (authenticated) {
-      fetchData();
-      const interval = setInterval(fetchData, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset]);
-
   const fetchData = async () => {
     try {
       const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes] = await Promise.all([
@@ -120,6 +112,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       console.error("Data fetch error:", error);
     }
   };
+
+  useEffect(() => {
+    if (authenticated) {
+      fetchData();
+      const interval = setInterval(fetchData, 5000);
+      return () => clearInterval(interval);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset]);
 
   const handleLogin = () => {
     if (password === MANAGEMENT_PASSWORD) {
