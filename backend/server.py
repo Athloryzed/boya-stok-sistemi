@@ -37,6 +37,17 @@ async def health_check():
         logging.error(f"Health check failed: {e}")
         return {"status": "healthy", "database": "disconnected"}
 
+# API health check (for /api/health route)
+@api_router.get("/health")
+async def api_health_check():
+    """Health check endpoint via API router"""
+    try:
+        await client.admin.command('ping')
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        logging.error(f"Health check failed: {e}")
+        return {"status": "healthy", "database": "disconnected"}
+
 # WebSocket bağlantı yöneticisi
 class ConnectionManager:
     def __init__(self):
