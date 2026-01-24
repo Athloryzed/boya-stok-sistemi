@@ -165,19 +165,20 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   };
 
   useEffect(() => {
-    fetchData();
-    connectWebSocket();
-    
-    // Fallback: Her 5 saniyede bir kontrol et (WebSocket çalışmazsa)
-    const interval = setInterval(fetchData, 5000);
-    
-    return () => {
-      clearInterval(interval);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+    if (authenticated) {
+      fetchData();
+      connectWebSocket();
+      
+      // Fallback: Her 5 saniyede bir kontrol et (WebSocket çalışmazsa)
+      const interval = setInterval(fetchData, 5000);
+      
+      return () => {
+        clearInterval(interval);
+        if (wsRef.current) {
+          wsRef.current.close();
+        }
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, [connectWebSocket]);
