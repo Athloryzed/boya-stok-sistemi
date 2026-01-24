@@ -410,8 +410,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         <Tabs defaultValue="machines" className="space-y-6">
           {/* Mobile: 2-row grid layout, Desktop: horizontal scroll */}
           <div className="block md:hidden">
-            <div className="grid grid-cols-3 gap-2">
-              <TabsList className="bg-surface border-border col-span-3 grid grid-cols-3 h-auto p-1">
+            <div className="grid grid-cols-4 gap-1">
+              <TabsList className="bg-surface border-border col-span-4 grid grid-cols-4 h-auto p-1">
                 <TabsTrigger value="machines" data-testid="machines-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Makine
                 </TabsTrigger>
@@ -431,6 +431,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       {unreadMessagesCount}
                     </span>
                   )}
+                </TabsTrigger>
+                <TabsTrigger value="visitors" data-testid="visitors-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Ziyaret
                 </TabsTrigger>
                 <TabsTrigger value="maintenance" data-testid="maintenance-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Bakım
@@ -460,6 +463,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     {unreadMessagesCount}
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
+                <Users className="h-4 w-4 mr-1" /> Ziyaretçiler
               </TabsTrigger>
               <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 Bakım
