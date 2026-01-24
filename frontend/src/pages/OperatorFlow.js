@@ -41,26 +41,28 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
-    const savedSession = localStorage.getItem("operator_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        setUserData(session);
-        setOperatorName(session.display_name || session.username);
-        if (session.machine_id) {
-          // Makine seçilmişti
-          fetchMachines().then(() => {
+    const checkSession = async () => {
+      const savedSession = localStorage.getItem("operator_session");
+      if (savedSession) {
+        try {
+          const session = JSON.parse(savedSession);
+          setUserData(session);
+          setOperatorName(session.display_name || session.username);
+          if (session.machine_id) {
+            await fetchMachinesData();
             setStep(3);
-          });
-        } else {
-          setStep(2);
+          } else {
+            setStep(2);
+          }
+        } catch (e) {
+          localStorage.removeItem("operator_session");
         }
-      } catch (e) {
-        localStorage.removeItem("operator_session");
       }
-    }
-    fetchMachines();
-    setSessionChecked(true);
+      await fetchMachinesData();
+      setSessionChecked(true);
+    };
+    checkSession();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -76,6 +78,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       
       return () => clearInterval(interval);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMachine]);
 
   useEffect(() => {
