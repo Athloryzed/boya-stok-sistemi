@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -37,8 +37,26 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [isEditJobOpen, setIsEditJobOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    name: "", koli_count: "", colors: "", format: "", notes: "", delivery_date: ""
+    name: "", koli_count: "", colors: "", format: "", notes: "", delivery_date: "", delivery_address: "", delivery_phone: ""
   });
+  
+  // Sevkiyat state'leri
+  const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [shipments, setShipments] = useState([]);
+  const [pallets, setPallets] = useState([]);
+  const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
+  const [isDriverDialogOpen, setIsDriverDialogOpen] = useState(false);
+  const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
+  const [newVehiclePlate, setNewVehiclePlate] = useState("");
+  const [newDriverData, setNewDriverData] = useState({ name: "", password: "", phone: "" });
+  const [shipmentFormData, setShipmentFormData] = useState({
+    vehicle_id: "", vehicle_plate: "", driver_id: "", driver_name: "",
+    delivery_address: "", delivery_phone: "", delivery_notes: "", total_koli: 0, pallet_ids: []
+  });
+  const [palletSearch, setPalletSearch] = useState("");
+  const [searchedPallets, setSearchedPallets] = useState([]);
+  const [selectedShipmentPallets, setSelectedShipmentPallets] = useState([]);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -47,7 +65,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     machine_id: "",
     format: "",
     notes: "",
-    delivery_date: ""
+    delivery_date: "",
+    delivery_address: "",
+    delivery_phone: ""
   });
 
   const [cloneFormData, setCloneFormData] = useState({
