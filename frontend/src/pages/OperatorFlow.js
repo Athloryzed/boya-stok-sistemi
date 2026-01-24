@@ -112,7 +112,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   }, [messages, isChatOpen]);
 
-  const fetchMachines = async () => {
+  const fetchMachinesData = async () => {
     try {
       const response = await axios.get(`${API}/machines`);
       const uniqueMachines = response.data.reduce((acc, machine) => {
@@ -125,6 +125,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       toast.error("Makineler yüklenemedi");
       return [];
     }
+  };
+
+  const fetchMachines = async () => {
+    return fetchMachinesData();
   };
 
   const fetchJobs = async () => {
