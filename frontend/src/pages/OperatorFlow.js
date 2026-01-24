@@ -16,6 +16,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [operatorName, setOperatorName] = useState("");
+  const [operatorPassword, setOperatorPassword] = useState("");
+  const [userData, setUserData] = useState(null);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -37,47 +39,28 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
 
-  // Cihaz ID'si oluştur/al
-  const getDeviceId = () => {
-    let deviceId = localStorage.getItem("operator_device_id");
-    if (!deviceId) {
-      deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem("operator_device_id", deviceId);
-    }
-    return deviceId;
-  };
-
-  // Oturum kontrolü - sayfa yüklendiğinde
+  // Oturum kontrolü - localStorage'dan
   useEffect(() => {
-    const checkSession = async () => {
-      const deviceId = getDeviceId();
+    const savedSession = localStorage.getItem("operator_session");
+    if (savedSession) {
       try {
-        const response = await axios.get(`${API}/operator/session/${deviceId}`);
-        if (response.data) {
-          // Mevcut oturum var
-          setOperatorName(response.data.operator_name);
-          if (response.data.machine_id) {
-            // Makine de seçiliydi
-            const machinesRes = await axios.get(`${API}/machines`);
-            const machine = machinesRes.data.find(m => m.id === response.data.machine_id);
-            if (machine) {
-              setSelectedMachine(machine);
-              setStep(3);
-            } else {
-              setStep(2);
-            }
-          } else {
-            setStep(2);
-          }
+        const session = JSON.parse(savedSession);
+        setUserData(session);
+        setOperatorName(session.display_name || session.username);
+        if (session.machine_id) {
+          // Makine seçilmişti
+          fetchMachines().then(() => {
+            setStep(3);
+          });
+        } else {
+          setStep(2);
         }
-      } catch (error) {
-        console.log("Oturum bulunamadı, yeni giriş gerekli");
+      } catch (e) {
+        localStorage.removeItem("operator_session");
       }
-      setSessionChecked(true);
-    };
-    
+    }
     fetchMachines();
-    checkSession();
+    setSessionChecked(true);
   }, []);
 
   useEffect(() => {
