@@ -27,7 +27,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
   const [locationWatchId, setLocationWatchId] = useState(null);
 
   // Konum takibini başlat
-  const startLocationTracking = useCallback((driverId) => {
+  const startLocationTracking = useCallback((userId) => {
     if ("geolocation" in navigator) {
       const watchId = navigator.geolocation.watchPosition(
         async (position) => {
@@ -36,7 +36,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
           
           // Konumu backend'e gönder
           try {
-            await axios.put(`${API}/drivers/${driverId}/location`, {
+            await axios.put(`${API}/users/${userId}/location`, {
               lat: latitude,
               lng: longitude
             });
