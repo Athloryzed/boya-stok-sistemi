@@ -1519,6 +1519,230 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
+        {/* Araç Ekleme Dialog */}
+        <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">Yeni Araç Ekle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Plaka *</Label>
+                <Input
+                  value={newVehiclePlate}
+                  onChange={(e) => setNewVehiclePlate(e.target.value.toUpperCase())}
+                  placeholder="34 ABC 123"
+                  className="bg-background border-border"
+                  data-testid="new-vehicle-plate-input"
+                />
+              </div>
+              <Button onClick={handleAddVehicle} className="w-full bg-success hover:bg-success/90 text-white">
+                Ekle
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Şoför Ekleme Dialog */}
+        <Dialog open={isDriverDialogOpen} onOpenChange={setIsDriverDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">Yeni Şoför Ekle</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>İsim *</Label>
+                <Input
+                  value={newDriverData.name}
+                  onChange={(e) => setNewDriverData({...newDriverData, name: e.target.value})}
+                  placeholder="Şoför adı"
+                  className="bg-background border-border"
+                  data-testid="new-driver-name-input"
+                />
+              </div>
+              <div>
+                <Label>Şifre *</Label>
+                <Input
+                  type="password"
+                  value={newDriverData.password}
+                  onChange={(e) => setNewDriverData({...newDriverData, password: e.target.value})}
+                  placeholder="Giriş şifresi"
+                  className="bg-background border-border"
+                  data-testid="new-driver-password-input"
+                />
+              </div>
+              <div>
+                <Label>Telefon</Label>
+                <Input
+                  value={newDriverData.phone}
+                  onChange={(e) => setNewDriverData({...newDriverData, phone: e.target.value})}
+                  placeholder="05XX XXX XX XX"
+                  className="bg-background border-border"
+                />
+              </div>
+              <Button onClick={handleAddDriver} className="w-full bg-success hover:bg-success/90 text-white">
+                Ekle
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Sevkiyat Oluşturma Dialog */}
+        <Dialog open={isShipmentDialogOpen} onOpenChange={setIsShipmentDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">Yeni Sevkiyat Oluştur</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Araç *</Label>
+                  <Select 
+                    value={shipmentFormData.vehicle_id} 
+                    onValueChange={(value) => {
+                      const vehicle = vehicles.find(v => v.id === value);
+                      setShipmentFormData({
+                        ...shipmentFormData, 
+                        vehicle_id: value,
+                        vehicle_plate: vehicle?.plate || ""
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Araç seçin" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {vehicles.map(v => (
+                        <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Şoför</Label>
+                  <Select 
+                    value={shipmentFormData.driver_id} 
+                    onValueChange={(value) => {
+                      const driver = drivers.find(d => d.id === value);
+                      setShipmentFormData({
+                        ...shipmentFormData, 
+                        driver_id: value,
+                        driver_name: driver?.name || ""
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Şoför seçin (opsiyonel)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {drivers.map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Teslimat Adresi *</Label>
+                <Textarea
+                  value={shipmentFormData.delivery_address}
+                  onChange={(e) => setShipmentFormData({...shipmentFormData, delivery_address: e.target.value})}
+                  placeholder="Tam adres..."
+                  className="bg-background border-border"
+                  data-testid="shipment-address-input"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Telefon</Label>
+                  <Input
+                    value={shipmentFormData.delivery_phone}
+                    onChange={(e) => setShipmentFormData({...shipmentFormData, delivery_phone: e.target.value})}
+                    placeholder="05XX XXX XX XX"
+                    className="bg-background border-border"
+                  />
+                </div>
+                <div>
+                  <Label>Koli Sayısı (manuel)</Label>
+                  <Input
+                    type="number"
+                    value={shipmentFormData.total_koli}
+                    onChange={(e) => setShipmentFormData({...shipmentFormData, total_koli: parseInt(e.target.value) || 0})}
+                    placeholder="Toplam koli"
+                    className="bg-background border-border"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Notlar</Label>
+                <Textarea
+                  value={shipmentFormData.delivery_notes}
+                  onChange={(e) => setShipmentFormData({...shipmentFormData, delivery_notes: e.target.value})}
+                  placeholder="Ek notlar..."
+                  className="bg-background border-border"
+                />
+              </div>
+
+              {/* Palet Arama ve Ekleme */}
+              <div>
+                <Label>Palet Ekle (Opsiyonel)</Label>
+                <div className="relative">
+                  <Input
+                    value={palletSearch}
+                    onChange={(e) => {
+                      setPalletSearch(e.target.value);
+                      searchPallets(e.target.value);
+                    }}
+                    placeholder="Palet kodu veya iş adı ile ara..."
+                    className="bg-background border-border"
+                  />
+                  {searchedPallets.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                      {searchedPallets.map(pallet => (
+                        <div
+                          key={pallet.id}
+                          className="p-2 hover:bg-background cursor-pointer border-b border-border last:border-0"
+                          onClick={() => addPalletToShipment(pallet)}
+                        >
+                          <p className="font-semibold">{pallet.code}</p>
+                          <p className="text-xs text-text-secondary">{pallet.job_name} - {pallet.koli_count} koli</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Seçilen Paletler */}
+              {selectedShipmentPallets.length > 0 && (
+                <div>
+                  <Label>Seçilen Paletler ({selectedShipmentPallets.length})</Label>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {selectedShipmentPallets.map(pallet => (
+                      <div key={pallet.id} className="flex justify-between items-center p-2 bg-background rounded">
+                        <span className="text-sm">{pallet.code} - {pallet.koli_count} koli</span>
+                        <Button size="sm" variant="ghost" onClick={() => removePalletFromShipment(pallet.id)}>
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-text-secondary mt-1">
+                    Toplam: {selectedShipmentPallets.reduce((sum, p) => sum + p.koli_count, 0)} koli
+                  </p>
+                </div>
+              )}
+
+              <Button onClick={handleCreateShipment} className="w-full bg-success hover:bg-success/90 text-white">
+                Sevkiyat Oluştur
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
