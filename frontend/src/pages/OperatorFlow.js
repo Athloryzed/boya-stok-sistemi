@@ -24,6 +24,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [requestType, setRequestType] = useState("");
   const [requestQuantity, setRequestQuantity] = useState("");
+  const [sessionChecked, setSessionChecked] = useState(false);
   
   // Mesajlaşma state'leri
   const [messages, setMessages] = useState([]);
@@ -36,8 +37,47 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
 
+  // Cihaz ID'si oluştur/al
+  const getDeviceId = () => {
+    let deviceId = localStorage.getItem("operator_device_id");
+    if (!deviceId) {
+      deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("operator_device_id", deviceId);
+    }
+    return deviceId;
+  };
+
+  // Oturum kontrolü - sayfa yüklendiğinde
   useEffect(() => {
+    const checkSession = async () => {
+      const deviceId = getDeviceId();
+      try {
+        const response = await axios.get(`${API}/operator/session/${deviceId}`);
+        if (response.data) {
+          // Mevcut oturum var
+          setOperatorName(response.data.operator_name);
+          if (response.data.machine_id) {
+            // Makine de seçiliydi
+            const machinesRes = await axios.get(`${API}/machines`);
+            const machine = machinesRes.data.find(m => m.id === response.data.machine_id);
+            if (machine) {
+              setSelectedMachine(machine);
+              setStep(3);
+            } else {
+              setStep(2);
+            }
+          } else {
+            setStep(2);
+          }
+        }
+      } catch (error) {
+        console.log("Oturum bulunamadı, yeni giriş gerekli");
+      }
+      setSessionChecked(true);
+    };
+    
     fetchMachines();
+    checkSession();
   }, []);
 
   useEffect(() => {
@@ -83,6 +123,21 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isChatOpen]);
+
+  // Oturumu kaydet
+  const saveSession = async (name, machine = null) => {
+    const deviceId = getDeviceId();
+    try {
+      await axios.post(`${API}/operator/session`, {
+        device_id: deviceId,
+        operator_name: name,
+        machine_id: machine?.id || null,
+        machine_name: machine?.name || null
+      });
+    } catch (error) {
+      console.error("Oturum kaydetme hatası:", error);
+    }
+  };
 
   const fetchMachines = async () => {
     try {
