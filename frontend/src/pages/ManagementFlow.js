@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -22,6 +22,7 @@ const PAINT_COLORS = {
   "Sarı": "#ffeb3b", "Gold": "#ffc107", "Gümüş": "#9e9e9e", "Pasta": "#bcaaa4"
 };
 const LOW_STOCK_THRESHOLD = 5;
+const MANAGEMENT_PASSWORD = "buse11993";
 
 const ManagementFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -40,6 +41,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [visitors, setVisitors] = useState([]);
   const [visitorStats, setVisitorStats] = useState(null);
+  
+  // Kullanıcı yönetimi state'leri
+  const [users, setUsers] = useState([]);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({ username: "", password: "", role: "", display_name: "", phone: "" });
+  const [driverLocations, setDriverLocations] = useState([]);
   
   // Dialog states
   const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false);
