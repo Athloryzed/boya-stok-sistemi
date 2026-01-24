@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff, Package, Truck, History, Check } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -15,12 +18,17 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [warehouseRequests, setWarehouseRequests] = useState([]);
   const [pallets, setPallets] = useState([]);
+  const [shipmentLogs, setShipmentLogs] = useState([]);
+  const [shipments, setShipments] = useState([]);
   const [scannerActive, setScannerActive] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [scanner, setScanner] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationData, setNotificationData] = useState(null);
+  const [isShipmentLogDialogOpen, setIsShipmentLogDialogOpen] = useState(false);
+  const [selectedShipmentForLog, setSelectedShipmentForLog] = useState(null);
+  const [shipmentLogForm, setShipmentLogForm] = useState({ delivered_koli: 0, partial: false });
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
