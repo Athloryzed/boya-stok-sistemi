@@ -354,13 +354,34 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   }, [searchQuery]);
 
-  const handleLogin = () => {
-    if (password === "12341") {
+  const handleLogin = async () => {
+    if (!username.trim() || !password.trim()) {
+      toast.error("Kullanıcı adı ve şifre gerekli");
+      return;
+    }
+    try {
+      const response = await axios.post(`${API}/users/login`, {
+        username: username,
+        password: password,
+        role: "plan"
+      });
+      const user = response.data;
+      setUserData(user);
+      localStorage.setItem("plan_session", JSON.stringify(user));
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
-    } else {
-      toast.error("Yanlış şifre!");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Giriş başarısız");
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("plan_session");
+    setUserData(null);
+    setAuthenticated(false);
+    setUsername("");
+    setPassword("");
+    toast.success("Çıkış yapıldı");
   };
 
   const getFormatOptions = (machineName) => {
