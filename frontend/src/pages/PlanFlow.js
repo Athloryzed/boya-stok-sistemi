@@ -86,9 +86,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       fetchJobs();
       fetchCompletedJobs();
       fetchIncomingMessages();
+      fetchVehicles();
+      fetchDrivers();
+      fetchShipments();
+      fetchPallets();
       
       // Mesajları periyodik olarak kontrol et
-      const interval = setInterval(fetchIncomingMessages, 10000);
+      const interval = setInterval(() => {
+        fetchIncomingMessages();
+        fetchShipments();
+      }, 10000);
       return () => clearInterval(interval);
     }
   }, [authenticated]);
@@ -98,6 +105,158 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       fetchJobs();
     }
   }, [selectedMachine]);
+
+  // Sevkiyat veri çekme fonksiyonları
+  const fetchVehicles = async () => {
+    try {
+      const response = await axios.get(`${API}/vehicles`);
+      setVehicles(response.data);
+    } catch (error) {
+      console.error("Araçlar yüklenemedi:", error);
+    }
+  };
+
+  const fetchDrivers = async () => {
+    try {
+      const response = await axios.get(`${API}/drivers`);
+      setDrivers(response.data);
+    } catch (error) {
+      console.error("Şoförler yüklenemedi:", error);
+    }
+  };
+
+  const fetchShipments = async () => {
+    try {
+      const response = await axios.get(`${API}/shipments`);
+      setShipments(response.data);
+    } catch (error) {
+      console.error("Sevkiyatlar yüklenemedi:", error);
+    }
+  };
+
+  const fetchPallets = async () => {
+    try {
+      const response = await axios.get(`${API}/pallets?status=in_warehouse`);
+      setPallets(response.data);
+    } catch (error) {
+      console.error("Paletler yüklenemedi:", error);
+    }
+  };
+
+  const searchPallets = async (query) => {
+    if (!query.trim()) {
+      setSearchedPallets([]);
+      return;
+    }
+    try {
+      const response = await axios.get(`${API}/pallets/search?q=${encodeURIComponent(query)}`);
+      setSearchedPallets(response.data.filter(p => p.status === "in_warehouse"));
+    } catch (error) {
+      console.error("Palet arama hatası:", error);
+    }
+  };
+
+  const handleAddVehicle = async () => {
+    if (!newVehiclePlate.trim()) {
+      toast.error("Plaka giriniz");
+      return;
+    }
+    try {
+      await axios.post(`${API}/vehicles`, { plate: newVehiclePlate });
+      toast.success("Araç eklendi!");
+      setNewVehiclePlate("");
+      setIsVehicleDialogOpen(false);
+      fetchVehicles();
+    } catch (error) {
+      toast.error("Araç eklenemedi");
+    }
+  };
+
+  const handleAddDriver = async () => {
+    if (!newDriverData.name || !newDriverData.password) {
+      toast.error("İsim ve şifre zorunludur");
+      return;
+    }
+    try {
+      await axios.post(`${API}/drivers`, newDriverData);
+      toast.success("Şoför eklendi!");
+      setNewDriverData({ name: "", password: "", phone: "" });
+      setIsDriverDialogOpen(false);
+      fetchDrivers();
+    } catch (error) {
+      toast.error("Şoför eklenemedi");
+    }
+  };
+
+  const handleCreateShipment = async () => {
+    if (!shipmentFormData.vehicle_id || !shipmentFormData.delivery_address) {
+      toast.error("Araç ve teslimat adresi zorunludur");
+      return;
+    }
+    try {
+      await axios.post(`${API}/shipments`, {
+        ...shipmentFormData,
+        pallet_ids: selectedShipmentPallets.map(p => p.id),
+        total_koli: shipmentFormData.total_koli || selectedShipmentPallets.reduce((sum, p) => sum + p.koli_count, 0),
+        created_by: "plan"
+      });
+      toast.success("Sevkiyat oluşturuldu!");
+      setIsShipmentDialogOpen(false);
+      setShipmentFormData({
+        vehicle_id: "", vehicle_plate: "", driver_id: "", driver_name: "",
+        delivery_address: "", delivery_phone: "", delivery_notes: "", total_koli: 0, pallet_ids: []
+      });
+      setSelectedShipmentPallets([]);
+      fetchShipments();
+      fetchPallets();
+    } catch (error) {
+      toast.error("Sevkiyat oluşturulamadı");
+    }
+  };
+
+  const handleDeleteShipment = async (shipmentId) => {
+    if (!window.confirm("Bu sevkiyatı silmek istediğinize emin misiniz?")) return;
+    try {
+      await axios.delete(`${API}/shipments/${shipmentId}`);
+      toast.success("Sevkiyat silindi");
+      fetchShipments();
+      fetchPallets();
+    } catch (error) {
+      toast.error("Sevkiyat silinemedi");
+    }
+  };
+
+  const addPalletToShipment = (pallet) => {
+    if (!selectedShipmentPallets.find(p => p.id === pallet.id)) {
+      setSelectedShipmentPallets([...selectedShipmentPallets, pallet]);
+    }
+    setPalletSearch("");
+    setSearchedPallets([]);
+  };
+
+  const removePalletFromShipment = (palletId) => {
+    setSelectedShipmentPallets(selectedShipmentPallets.filter(p => p.id !== palletId));
+  };
+
+  const getShipmentStatusColor = (status) => {
+    switch (status) {
+      case "preparing": return "text-yellow-500 bg-yellow-500/10";
+      case "in_transit": return "text-blue-500 bg-blue-500/10";
+      case "delivered": return "text-green-500 bg-green-500/10";
+      case "failed": return "text-red-500 bg-red-500/10";
+      default: return "text-text-secondary";
+    }
+  };
+
+  const getShipmentStatusText = (status) => {
+    switch (status) {
+      case "preparing": return "Hazırlanıyor";
+      case "in_transit": return "Yolda";
+      case "delivered": return "Teslim Edildi";
+      case "failed": return "Teslim Edilemedi";
+      default: return status;
+    }
+  };
 
   const fetchMachines = async () => {
     try {
