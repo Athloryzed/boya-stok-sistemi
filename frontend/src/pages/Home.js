@@ -185,25 +185,32 @@ const Home = ({ theme, toggleTheme }) => {
       {/* Parlayan Yıldızlar (Sadece Gece) */}
       {timeOfDay === "night" && (
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(50)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 bg-white rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                opacity: [0.2, 1, 0.2],
-                scale: [1, 1.5, 1],
-              }}
-              transition={{
-                duration: 2 + Math.random() * 3,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
+          {[...Array(50)].map((_, i) => {
+            // Pre-calculate random values
+            const leftPos = (i * 17 + 13) % 100;
+            const topPos = (i * 23 + 7) % 100;
+            const duration = 2 + (i % 3);
+            const delay = (i % 5) * 0.4;
+            return (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full"
+                style={{
+                  left: `${leftPos}%`,
+                  top: `${topPos}%`,
+                }}
+                animate={{
+                  opacity: [0.2, 1, 0.2],
+                  scale: [1, 1.5, 1],
+                }}
+                transition={{
+                  duration: duration,
+                  repeat: Infinity,
+                  delay: delay,
+                }}
+              />
+            );
+          })}
         </div>
       )}
 
