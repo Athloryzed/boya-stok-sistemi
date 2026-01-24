@@ -5,136 +5,137 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
 
 ## Kullanıcı Rolleri ve Şifreler
 - **Yönetim**: Şifre `432122` - Vardiya kontrolü, makine durumu, analitik, bakım, mesaj gönderme
-- **Operatör**: İsim girişi - Makine seçimi, iş başlatma/tamamlama, mesaj alma
-- **Plan**: Şifre `12341` - İş ekleme, makine durumu, geçmiş işler, mesaj gönderme
-- **Depo**: Şifresiz - Malzeme talepleri
+- **Operatör**: İsim girişi - Makine seçimi, iş başlatma/tamamlama, mesaj alma (oturum hatırlama)
+- **Plan**: Şifre `12341` - İş ekleme, sevkiyat yönetimi, makine durumu, geçmiş işler, mesaj gönderme
+- **Depo**: Şifresiz - Malzeme talepleri, palet tarama, sevkiyat teslimi
 - **Boya**: Şifre `432122` - Boya stok yönetimi
+- **Şoför**: Şifreli giriş - Sevkiyat takibi, konum paylaşımı, teslimat durumu
 
-## Son Güncelleme: 23 Ocak 2025
+## Son Güncelleme: 24 Ocak 2025
 
-### Düzeltilen Sorunlar ✅
-- **Mobil Sekme Menüsü Düzeltmesi**: Yönetim panelindeki sekmeler (Makine, Mesaj, Analiz, Boya, Ziyaret, Bakım) artık mobil cihazlarda 2x3 grid düzeninde tam görünür. Masaüstünde ise yatay düzende gösteriliyor.
+### Yeni Eklenen Özellikler (24 Ocak 2025) ✅
+
+1. **Operatör Oturum Hatırlama**
+   - Aynı cihaz/tarayıcıda gün içinde isim hatırlama (localStorage + backend session)
+   - Sayfa yenilendiğinde otomatik giriş
+   - Gün sonunda oturum süresi dolar
+
+2. **Şoför Modülü (Yeni)**
+   - Ana sayfada "Şoför" butonu
+   - Şifreli giriş sistemi
+   - Atanan sevkiyatları görme (adres, telefon, koli sayısı)
+   - Google Maps ile yol tarifi
+   - Toplu rota oluşturma (tüm teslimatlar için)
+   - Teslim durumu: "Teslim Edildi" veya "Teslim Edilemedi" + sebep
+   - Anlık konum takibi (tarayıcı izni ile)
+
+3. **Sevkiyat Modülü (Plan Paneli)**
+   - Yeni "Sevkiyat" sekmesi
+   - Araç ekleme (plaka ile)
+   - Şoför ekleme (isim + şifre + telefon)
+   - Sevkiyat oluşturma:
+     - Araç seçimi
+     - Şoför atama
+     - Teslimat adresi + telefon
+     - Koli sayısı (manuel veya palet bazlı)
+     - Palet arama ve ekleme
+   - Sevkiyat listesi ve durum takibi
+
+4. **Depo Geliştirmeleri**
+   - Yeni "Sevkiyat Teslim" sekmesi
+   - Bekleyen sevkiyatları görme
+   - Kısmi veya tam teslim kaydı
+   - "Geçmiş" sekmesi - sevkiyat kayıtları
+
+5. **Mobil Responsive Güncellemeleri**
+   - Yönetim: 2x3 grid sekmeler
+   - Plan: 2x2 grid sekmeler
+   - Depo: 2x2 grid sekmeler
+   - Tüm paneller mobil uyumlu
 
 ## Tamamlanan Özellikler
 
 ### Ana Modüller ✅
+
 1. **Yönetim Paneli**
    - Vardiya başlatma/bitirme
    - Makine durumu takibi
-   - Günlük/Haftalık/Aylık analitik (hafta seçimli)
+   - Günlük/Haftalık/Aylık analitik
    - Bakım kayıtları
    - Excel rapor dışa aktarma
-   - **Boya Stok Tablosu**
-   - **Makineye Mesaj Gönderme**
-   - **Düşük Stok Uyarısı**
-   - **Mobil Responsive Sekme Menüsü** (23 Ocak 2025)
+   - Boya Stok Tablosu
+   - Makineye Mesaj Gönderme
+   - Düşük Stok Uyarısı
+   - Ziyaretçi Takibi
 
 2. **Operatör Paneli**
+   - Oturum hatırlama (gün içinde)
    - Makine seçimi
    - İş başlatma/tamamlama
    - Malzeme talebi gönderme
-   - **Mesaj Alma ve Bildirim** (YENİ)
-   - **Sohbet Ekranı** (YENİ)
+   - Mesaj alma ve bildirim
+   - Sohbet ekranı
 
 3. **Plan Paneli**
-   - Yeni iş ekleme (koli sayısı, renk, format, termin)
+   - Yeni iş ekleme
+   - Sevkiyat yönetimi (YENİ)
+   - Araç/Şoför ekleme (YENİ)
    - Makine durumu görüntüleme
-   - Geçmiş işler ve iş klonlama
-   - İş arama
-   - **Makineye Mesaj Gönderme**
-   - **"Mesajlar" sekmesi - Operatör mesajlarını takip** (YENİ)
+   - Geçmiş işler ve klonlama
+   - Mesajlar sekmesi
 
 4. **Depo Paneli**
-   - Malzeme talepleri listesi
-   - Talep tamamlama
+   - Malzeme talepleri (WebSocket)
+   - Palet tarama
+   - Sevkiyat teslimi (YENİ)
+   - Sevkiyat geçmişi (YENİ)
 
-5. **Boya Modülü** ✅
-   - 12 boya türü: **Siyah, Beyaz, Mavi, Lacivert, Refleks, Kırmızı, Magenta, Rhodam, Sarı, Gold, Gümüş, Pasta**
-   - Her boya gerçek rengine uygun görsel
-   - Stok takibi (L cinsinden)
-   - Stok ekleme/çıkarma
-   - Makineye gönderme/makineden alma
+5. **Boya Modülü**
+   - 12 boya türü
+   - Stok takibi
    - Hareket geçmişi
-   - Haftalık/Aylık tüketim analitikleri
-   - **Düşük Stok Uyarısı (5L altı)** (YENİ)
+   - Tüketim analitikleri
+   - Düşük stok uyarısı
 
-### Mesajlaşma Sistemi ✅ (İKİ YÖNLÜ + YÖNETİM GELEN KUTUSU)
-- Yönetim ve Plan panelinden makineye mesaj gönderme
-- **Operatör yanıt yazabilme**
-- Operatör tarafında mesaj alma ve bildirim
-- Sohbet ekranı ile mesaj geçmişi görüntüleme
-- Okunmamış mesaj sayısı badge
-- Farklı renklerle gönderen ayırt etme (Yönetim: sarı, Plan: yeşil, Operatör: mavi)
-- **Yönetim "Mesajlar" sekmesi** (YENİ) - Operatör mesajlarını takip
-- **Okundu işaretleme ve hızlı yanıt** (YENİ)
+6. **Şoför Modülü (YENİ)**
+   - Şifreli giriş
+   - Sevkiyat listesi
+   - Google Maps entegrasyonu
+   - Konum paylaşımı
+   - Teslimat durumu güncelleme
 
-### Genel Özellikler ✅
-- PWA (Progressive Web App) desteği
-- Mobil uyumlu responsive tasarım
-- Gece/Gündüz modu
-- Dinamik ana sayfa (İstanbul saatine göre arkaplan)
-- Türk bayrağı ve Atatürk görseli
+## Teknik Altyapı
 
-## Makine Listesi
-- 40x40
-- 40x40 ICM
-- 33x33 (Büyük)
-- 33x33 ICM
-- 33x33 (Eski)
-- 30x30
-- 24x24
-- Dispanser
+### Backend
+- FastAPI + Motor (async MongoDB)
+- WebSocket (depo bildirimleri)
+- Pydantic modeller
 
-## Boya Renk Haritası
-| Boya | Renk Kodu |
-|------|-----------|
-| Siyah | #1a1a1a |
-| Beyaz | #f5f5f5 |
-| Mavi | #2196F3 |
-| Lacivert | #1a237e |
-| Refleks | #00e5ff |
-| Kırmızı | #f44336 |
-| Magenta | #e91e63 |
-| Rhodam | #9c27b0 |
-| Sarı | #ffeb3b |
-| Gold | #ffc107 |
-| Gümüş | #9e9e9e |
-| Pasta | #bcaaa4 |
+### Frontend
+- React + TailwindCSS
+- Shadcn/UI bileşenleri
+- Framer Motion animasyonlar
+- Recharts grafikler
 
-## API Endpoints
+### Veritabanı Şemaları
+- `machines`, `jobs`, `shifts`, `maintenance_logs`
+- `warehouse_requests`, `pallets`
+- `paints`, `paint_movements`
+- `machine_messages`, `visitors`
+- `operator_sessions` (YENİ)
+- `vehicles`, `drivers`, `shipments` (YENİ)
+- `warehouse_shipment_logs` (YENİ)
 
-### Mesaj Sistemi (YENİ)
-- `POST /api/messages` - Mesaj gönder
-- `GET /api/messages/{machine_id}` - Makine mesajlarını getir
-- `GET /api/messages/{machine_id}/unread` - Okunmamış mesaj sayısı
-- `PUT /api/messages/{machine_id}/mark-read` - Mesajları okundu işaretle
+## Bekleyen Özellikler
 
-### Boya Modülü
-- `POST /api/paints/init` - Başlangıç boyalarını oluştur
-- `GET /api/paints` - Tüm boyaları listele
-- `GET /api/paints/low-stock` - Düşük stoklu boyalar (5L altı)
-- `POST /api/paints/transaction` - Boya hareketi
-- `GET /api/paints/movements` - Hareket geçmişi
-- `GET /api/paints/analytics` - Tüketim analitikleri
+### P1 (Yüksek Öncelik)
+- Google Maps API entegrasyonu (API key gerekli)
+- Anlık şoför konum görüntüleme (Plan panelinde)
 
-### Analitik
-- `GET /api/analytics/daily-by-week?week_offset=0` - Hafta seçimli günlük analitik
+### P2 (Orta Öncelik)
+- Günlük analiz detayı (güne tıklayarak makine bazlı üretim)
+- QR/Barkod tarama ile palet kaydı
 
-## Bekleyen Görevler (Backlog)
-
-### P2 - Orta Öncelik
-- [ ] QR/Barkod tarama özelliği (temel altyapı var)
-
-## Gerçek Zamanlı Bildirim Sistemi ✅ (YENİ - WebSocket)
-- **Depo panelinde WebSocket bağlantısı**: Anlık malzeme talebi bildirimi
-- **Canlı bağlantı durumu**: Yeşil "Canlı" / Kırmızı "Bağlantı Yok" göstergesi
-- **Pop-up bildirim**: Yeni talep geldiğinde animasyonlu ve sesli bildirim
-- **Otomatik yeniden bağlanma**: Bağlantı koptuğunda 3 sn sonra otomatik yeniden bağlanma
-- **Fallback polling**: WebSocket çalışmazsa 5 saniyede bir kontrol
-
-## Test Durumu
-- Boya modülü: %100 çalışıyor
-- Mesajlaşma sistemi: %100 çalışıyor
-- Analitik hafta seçimi: %100 çalışıyor
-- Düşük stok uyarısı: %100 çalışıyor
-- Son güncelleme: 23 Ocak 2026
+### P3 (Düşük Öncelik)
+- WebSocket mesajlaşma (polling yerine)
+- Raporlama geliştirmeleri
