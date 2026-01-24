@@ -152,6 +152,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       console.error("WebSocket connection error:", error);
       setWsConnected(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const playNotificationSound = () => {
@@ -182,7 +183,8 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         }
       };
     }
-  }, [authenticated, connectWebSocket]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated]);
 
   useEffect(() => {
     return () => {
