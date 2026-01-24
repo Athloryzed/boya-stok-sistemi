@@ -595,6 +595,92 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </Card>
           </TabsContent>
 
+          {/* KULLANICILAR TAB */}
+          <TabsContent value="users">
+            <div className="space-y-6">
+              {/* Kullanıcı Ekleme Butonu */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-heading">Kullanıcı Yönetimi</h2>
+                <Button onClick={() => setIsUserDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-black">
+                  <UserPlus className="h-4 w-4 mr-2" /> Yeni Kullanıcı
+                </Button>
+              </div>
+
+              {/* Kullanıcı Listesi */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg">Aktif Kullanıcılar ({users.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {users.length === 0 ? (
+                    <p className="text-text-secondary text-center py-4">Henüz kullanıcı eklenmemiş</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {users.map(user => (
+                        <div key={user.id} className="flex justify-between items-center p-3 bg-background rounded-lg border border-border">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getRoleColor(user.role)}`}>
+                              {user.role === "sofor" ? <Truck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{user.display_name || user.username}</p>
+                              <p className="text-xs text-text-secondary">@{user.username}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs ${getRoleColor(user.role)}`}>
+                              {getRoleLabel(user.role)}
+                            </span>
+                            {user.role === "sofor" && user.current_location_lat && (
+                              <span className="text-green-500 text-xs flex items-center gap-1">
+                                <MapPin className="h-3 w-3" /> Aktif
+                              </span>
+                            )}
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(user.id, user.username)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Şoför Konumları */}
+              {driverLocations.length > 0 && (
+                <Card className="bg-surface border-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-green-500" /> Şoför Konumları
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {driverLocations.map(driver => (
+                        <div key={driver.id} className="flex justify-between items-center p-3 bg-background rounded-lg">
+                          <div>
+                            <p className="font-semibold">{driver.display_name || driver.username}</p>
+                            <p className="text-xs text-text-secondary">
+                              Son güncelleme: {driver.location_updated_at ? new Date(driver.location_updated_at).toLocaleString("tr-TR") : "-"}
+                            </p>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.open(`https://www.google.com/maps?q=${driver.current_location_lat},${driver.current_location_lng}`, "_blank")}
+                          >
+                            <MapPin className="h-4 w-4 mr-1" /> Haritada Gör
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
           {/* ANALİZ TAB */}
           <TabsContent value="analytics">
             <div className="space-y-6">
