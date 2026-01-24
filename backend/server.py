@@ -153,6 +153,21 @@ class MachineMessage(BaseModel):
     is_read: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Kullanıcı Modeli (Merkezi Yönetim)
+class User(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    username: str
+    password: str
+    role: str  # "operator", "plan", "depo", "sofor"
+    display_name: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: bool = True
+    current_location_lat: Optional[float] = None
+    current_location_lng: Optional[float] = None
+    location_updated_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 # Ziyaretçi Takip Modeli
 class Visitor(BaseModel):
     model_config = ConfigDict(extra="ignore")
