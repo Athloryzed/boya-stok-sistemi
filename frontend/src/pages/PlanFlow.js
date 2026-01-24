@@ -17,7 +17,9 @@ import { API } from "../App";
 const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [userData, setUserData] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [completedJobs, setCompletedJobs] = useState([]);
@@ -79,6 +81,20 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     notes: "",
     delivery_date: ""
   });
+
+  // Oturum kontrolü
+  useEffect(() => {
+    const savedSession = localStorage.getItem("plan_session");
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        setUserData(session);
+        setAuthenticated(true);
+      } catch (e) {
+        localStorage.removeItem("plan_session");
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (authenticated) {
