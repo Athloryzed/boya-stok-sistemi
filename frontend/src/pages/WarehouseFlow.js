@@ -482,10 +482,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                       <tbody>
                         {pallets.slice(0, 10).map((pallet) => (
                           <tr key={pallet.id} className="border-b border-border" data-testid={`pallet-${pallet.id}`}>
-                            <td className="p-3 text-text-primary font-mono font-bold">{pallet.pallet_code}</td>
+                            <td className="p-3 text-text-primary font-mono font-bold">{pallet.pallet_code || pallet.code}</td>
                             <td className="p-3 text-text-secondary">{pallet.job_name}</td>
                             <td className="p-3 text-text-secondary">{pallet.operator_name}</td>
-                            <td className="p-3 text-text-secondary">{new Date(pallet.scanned_at).toLocaleString("tr-TR")}</td>
+                            <td className="p-3 text-text-secondary">{new Date(pallet.scanned_at || pallet.created_at).toLocaleString("tr-TR")}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -495,7 +495,134 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* SEVKİYAT TESLİM TAB */}
+          <TabsContent value="shipments">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <CardTitle className="text-2xl font-heading flex items-center gap-2">
+                  <Truck className="h-6 w-6 text-warning" />
+                  Hazırlanan Sevkiyatlar
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {shipments.length === 0 ? (
+                  <p className="text-text-secondary text-center py-8">Bekleyen sevkiyat yok.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {shipments.map((shipment) => (
+                      <div key={shipment.id} className="p-4 bg-background rounded-lg border border-border">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-bold text-lg">{shipment.vehicle_plate}</h3>
+                            {shipment.driver_name && <p className="text-sm text-text-secondary">Şoför: {shipment.driver_name}</p>}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-xl text-primary">{shipment.total_koli} Koli</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-text-secondary mb-3">{shipment.delivery_address}</p>
+                        <Button
+                          onClick={() => {
+                            setSelectedShipmentForLog(shipment);
+                            setShipmentLogForm({ delivered_koli: shipment.total_koli, partial: false });
+                            setIsShipmentLogDialogOpen(true);
+                          }}
+                          className="w-full bg-success hover:bg-success/90 text-white"
+                        >
+                          <Check className="h-4 w-4 mr-2" /> Teslim Et
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* GEÇMİŞ TAB */}
+          <TabsContent value="history">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <CardTitle className="text-2xl font-heading flex items-center gap-2">
+                  <History className="h-6 w-6 text-warning" />
+                  Sevkiyat Geçmişi
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {shipmentLogs.length === 0 ? (
+                  <p className="text-text-secondary text-center py-8">Henüz sevkiyat kaydı yok.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {shipmentLogs.map((log) => (
+                      <div key={log.id} className="p-4 bg-background rounded-lg border border-border">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-bold">{log.vehicle_plate}</h3>
+                            <p className="text-sm text-text-secondary">
+                              {log.partial ? `Kısmi Teslim: ${log.delivered_koli}/${log.total_koli} koli` : `Tam Teslim: ${log.total_koli} koli`}
+                            </p>
+                            <p className="text-xs text-text-secondary mt-1">
+                              {new Date(log.created_at).toLocaleString("tr-TR")}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs ${log.partial ? "bg-yellow-500/20 text-yellow-500" : "bg-green-500/20 text-green-500"}`}>
+                            {log.partial ? "Kısmi" : "Tam"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* Sevkiyat Teslim Dialog */}
+        <Dialog open={isShipmentLogDialogOpen} onOpenChange={setIsShipmentLogDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">Sevkiyat Teslimi</DialogTitle>
+            </DialogHeader>
+            {selectedShipmentForLog && (
+              <div className="space-y-4">
+                <div className="p-4 bg-background rounded-lg">
+                  <p className="font-bold">{selectedShipmentForLog.vehicle_plate}</p>
+                  <p className="text-sm text-text-secondary">Toplam: {selectedShipmentForLog.total_koli} koli</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="partial"
+                    checked={shipmentLogForm.partial}
+                    onChange={(e) => setShipmentLogForm({...shipmentLogForm, partial: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="partial">Kısmi teslim</Label>
+                </div>
+
+                {shipmentLogForm.partial && (
+                  <div>
+                    <Label>Teslim Edilen Koli Sayısı</Label>
+                    <Input
+                      type="number"
+                      value={shipmentLogForm.delivered_koli}
+                      onChange={(e) => setShipmentLogForm({...shipmentLogForm, delivered_koli: parseInt(e.target.value) || 0})}
+                      max={selectedShipmentForLog.total_koli}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+
+                <Button onClick={handleCreateShipmentLog} className="w-full bg-success hover:bg-success/90 text-white">
+                  Teslimi Kaydet
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
