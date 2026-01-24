@@ -901,6 +901,120 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             </div>
           )}
 
+          {/* SEVKİYAT TAB */}
+          <TabsContent value="shipments">
+            <div className="space-y-6">
+              {/* Üst butonlar */}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setIsShipmentDialogOpen(true)} className="bg-success hover:bg-success/90 text-white">
+                  <Plus className="h-4 w-4 mr-1" /> Yeni Sevkiyat
+                </Button>
+                <Button variant="outline" onClick={() => setIsVehicleDialogOpen(true)}>
+                  <Truck className="h-4 w-4 mr-1" /> Araç Ekle
+                </Button>
+                <Button variant="outline" onClick={() => setIsDriverDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Şoför Ekle
+                </Button>
+              </div>
+
+              {/* Araç listesi */}
+              <Card className="bg-surface border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Truck className="h-5 w-5" /> Araçlar ({vehicles.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {vehicles.map(v => (
+                      <span key={v.id} className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                        {v.plate}
+                      </span>
+                    ))}
+                    {vehicles.length === 0 && <p className="text-text-secondary text-sm">Henüz araç eklenmemiş</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Şoför listesi */}
+              <Card className="bg-surface border-border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Şoförler ({drivers.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {drivers.map(d => (
+                      <span key={d.id} className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm">
+                        {d.name} {d.phone && `(${d.phone})`}
+                      </span>
+                    ))}
+                    {drivers.length === 0 && <p className="text-text-secondary text-sm">Henüz şoför eklenmemiş</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sevkiyat listesi */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Package className="h-5 w-5" /> Sevkiyatlar
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {shipments.length === 0 ? (
+                    <p className="text-text-secondary text-center py-4">Henüz sevkiyat oluşturulmamış</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {shipments.map(shipment => (
+                        <div key={shipment.id} className="p-4 bg-background rounded-lg border border-border">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-lg">{shipment.vehicle_plate}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${getShipmentStatusColor(shipment.status)}`}>
+                                  {getShipmentStatusText(shipment.status)}
+                                </span>
+                              </div>
+                              {shipment.driver_name && (
+                                <p className="text-sm text-text-secondary">Şoför: {shipment.driver_name}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-primary">{shipment.total_koli} Koli</p>
+                              <p className="text-xs text-text-secondary">{shipment.pallets?.length || 0} Palet</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 mt-2">
+                            <MapPin className="h-4 w-4 text-text-secondary mt-0.5 flex-shrink-0" />
+                            <p className="text-sm text-text-primary">{shipment.delivery_address}</p>
+                          </div>
+                          {shipment.delivery_phone && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Phone className="h-4 w-4 text-text-secondary" />
+                              <p className="text-sm text-blue-400">{shipment.delivery_phone}</p>
+                            </div>
+                          )}
+                          {shipment.status === "failed" && shipment.delivery_status_reason && (
+                            <p className="mt-2 text-sm text-red-400 bg-red-500/10 p-2 rounded">
+                              Sebep: {shipment.delivery_status_reason}
+                            </p>
+                          )}
+                          <div className="flex gap-2 mt-3">
+                            {shipment.status === "preparing" && (
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteShipment(shipment.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* MESAJLAR TAB */}
           <TabsContent value="messages">
             <Card className="bg-surface border-border">
