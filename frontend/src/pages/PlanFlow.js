@@ -114,12 +114,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       }, 10000);
       return () => clearInterval(interval);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
   useEffect(() => {
     if (selectedMachine) {
       fetchJobs();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMachine]);
 
   // Sevkiyat veri çekme fonksiyonları
