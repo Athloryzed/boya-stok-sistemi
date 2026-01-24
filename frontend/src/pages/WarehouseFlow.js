@@ -314,21 +314,54 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         </div>
 
         <Tabs defaultValue="alerts" className="space-y-6">
-          <TabsList className="bg-surface border-border">
-            <TabsTrigger value="alerts" data-testid="alerts-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Uyarılar
-              {warehouseRequests.length > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  {warehouseRequests.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="scanner" data-testid="scanner-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
-              <QrCode className="mr-2 h-4 w-4" />
-              Palet Okuma
-            </TabsTrigger>
-          </TabsList>
+          {/* Mobile tabs */}
+          <div className="block md:hidden">
+            <TabsList className="bg-surface border-border w-full grid grid-cols-2 gap-1 h-auto p-1">
+              <TabsTrigger value="alerts" data-testid="alerts-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
+                Uyarılar
+                {warehouseRequests.length > 0 && (
+                  <span className="ml-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                    {warehouseRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="scanner" data-testid="scanner-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
+                Palet
+              </TabsTrigger>
+              <TabsTrigger value="shipments" data-testid="shipments-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
+                Sevkiyat
+              </TabsTrigger>
+              <TabsTrigger value="history" data-testid="history-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
+                Geçmiş
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          {/* Desktop tabs */}
+          <div className="hidden md:block">
+            <TabsList className="bg-surface border-border">
+              <TabsTrigger value="alerts" data-testid="alerts-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Uyarılar
+                {warehouseRequests.length > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {warehouseRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="scanner" data-testid="scanner-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
+                <QrCode className="mr-2 h-4 w-4" />
+                Palet Okuma
+              </TabsTrigger>
+              <TabsTrigger value="shipments" data-testid="shipments-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
+                <Truck className="mr-2 h-4 w-4" />
+                Sevkiyat Teslim
+              </TabsTrigger>
+              <TabsTrigger value="history" data-testid="history-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
+                <History className="mr-2 h-4 w-4" />
+                Geçmiş
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="alerts">
             <Card className="bg-surface border-border">
