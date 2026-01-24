@@ -164,6 +164,87 @@ class Visitor(BaseModel):
     page_visited: str
     visited_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Operatör Oturum Modeli
+class OperatorSession(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    device_id: str  # Cihaz tanımlayıcı (fingerprint)
+    operator_name: str
+    machine_id: Optional[str] = None
+    machine_name: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_active: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    expires_at: str = Field(default_factory=lambda: (datetime.now(timezone.utc).replace(hour=23, minute=59, second=59)).isoformat())
+
+# Palet Modeli
+class Pallet(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    code: str  # Palet kodu/barkod
+    job_id: str
+    job_name: str
+    machine_id: str
+    machine_name: str
+    koli_count: int  # Bu paletteki koli sayısı
+    operator_name: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    status: str = "in_warehouse"  # in_warehouse, in_shipment, delivered
+
+# Araç Modeli
+class Vehicle(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    plate: str  # Plaka
+    driver_name: Optional[str] = None
+    is_active: bool = True
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# Sevkiyat Modeli
+class Shipment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    vehicle_id: str
+    vehicle_plate: str
+    driver_id: Optional[str] = None
+    driver_name: Optional[str] = None
+    pallets: List[str] = []  # Palet ID'leri
+    total_koli: int = 0
+    delivery_address: str
+    delivery_phone: Optional[str] = None
+    delivery_notes: Optional[str] = None
+    status: str = "preparing"  # preparing, in_transit, delivered, failed
+    delivery_status_reason: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    created_by: str  # Oluşturan kişi (plan)
+
+# Şoför Modeli
+class Driver(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    password: str
+    phone: Optional[str] = None
+    is_active: bool = True
+    current_location_lat: Optional[float] = None
+    current_location_lng: Optional[float] = None
+    location_updated_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# Depo Sevkiyat Kaydı
+class WarehouseShipmentLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    shipment_id: str
+    vehicle_plate: str
+    pallet_ids: List[str] = []
+    total_koli: int
+    partial: bool = False  # Kısmi teslim mi?
+    delivered_koli: int = 0  # Teslim edilen koli sayısı
+    operator_name: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 @api_router.get("/")
 async def root():
     return {"message": "Buse Kağıt API"}
