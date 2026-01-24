@@ -62,6 +62,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       const interval = setInterval(fetchData, 10000);
       return () => clearInterval(interval);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, analyticsPeriod]);
 
   const fetchData = async () => {
