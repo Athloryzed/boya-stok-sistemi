@@ -80,7 +80,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
@@ -93,7 +93,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/messages/all/incoming`),
         axios.get(`${API}/messages/all/unread-count`),
         axios.get(`${API}/visitors?limit=50`),
-        axios.get(`${API}/visitors/stats`)
+        axios.get(`${API}/visitors/stats`),
+        axios.get(`${API}/users`),
+        axios.get(`${API}/users/drivers/locations`)
       ]);
       setCurrentShift(shiftRes.data);
       const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
@@ -112,18 +114,58 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setUnreadMessagesCount(unreadRes.data.unread_count);
       setVisitors(visitorsRes.data);
       setVisitorStats(visitorStatsRes.data);
+      setUsers(usersRes.data);
+      setDriverLocations(driversRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
   };
 
   const handleLogin = () => {
-    if (password === "432122") {
+    if (password === MANAGEMENT_PASSWORD) {
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } else {
       toast.error("Yanlış şifre!");
     }
+  };
+
+  // Kullanıcı yönetimi fonksiyonları
+  const handleCreateUser = async () => {
+    if (!newUserData.username || !newUserData.password || !newUserData.role) {
+      toast.error("Kullanıcı adı, şifre ve rol zorunludur");
+      return;
+    }
+    try {
+      await axios.post(`${API}/users`, newUserData);
+      toast.success("Kullanıcı oluşturuldu!");
+      setIsUserDialogOpen(false);
+      setNewUserData({ username: "", password: "", role: "", display_name: "", phone: "" });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Kullanıcı oluşturulamadı");
+    }
+  };
+
+  const handleDeleteUser = async (userId, username) => {
+    if (!window.confirm(`"${username}" kullanıcısını silmek istediğinize emin misiniz?`)) return;
+    try {
+      await axios.delete(`${API}/users/${userId}`);
+      toast.success("Kullanıcı silindi");
+      fetchData();
+    } catch (error) {
+      toast.error("Kullanıcı silinemedi");
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    const labels = { operator: "Operatör", plan: "Planlama", depo: "Depo", sofor: "Şoför" };
+    return labels[role] || role;
+  };
+
+  const getRoleColor = (role) => {
+    const colors = { operator: "bg-blue-500/20 text-blue-400", plan: "bg-green-500/20 text-green-400", depo: "bg-yellow-500/20 text-yellow-400", sofor: "bg-purple-500/20 text-purple-400" };
+    return colors[role] || "bg-gray-500/20 text-gray-400";
   };
 
   const handleStartShift = async () => {
