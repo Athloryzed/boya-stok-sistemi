@@ -144,12 +144,16 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [requestsRes, palletsRes] = await Promise.all([
+      const [requestsRes, palletsRes, shipmentsRes, logsRes] = await Promise.all([
         axios.get(`${API}/warehouse-requests?status=pending`),
-        axios.get(`${API}/pallets`)
+        axios.get(`${API}/pallets`),
+        axios.get(`${API}/shipments?status=preparing`),
+        axios.get(`${API}/warehouse/shipment-logs`)
       ]);
       setWarehouseRequests(requestsRes.data);
       setPallets(palletsRes.data);
+      setShipments(shipmentsRes.data);
+      setShipmentLogs(logsRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
@@ -162,6 +166,28 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       fetchData();
     } catch (error) {
       toast.error("Talep tamamlanamadı");
+    }
+  };
+
+  const handleCreateShipmentLog = async () => {
+    if (!selectedShipmentForLog) return;
+    try {
+      await axios.post(`${API}/warehouse/shipment-log`, {
+        shipment_id: selectedShipmentForLog.id,
+        vehicle_plate: selectedShipmentForLog.vehicle_plate,
+        pallet_ids: selectedShipmentForLog.pallets || [],
+        total_koli: selectedShipmentForLog.total_koli,
+        partial: shipmentLogForm.partial,
+        delivered_koli: shipmentLogForm.partial ? shipmentLogForm.delivered_koli : selectedShipmentForLog.total_koli,
+        operator_name: "Depo"
+      });
+      toast.success("Sevkiyat kaydedildi!");
+      setIsShipmentLogDialogOpen(false);
+      setSelectedShipmentForLog(null);
+      setShipmentLogForm({ delivered_koli: 0, partial: false });
+      fetchData();
+    } catch (error) {
+      toast.error("Kayıt oluşturulamadı");
     }
   };
 
