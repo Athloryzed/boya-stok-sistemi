@@ -87,7 +87,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogin = () => {
-    if (password === "432122") {
+    if (password === "buse11993") {
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } else {
