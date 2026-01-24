@@ -446,18 +446,25 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
-        {/* STEP 1: İsim Girişi */}
+        {/* STEP 1: Kullanıcı Girişi */}
         {step === 1 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <h1 className="text-5xl font-heading font-black text-secondary text-center">OPERATÖR GİRİŞİ</h1>
             <Card className="bg-surface border-border max-w-md mx-auto">
-              <CardContent className="p-8">
-                <Label className="text-text-primary text-lg">Adınız</Label>
-                <Input data-testid="operator-name-input" value={operatorName} onChange={(e) => setOperatorName(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
-                  placeholder="Adınızı girin..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
+              <CardContent className="p-8 space-y-4">
+                <div>
+                  <Label className="text-text-primary text-lg">Kullanıcı Adı</Label>
+                  <Input data-testid="operator-username-input" value={operatorName} onChange={(e) => setOperatorName(e.target.value)}
+                    placeholder="Kullanıcı adınız..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
+                </div>
+                <div>
+                  <Label className="text-text-primary text-lg">Şifre</Label>
+                  <Input data-testid="operator-password-input" type="password" value={operatorPassword || ""} onChange={(e) => setOperatorPassword(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
+                    placeholder="Şifreniz..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
+                </div>
                 <Button data-testid="name-submit-button" onClick={handleNameSubmit} className="w-full mt-6 bg-secondary text-white hover:bg-secondary/90 h-14 text-lg font-heading">
-                  Devam Et
+                  Giriş Yap
                 </Button>
               </CardContent>
             </Card>
