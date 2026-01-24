@@ -1045,6 +1045,373 @@ async def clear_visitors():
     result = await db.visitors.delete_many({})
     return {"message": f"{result.deleted_count} kayıt silindi"}
 
+# ==================== OPERATÖR OTURUM YÖNETİMİ ====================
+
+@api_router.post("/operator/session")
+async def create_or_get_session(data: dict = Body(...)):
+    """Operatör oturumu oluştur veya mevcut oturumu getir"""
+    device_id = data.get("device_id")
+    operator_name = data.get("operator_name")
+    machine_id = data.get("machine_id")
+    machine_name = data.get("machine_name")
+    
+    if not device_id:
+        raise HTTPException(status_code=400, detail="device_id gerekli")
+    
+    # Bugünün sonunu hesapla
+    today_end = datetime.now(timezone.utc).replace(hour=23, minute=59, second=59)
+    
+    # Mevcut oturumu kontrol et
+    existing = await db.operator_sessions.find_one({
+        "device_id": device_id,
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    }, {"_id": 0})
+    
+    if existing and not operator_name:
+        # Mevcut oturum var, güncelle ve döndür
+        await db.operator_sessions.update_one(
+            {"id": existing["id"]},
+            {"$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+        )
+        return existing
+    
+    if operator_name:
+        # Yeni oturum oluştur veya güncelle
+        session = OperatorSession(
+            device_id=device_id,
+            operator_name=operator_name,
+            machine_id=machine_id,
+            machine_name=machine_name,
+            expires_at=today_end.isoformat()
+        )
+        
+        # Eski oturumu sil ve yenisini ekle
+        await db.operator_sessions.delete_many({"device_id": device_id})
+        await db.operator_sessions.insert_one(session.model_dump())
+        return session.model_dump()
+    
+    return None
+
+@api_router.get("/operator/session/{device_id}")
+async def get_operator_session(device_id: str):
+    """Cihaz ID'sine göre operatör oturumunu getir"""
+    session = await db.operator_sessions.find_one({
+        "device_id": device_id,
+        "expires_at": {"$gt": datetime.now(timezone.utc).isoformat()}
+    }, {"_id": 0})
+    return session
+
+@api_router.delete("/operator/session/{device_id}")
+async def delete_operator_session(device_id: str):
+    """Operatör oturumunu sonlandır"""
+    result = await db.operator_sessions.delete_many({"device_id": device_id})
+    return {"deleted": result.deleted_count}
+
+# ==================== PALET YÖNETİMİ ====================
+
+@api_router.post("/pallets", response_model=Pallet)
+async def create_pallet(data: dict = Body(...)):
+    """Yeni palet oluştur/tara"""
+    pallet = Pallet(
+        code=data.get("code"),
+        job_id=data.get("job_id"),
+        job_name=data.get("job_name"),
+        machine_id=data.get("machine_id"),
+        machine_name=data.get("machine_name"),
+        koli_count=data.get("koli_count", 0),
+        operator_name=data.get("operator_name", "")
+    )
+    await db.pallets.insert_one(pallet.model_dump())
+    return pallet
+
+@api_router.get("/pallets")
+async def get_pallets(job_id: Optional[str] = None, status: Optional[str] = None):
+    """Paletleri listele"""
+    query = {}
+    if job_id:
+        query["job_id"] = job_id
+    if status:
+        query["status"] = status
+    pallets = await db.pallets.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return pallets
+
+@api_router.get("/pallets/by-job/{job_id}")
+async def get_pallets_by_job(job_id: str):
+    """Bir işe ait paletleri getir"""
+    pallets = await db.pallets.find({"job_id": job_id}, {"_id": 0}).to_list(100)
+    total_koli = sum(p["koli_count"] for p in pallets)
+    return {
+        "pallets": pallets,
+        "total_pallets": len(pallets),
+        "total_koli": total_koli
+    }
+
+@api_router.get("/pallets/search")
+async def search_pallets(q: str):
+    """Palet ara (kod veya iş adı ile)"""
+    pallets = await db.pallets.find({
+        "$or": [
+            {"code": {"$regex": q, "$options": "i"}},
+            {"job_name": {"$regex": q, "$options": "i"}}
+        ]
+    }, {"_id": 0}).to_list(50)
+    return pallets
+
+@api_router.put("/pallets/{pallet_id}/status")
+async def update_pallet_status(pallet_id: str, data: dict = Body(...)):
+    """Palet durumunu güncelle"""
+    status = data.get("status")
+    await db.pallets.update_one(
+        {"id": pallet_id},
+        {"$set": {"status": status}}
+    )
+    return {"success": True}
+
+# ==================== ARAÇ YÖNETİMİ ====================
+
+@api_router.post("/vehicles", response_model=Vehicle)
+async def create_vehicle(data: dict = Body(...)):
+    """Yeni araç ekle"""
+    vehicle = Vehicle(
+        plate=data.get("plate"),
+        driver_name=data.get("driver_name")
+    )
+    await db.vehicles.insert_one(vehicle.model_dump())
+    return vehicle
+
+@api_router.get("/vehicles")
+async def get_vehicles():
+    """Araçları listele"""
+    vehicles = await db.vehicles.find({"is_active": True}, {"_id": 0}).to_list(100)
+    return vehicles
+
+@api_router.delete("/vehicles/{vehicle_id}")
+async def delete_vehicle(vehicle_id: str):
+    """Araç sil (pasif yap)"""
+    await db.vehicles.update_one(
+        {"id": vehicle_id},
+        {"$set": {"is_active": False}}
+    )
+    return {"success": True}
+
+# ==================== SEVKİYAT YÖNETİMİ ====================
+
+@api_router.post("/shipments", response_model=Shipment)
+async def create_shipment(data: dict = Body(...)):
+    """Yeni sevkiyat oluştur"""
+    pallet_ids = data.get("pallet_ids", [])
+    
+    # Paletlerin toplam koli sayısını hesapla
+    total_koli = 0
+    if pallet_ids:
+        pallets = await db.pallets.find({"id": {"$in": pallet_ids}}, {"_id": 0}).to_list(100)
+        total_koli = sum(p["koli_count"] for p in pallets)
+        # Paletleri sevkiyata ata
+        await db.pallets.update_many(
+            {"id": {"$in": pallet_ids}},
+            {"$set": {"status": "in_shipment"}}
+        )
+    
+    shipment = Shipment(
+        vehicle_id=data.get("vehicle_id"),
+        vehicle_plate=data.get("vehicle_plate"),
+        driver_id=data.get("driver_id"),
+        driver_name=data.get("driver_name"),
+        pallets=pallet_ids,
+        total_koli=data.get("total_koli", total_koli),
+        delivery_address=data.get("delivery_address"),
+        delivery_phone=data.get("delivery_phone"),
+        delivery_notes=data.get("delivery_notes"),
+        created_by=data.get("created_by", "plan")
+    )
+    await db.shipments.insert_one(shipment.model_dump())
+    return shipment
+
+@api_router.get("/shipments")
+async def get_shipments(status: Optional[str] = None, driver_id: Optional[str] = None):
+    """Sevkiyatları listele"""
+    query = {}
+    if status:
+        query["status"] = status
+    if driver_id:
+        query["driver_id"] = driver_id
+    shipments = await db.shipments.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return shipments
+
+@api_router.get("/shipments/{shipment_id}")
+async def get_shipment(shipment_id: str):
+    """Sevkiyat detayını getir"""
+    shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Sevkiyat bulunamadı")
+    
+    # Paletleri de getir
+    pallets = await db.pallets.find({"id": {"$in": shipment.get("pallets", [])}}, {"_id": 0}).to_list(100)
+    shipment["pallet_details"] = pallets
+    return shipment
+
+@api_router.put("/shipments/{shipment_id}")
+async def update_shipment(shipment_id: str, data: dict = Body(...)):
+    """Sevkiyat güncelle"""
+    update_data = {}
+    for key in ["delivery_address", "delivery_phone", "delivery_notes", "total_koli", "driver_id", "driver_name", "vehicle_id", "vehicle_plate"]:
+        if key in data:
+            update_data[key] = data[key]
+    
+    if "pallet_ids" in data:
+        update_data["pallets"] = data["pallet_ids"]
+        # Paletleri güncelle
+        await db.pallets.update_many(
+            {"id": {"$in": data["pallet_ids"]}},
+            {"$set": {"status": "in_shipment"}}
+        )
+    
+    await db.shipments.update_one(
+        {"id": shipment_id},
+        {"$set": update_data}
+    )
+    return {"success": True}
+
+@api_router.put("/shipments/{shipment_id}/status")
+async def update_shipment_status(shipment_id: str, data: dict = Body(...)):
+    """Sevkiyat durumunu güncelle (Şoför için)"""
+    status = data.get("status")
+    reason = data.get("reason")
+    
+    update_data = {"status": status}
+    if status == "in_transit":
+        update_data["started_at"] = datetime.now(timezone.utc).isoformat()
+    elif status in ["delivered", "failed"]:
+        update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
+        if reason:
+            update_data["delivery_status_reason"] = reason
+        
+        # Paletleri güncelle
+        shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
+        if shipment:
+            pallet_status = "delivered" if status == "delivered" else "in_warehouse"
+            await db.pallets.update_many(
+                {"id": {"$in": shipment.get("pallets", [])}},
+                {"$set": {"status": pallet_status}}
+            )
+    
+    await db.shipments.update_one(
+        {"id": shipment_id},
+        {"$set": update_data}
+    )
+    return {"success": True}
+
+@api_router.delete("/shipments/{shipment_id}")
+async def delete_shipment(shipment_id: str):
+    """Sevkiyat sil"""
+    shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
+    if shipment:
+        # Paletleri depoya geri al
+        await db.pallets.update_many(
+            {"id": {"$in": shipment.get("pallets", [])}},
+            {"$set": {"status": "in_warehouse"}}
+        )
+    await db.shipments.delete_one({"id": shipment_id})
+    return {"success": True}
+
+# ==================== ŞOFÖR YÖNETİMİ ====================
+
+@api_router.post("/drivers", response_model=Driver)
+async def create_driver(data: dict = Body(...)):
+    """Yeni şoför ekle"""
+    driver = Driver(
+        name=data.get("name"),
+        password=data.get("password"),
+        phone=data.get("phone")
+    )
+    await db.drivers.insert_one(driver.model_dump())
+    return driver
+
+@api_router.get("/drivers")
+async def get_drivers():
+    """Şoförleri listele"""
+    drivers = await db.drivers.find({"is_active": True}, {"_id": 0, "password": 0}).to_list(100)
+    return drivers
+
+@api_router.post("/drivers/login")
+async def driver_login(data: dict = Body(...)):
+    """Şoför girişi"""
+    name = data.get("name")
+    password = data.get("password")
+    
+    driver = await db.drivers.find_one({
+        "name": name,
+        "password": password,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not driver:
+        raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+    
+    # Şifreyi döndürme
+    driver.pop("password", None)
+    return driver
+
+@api_router.put("/drivers/{driver_id}/location")
+async def update_driver_location(driver_id: str, data: dict = Body(...)):
+    """Şoför konumunu güncelle"""
+    lat = data.get("lat")
+    lng = data.get("lng")
+    
+    await db.drivers.update_one(
+        {"id": driver_id},
+        {"$set": {
+            "current_location_lat": lat,
+            "current_location_lng": lng,
+            "location_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"success": True}
+
+@api_router.get("/drivers/{driver_id}/location")
+async def get_driver_location(driver_id: str):
+    """Şoför konumunu getir"""
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Şoför bulunamadı")
+    return {
+        "lat": driver.get("current_location_lat"),
+        "lng": driver.get("current_location_lng"),
+        "updated_at": driver.get("location_updated_at")
+    }
+
+@api_router.get("/drivers/{driver_id}/shipments")
+async def get_driver_shipments(driver_id: str):
+    """Şoföre atanan sevkiyatları getir"""
+    shipments = await db.shipments.find({
+        "driver_id": driver_id,
+        "status": {"$in": ["preparing", "in_transit"]}
+    }, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return shipments
+
+# ==================== DEPO SEVKİYAT KAYDI ====================
+
+@api_router.post("/warehouse/shipment-log")
+async def create_warehouse_shipment_log(data: dict = Body(...)):
+    """Depo sevkiyat kaydı oluştur"""
+    log = WarehouseShipmentLog(
+        shipment_id=data.get("shipment_id"),
+        vehicle_plate=data.get("vehicle_plate"),
+        pallet_ids=data.get("pallet_ids", []),
+        total_koli=data.get("total_koli", 0),
+        partial=data.get("partial", False),
+        delivered_koli=data.get("delivered_koli", 0),
+        operator_name=data.get("operator_name", "Depo")
+    )
+    await db.warehouse_shipment_logs.insert_one(log.model_dump())
+    return log
+
+@api_router.get("/warehouse/shipment-logs")
+async def get_warehouse_shipment_logs(limit: int = 100):
+    """Depo sevkiyat kayıtlarını listele"""
+    logs = await db.warehouse_shipment_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return logs
+
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):
     """Hafta bazında günlük üretim analitiği"""
