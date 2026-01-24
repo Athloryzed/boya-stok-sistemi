@@ -74,6 +74,7 @@ function App() {
           <Route path="/management" element={<ManagementFlow theme={theme} toggleTheme={toggleTheme} />} />
           <Route path="/warehouse" element={<WarehouseFlow theme={theme} toggleTheme={toggleTheme} />} />
           <Route path="/paint" element={<PaintFlow theme={theme} toggleTheme={toggleTheme} />} />
+          <Route path="/driver" element={<DriverFlow theme={theme} toggleTheme={toggleTheme} />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-right" richColors />
