@@ -107,21 +107,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   }, [messages, isChatOpen]);
 
-  // Oturumu kaydet
-  const saveSession = async (name, machine = null) => {
-    const deviceId = getDeviceId();
-    try {
-      await axios.post(`${API}/operator/session`, {
-        device_id: deviceId,
-        operator_name: name,
-        machine_id: machine?.id || null,
-        machine_name: machine?.name || null
-      });
-    } catch (error) {
-      console.error("Oturum kaydetme hatası:", error);
-    }
-  };
-
   const fetchMachines = async () => {
     try {
       const response = await axios.get(`${API}/machines`);
@@ -130,8 +115,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         return acc;
       }, []);
       setMachines(uniqueMachines);
+      return uniqueMachines;
     } catch (error) {
       toast.error("Makineler yüklenemedi");
+      return [];
     }
   };
 
@@ -203,13 +190,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const handleNameSubmit = () => {
-    if (!operatorName.trim()) {
-      toast.error("Lütfen adınızı girin");
+  const handleNameSubmit = async () => {
+    if (!operatorName.trim() || !operatorPassword.trim()) {
+      toast.error("Kullanıcı adı ve şifre gerekli");
       return;
     }
-    saveSession(operatorName);
-    setStep(2);
+    try {
+      const response = await axios.post(`${API}/users/login`, {
+        username: operatorName,
+        password: operatorPassword,
+        role: "operator"
+      });
+      const user = response.data;
+      setUserData(user);
+      setOperatorName(user.display_name || user.username);
+      localStorage.setItem("operator_session", JSON.stringify(user));
+      toast.success("Giriş başarılı!");
+      setStep(2);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Giriş başarısız");
+    }
   };
 
   const handleMachineSelect = (machine) => {
@@ -218,8 +218,22 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       return;
     }
     setSelectedMachine(machine);
-    saveSession(operatorName, machine);
+    // Makine seçimini kaydet
+    if (userData) {
+      const updatedSession = { ...userData, machine_id: machine.id, machine_name: machine.name };
+      localStorage.setItem("operator_session", JSON.stringify(updatedSession));
+    }
     setStep(3);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("operator_session");
+    setUserData(null);
+    setSelectedMachine(null);
+    setOperatorName("");
+    setOperatorPassword("");
+    setStep(1);
+    toast.success("Çıkış yapıldı");
   };
 
   const handleStartJob = async (job) => {
