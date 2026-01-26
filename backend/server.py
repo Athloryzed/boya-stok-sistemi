@@ -125,7 +125,7 @@ class DefectLog(BaseModel):
     machine_id: str
     machine_name: str
     shift_id: Optional[str] = None
-    defect_count: int = 0
+    defect_kg: float = 0.0  # Kilo cinsinden defo
     date: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     notes: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -142,7 +142,7 @@ class ShiftEndReport(BaseModel):
     target_koli: int = 0
     produced_koli: int = 0
     remaining_koli: int = 0
-    defect_count: int = 0
+    defect_kg: float = 0.0  # Kilo cinsinden defo
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class MaintenanceLog(BaseModel):
