@@ -82,7 +82,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectsRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
@@ -98,7 +98,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/visitors/stats`),
         axios.get(`${API}/users`),
         axios.get(`${API}/users/drivers/locations`),
-        axios.get(`${API}/defects/analytics`)
+        axios.get(`${API}/defects/analytics/weekly`),
+        axios.get(`${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`),
+        axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`)
       ]);
       setCurrentShift(shiftRes.data);
       const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
@@ -119,7 +121,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setVisitorStats(visitorStatsRes.data);
       setUsers(usersRes.data);
       setDriverLocations(driversRes.data);
-      setDefectAnalytics(defectsRes.data);
+      setDefectWeeklyAnalytics(defectWeeklyRes.data);
+      setDefectMonthlyAnalytics(defectMonthlyRes.data);
+      setDefectDailyAnalytics(defectDailyRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
