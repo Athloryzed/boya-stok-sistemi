@@ -137,8 +137,22 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 - `paints`, `paint_movements`
 - `machine_messages`, `visitors`
 - `vehicles`, `shipments`
+- `defect_logs` (YENİ): machine_id, machine_name, defect_count, date, shift_id
+- `shift_end_reports` (YENİ): shift_id, machine_id, produced_koli, remaining_koli, defect_count
 
 ## API Endpoints (Yeni)
+
+### Defo Takibi (26 Ocak 2025)
+- `GET /api/defects` - Defo kayıtları listesi
+- `POST /api/defects` - Defo kaydı oluştur
+- `GET /api/defects/analytics` - Defo analitikleri
+
+### İş Sıralama (26 Ocak 2025)
+- `PUT /api/jobs/{job_id}/reorder` - Tek iş sıralama
+- `PUT /api/jobs/reorder-batch` - Toplu iş sıralama
+
+### Vardiya Sonu Raporu (26 Ocak 2025)
+- `POST /api/shifts/end-with-report` - Vardiya sonu raporu ile bitir
 
 ### Kullanıcı Yönetimi
 - `POST /api/users` - Kullanıcı oluştur
