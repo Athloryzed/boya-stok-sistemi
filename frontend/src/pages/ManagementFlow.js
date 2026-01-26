@@ -186,13 +186,63 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const handleEndShift = async () => {
+  const openShiftEndDialog = () => {
+    // Aktif işleri olan makineler için rapor formu oluştur
+    const activeJobs = jobs.filter(j => j.status === "in_progress");
+    const reports = machines.map(machine => {
+      const activeJob = activeJobs.find(j => j.machine_id === machine.id);
+      return {
+        machine_id: machine.id,
+        machine_name: machine.name,
+        job_id: activeJob?.id || null,
+        job_name: activeJob?.name || null,
+        target_koli: activeJob?.koli_count || 0,
+        produced_koli: activeJob?.completed_koli || 0,
+        defect_count: 0
+      };
+    });
+    setShiftEndReports(reports);
+    setIsShiftEndDialogOpen(true);
+  };
+
+  const handleShiftEndReportChange = (machineId, field, value) => {
+    setShiftEndReports(prev => prev.map(r => 
+      r.machine_id === machineId ? { ...r, [field]: parseInt(value) || 0 } : r
+    ));
+  };
+
+  const handleEndShiftWithReport = async () => {
     try {
-      await axios.post(`${API}/shifts/end`);
+      // Sadece veri girilen raporları gönder
+      const reportsToSend = shiftEndReports.filter(r => r.produced_koli > 0 || r.defect_count > 0);
+      
+      if (reportsToSend.length > 0) {
+        await axios.post(`${API}/shifts/end-with-report`, { reports: reportsToSend });
+      } else {
+        await axios.post(`${API}/shifts/end`);
+      }
+      
       toast.success("Vardiya bitirildi!");
+      setIsShiftEndDialogOpen(false);
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Vardiya bitirilemedi");
+    }
+  };
+
+  const handleEndShift = async () => {
+    // Aktif iş var mı kontrol et
+    const activeJobs = jobs.filter(j => j.status === "in_progress");
+    if (activeJobs.length > 0) {
+      openShiftEndDialog();
+    } else {
+      try {
+        await axios.post(`${API}/shifts/end`);
+        toast.success("Vardiya bitirildi!");
+        fetchData();
+      } catch (error) {
+        toast.error(error.response?.data?.detail || "Vardiya bitirilemedi");
+      }
     }
   };
 
