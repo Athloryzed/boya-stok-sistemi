@@ -207,7 +207,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         job_name: activeJob?.name || null,
         target_koli: activeJob?.koli_count || 0,
         produced_koli: activeJob?.completed_koli || 0,
-        defect_count: 0
+        defect_kg: 0
       };
     });
     setShiftEndReports(reports);
@@ -216,14 +216,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const handleShiftEndReportChange = (machineId, field, value) => {
     setShiftEndReports(prev => prev.map(r => 
-      r.machine_id === machineId ? { ...r, [field]: parseInt(value) || 0 } : r
+      r.machine_id === machineId ? { ...r, [field]: parseFloat(value) || 0 } : r
     ));
   };
 
   const handleEndShiftWithReport = async () => {
     try {
       // Sadece veri girilen raporları gönder
-      const reportsToSend = shiftEndReports.filter(r => r.produced_koli > 0 || r.defect_count > 0);
+      const reportsToSend = shiftEndReports.filter(r => r.produced_koli > 0 || r.defect_kg > 0);
       
       if (reportsToSend.length > 0) {
         await axios.post(`${API}/shifts/end-with-report`, { reports: reportsToSend });
