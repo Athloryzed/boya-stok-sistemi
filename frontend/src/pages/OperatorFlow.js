@@ -310,6 +310,78 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // Sürükle-bırak fonksiyonları
+  const handleDragStart = (e, job) => {
+    setDraggedJob(job);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", job.id);
+  };
+
+  const handleDragOver = (e, job) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedJob && job.id !== draggedJob.id) {
+      setDragOverJob(job);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverJob(null);
+  };
+
+  const handleDrop = async (e, targetJob) => {
+    e.preventDefault();
+    if (!draggedJob || draggedJob.id === targetJob.id) {
+      setDraggedJob(null);
+      setDragOverJob(null);
+      return;
+    }
+
+    const pendingJobs = jobs.filter(j => j.status === "pending" && j.machine_id === selectedMachine.id);
+    const draggedIndex = pendingJobs.findIndex(j => j.id === draggedJob.id);
+    const targetIndex = pendingJobs.findIndex(j => j.id === targetJob.id);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedJob(null);
+      setDragOverJob(null);
+      return;
+    }
+
+    // Yeni sıralama oluştur
+    const newOrder = pendingJobs.map((job, index) => {
+      if (job.id === draggedJob.id) {
+        return { job_id: job.id, order: targetIndex };
+      } else if (draggedIndex < targetIndex) {
+        // Aşağı taşıma
+        if (index > draggedIndex && index <= targetIndex) {
+          return { job_id: job.id, order: index - 1 };
+        }
+      } else {
+        // Yukarı taşıma
+        if (index >= targetIndex && index < draggedIndex) {
+          return { job_id: job.id, order: index + 1 };
+        }
+      }
+      return { job_id: job.id, order: index };
+    });
+
+    try {
+      await axios.put(`${API}/jobs/reorder-batch`, { jobs: newOrder });
+      toast.success("İş sırası güncellendi!");
+      fetchJobs();
+    } catch (error) {
+      toast.error("Sıralama güncellenemedi");
+    }
+
+    setDraggedJob(null);
+    setDragOverJob(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedJob(null);
+    setDragOverJob(null);
+  };
+
   // Oturum kontrolü henüz bitmedi
   if (!sessionChecked) {
     return (
