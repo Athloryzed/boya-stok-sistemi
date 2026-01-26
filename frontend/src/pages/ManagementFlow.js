@@ -69,7 +69,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // Vardiya Sonu & Defo state'leri
   const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
   const [shiftEndReports, setShiftEndReports] = useState([]);
-  const [defectAnalytics, setDefectAnalytics] = useState(null);
+  const [defectWeeklyAnalytics, setDefectWeeklyAnalytics] = useState(null);
+  const [defectMonthlyAnalytics, setDefectMonthlyAnalytics] = useState(null);
+  const [defectDailyAnalytics, setDefectDailyAnalytics] = useState(null);
+  const [defectWeekOffset, setDefectWeekOffset] = useState(0);
+  const [defectYear, setDefectYear] = useState(new Date().getFullYear());
+  const [defectMonth, setDefectMonth] = useState(new Date().getMonth() + 1);
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
