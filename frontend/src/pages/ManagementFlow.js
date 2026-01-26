@@ -65,6 +65,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [weekOffset, setWeekOffset] = useState(0);
   const [dailyWeekOffset, setDailyWeekOffset] = useState(0);
+  
+  // Vardiya Sonu & Defo state'leri
+  const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
+  const [shiftEndReports, setShiftEndReports] = useState([]);
+  const [defectAnalytics, setDefectAnalytics] = useState(null);
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
