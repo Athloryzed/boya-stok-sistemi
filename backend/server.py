@@ -522,8 +522,8 @@ async def reorder_jobs_batch(data: dict = Body(...)):
 @api_router.post("/shifts/end-with-report")
 async def end_shift_with_report(data: dict = Body(...)):
     """Vardiya bitişinde makine bazlı üretim ve defo raporu"""
-    machine_reports = data.get("machine_reports", [])
-    # Her rapor: {machine_id, machine_name, job_id, job_name, target_koli, produced_koli, defect_count}
+    machine_reports = data.get("reports", [])
+    # Her rapor: {machine_id, machine_name, job_id, job_name, target_koli, produced_koli, defect_kg}
     
     active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
     if not active_shift:
@@ -539,7 +539,7 @@ async def end_shift_with_report(data: dict = Body(...)):
         job_name = report.get("job_name", "")
         target_koli = report.get("target_koli", 0)
         produced_koli = report.get("produced_koli", 0)
-        defect_count = report.get("defect_count", 0)
+        defect_kg = float(report.get("defect_kg", 0))
         remaining_koli = target_koli - produced_koli
         
         # Vardiya sonu raporu kaydet
@@ -552,7 +552,7 @@ async def end_shift_with_report(data: dict = Body(...)):
             target_koli=target_koli,
             produced_koli=produced_koli,
             remaining_koli=remaining_koli if remaining_koli > 0 else 0,
-            defect_count=defect_count
+            defect_kg=defect_kg
         )
         await db.shift_end_reports.insert_one(shift_report.model_dump())
         
@@ -566,13 +566,13 @@ async def end_shift_with_report(data: dict = Body(...)):
                 }}
             )
         
-        # Defo kaydı oluştur
-        if defect_count > 0:
+        # Defo kaydı oluştur (kg cinsinden)
+        if defect_kg > 0:
             defect_log = DefectLog(
                 machine_id=machine_id,
                 machine_name=machine_name,
                 shift_id=shift_id,
-                defect_count=defect_count,
+                defect_kg=defect_kg,
                 date=today
             )
             await db.defect_logs.insert_one(defect_log.model_dump())
