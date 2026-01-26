@@ -1041,81 +1041,140 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-surface border-border">
                   <CardContent className="p-6 text-center">
-                    <p className="text-text-secondary text-sm">Toplam Defo</p>
-                    <p className="text-4xl font-heading font-bold text-error">{defectAnalytics?.total_defects || 0}</p>
+                    <p className="text-text-secondary text-sm">Haftalık Toplam Defo</p>
+                    <p className="text-4xl font-heading font-bold text-error">{defectWeeklyAnalytics?.total_defects_kg || 0} kg</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-surface border-border">
                   <CardContent className="p-6 text-center">
                     <p className="text-text-secondary text-sm">En Çok Defo</p>
                     <p className="text-2xl font-heading font-bold text-warning">
-                      {defectAnalytics?.machine_defects && Object.keys(defectAnalytics.machine_defects).length > 0
-                        ? Object.entries(defectAnalytics.machine_defects).sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
+                      {defectWeeklyAnalytics?.machine_defects && Object.keys(defectWeeklyAnalytics.machine_defects).length > 0
+                        ? Object.entries(defectWeeklyAnalytics.machine_defects).sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
                         : "-"}
                     </p>
                   </CardContent>
                 </Card>
                 <Card className="bg-surface border-border">
                   <CardContent className="p-6 text-center">
-                    <p className="text-text-secondary text-sm">Dönem</p>
-                    <p className="text-xl font-heading font-bold text-text-primary">{defectAnalytics?.period === "weekly" ? "Haftalık" : "Aylık"}</p>
+                    <p className="text-text-secondary text-sm">Aylık Toplam Defo</p>
+                    <p className="text-4xl font-heading font-bold text-error">{defectMonthlyAnalytics?.total_defects_kg || 0} kg</p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Makine Bazlı Defo Grafiği */}
+              {/* GÜNLÜK DEFO GRAFİĞİ */}
               <Card className="bg-surface border-border">
                 <CardHeader>
-                  <CardTitle className="text-xl font-heading flex items-center gap-2">
-                    <XCircle className="h-5 w-5 text-error" /> Makine Bazlı Defo
-                  </CardTitle>
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <CardTitle className="text-xl font-heading flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-error" /> Günlük Defo (kg)
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setDefectWeekOffset(defectWeekOffset - 1)}>← Önceki Hafta</Button>
+                      <Button size="sm" variant="outline" onClick={() => setDefectWeekOffset(0)} disabled={defectWeekOffset === 0}>Bu Hafta</Button>
+                      <Button size="sm" variant="outline" onClick={() => setDefectWeekOffset(defectWeekOffset + 1)} disabled={defectWeekOffset >= 0}>Sonraki Hafta →</Button>
+                    </div>
+                  </div>
+                  {defectDailyAnalytics && (
+                    <p className="text-text-secondary text-sm">{defectDailyAnalytics.week_start} - {defectDailyAnalytics.week_end}</p>
+                  )}
                 </CardHeader>
                 <CardContent>
-                  {defectAnalytics?.machine_defects && Object.keys(defectAnalytics.machine_defects).length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={prepareChartData(defectAnalytics.machine_defects, "Defo")}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
-                        <YAxis stroke="#888" />
-                        <Tooltip contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #444" }} />
-                        <Bar dataKey="Defo" fill="#ef4444" />
+                  {defectDailyAnalytics?.daily_stats && defectDailyAnalytics.daily_stats.some(d => d.total_kg > 0) ? (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={defectDailyAnalytics.daily_stats}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
+                        <XAxis dataKey="day_name" stroke="#A1A1AA" tick={{ fontSize: 11 }} />
+                        <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} unit=" kg" />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }}
+                          labelStyle={{ color: "#FAFAFA" }}
+                          formatter={(value) => [`${value} kg`, "Defo"]}
+                        />
+                        <Bar dataKey="total_kg" fill="#ef4444" name="Defo (kg)" />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="text-text-secondary text-center py-8">Henüz defo kaydı yok.</p>
+                    <p className="text-text-secondary text-center py-8">Bu hafta defo kaydı yok.</p>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Günlük Defo Tablosu */}
+              {/* HAFTALIK MAKİNE BAZLI DEFO */}
               <Card className="bg-surface border-border">
                 <CardHeader>
-                  <CardTitle className="text-xl font-heading">Günlük Defo Dağılımı</CardTitle>
+                  <CardTitle className="text-xl font-heading flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-error" /> Haftalık Makine Bazlı Defo (kg)
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {defectAnalytics?.daily_defects && Object.keys(defectAnalytics.daily_defects).length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full" data-testid="defects-table">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left p-3 font-heading text-text-primary">Tarih</th>
-                            <th className="text-left p-3 font-heading text-text-primary">Defo Sayısı</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(defectAnalytics.daily_defects)
-                            .sort((a, b) => b[0].localeCompare(a[0]))
-                            .map(([date, count]) => (
-                              <tr key={date} className="border-b border-border">
-                                <td className="p-3 text-text-primary">{date}</td>
-                                <td className="p-3 text-error font-bold">{count}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {defectWeeklyAnalytics?.machine_defects && Object.keys(defectWeeklyAnalytics.machine_defects).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={prepareChartData(defectWeeklyAnalytics.machine_defects, "Defo")}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                        <YAxis stroke="#888" unit=" kg" />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #444" }} 
+                          formatter={(value) => [`${value} kg`, "Defo"]}
+                        />
+                        <Bar dataKey="Defo" fill="#ef4444" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   ) : (
-                    <p className="text-text-secondary text-center py-8">Henüz günlük defo kaydı yok.</p>
+                    <p className="text-text-secondary text-center py-8">Henüz haftalık defo kaydı yok.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AYLIK DEFO */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                    <CardTitle className="text-xl font-heading flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-error" /> Aylık Defo (kg)
+                    </CardTitle>
+                    <div className="flex gap-2 items-center">
+                      <Select value={defectMonth.toString()} onValueChange={(v) => setDefectMonth(parseInt(v))}>
+                        <SelectTrigger className="w-32 bg-background border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface border-border">
+                          {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((m, i) => (
+                            <SelectItem key={i+1} value={(i+1).toString()}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={defectYear.toString()} onValueChange={(v) => setDefectYear(parseInt(v))}>
+                        <SelectTrigger className="w-24 bg-background border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-surface border-border">
+                          {[2024, 2025, 2026].map(y => (
+                            <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {defectMonthlyAnalytics?.machine_defects && Object.keys(defectMonthlyAnalytics.machine_defects).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={prepareChartData(defectMonthlyAnalytics.machine_defects, "Defo")}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                        <YAxis stroke="#888" unit=" kg" />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #444" }} 
+                          formatter={(value) => [`${value} kg`, "Defo"]}
+                        />
+                        <Bar dataKey="Defo" fill="#f59e0b" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-text-secondary text-center py-8">Bu ay defo kaydı yok.</p>
                   )}
                 </CardContent>
               </Card>
