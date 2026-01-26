@@ -34,15 +34,16 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
    - Sıra değişikliği anında veritabanına kaydedilir
 
 2. **Vardiya Sonu Raporu**
-   - Aktif iş varken vardiya bitirirken üretim ve defo sayısı girilebilir
+   - Aktif iş varken vardiya bitirirken üretim ve defo miktarı (kg) girilebilir
    - Makine bazlı rapor formu
    - Otomatik defo kaydı oluşturma
 
-3. **Defo (Hatalı Ürün) Takibi**
+3. **Defo (Hatalı Ürün) Takibi - KİLO CİNSİNDEN**
    - Yönetim panelinde "Defo" sekmesi
-   - Toplam defo istatistikleri
-   - Makine bazlı defo grafiği
-   - Günlük defo dağılımı tablosu
+   - **Günlük grafik** (hafta bazında navigasyon)
+   - **Haftalık makine bazlı grafik**
+   - **Aylık makine bazlı grafik** (ay/yıl seçimi)
+   - Toplam defo istatistikleri (haftalık ve aylık)
 
 ### Önceki Özellikler (24 Ocak 2025)
 
