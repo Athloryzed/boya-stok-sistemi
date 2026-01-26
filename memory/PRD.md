@@ -145,8 +145,10 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 
 ### Defo Takibi (26 Ocak 2025)
 - `GET /api/defects` - Defo kayıtları listesi
-- `POST /api/defects` - Defo kaydı oluştur
-- `GET /api/defects/analytics` - Defo analitikleri
+- `POST /api/defects` - Defo kaydı oluştur (kg cinsinden)
+- `GET /api/defects/analytics/weekly` - Haftalık defo analitikleri
+- `GET /api/defects/analytics/monthly` - Aylık defo analitikleri
+- `GET /api/defects/analytics/daily-by-week` - Günlük defo (hafta bazında)
 
 ### İş Sıralama (26 Ocak 2025)
 - `PUT /api/jobs/{job_id}/reorder` - Tek iş sıralama
