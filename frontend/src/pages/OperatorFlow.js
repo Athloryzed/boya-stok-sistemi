@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -38,6 +38,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [sendingReply, setSendingReply] = useState(false);
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
+  
+  // Sürükle-bırak state'leri
+  const [draggedJob, setDraggedJob] = useState(null);
+  const [dragOverJob, setDragOverJob] = useState(null);
 
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
