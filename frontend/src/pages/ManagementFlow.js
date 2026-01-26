@@ -136,7 +136,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       return () => clearInterval(interval);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset]);
+  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset]);
 
   const handleLogin = () => {
     if (password === MANAGEMENT_PASSWORD) {
