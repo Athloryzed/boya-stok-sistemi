@@ -492,6 +492,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="visitors" data-testid="visitors-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Ziyaret
                 </TabsTrigger>
+                <TabsTrigger value="defects" data-testid="defects-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Defo
+                </TabsTrigger>
                 <TabsTrigger value="maintenance" data-testid="maintenance-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Bakım
                 </TabsTrigger>
