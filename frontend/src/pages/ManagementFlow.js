@@ -527,6 +527,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <TabsTrigger value="visitors" data-testid="visitors-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 <Users className="h-4 w-4 mr-1" /> Ziyaretçiler
               </TabsTrigger>
+              <TabsTrigger value="defects" data-testid="defects-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
+                <XCircle className="h-4 w-4 mr-1" /> Defo
+              </TabsTrigger>
               <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 Bakım
               </TabsTrigger>
