@@ -165,11 +165,12 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 ## Bekleyen Özellikler
 
 ### P1 (Yüksek Öncelik)
-- Google Maps API entegrasyonu
+- Sevkiyat & Şoför Modülü tamamlama (harita entegrasyonu, teslimat durumu)
+- Yönetim Müdahale Hatası doğrulaması
 
 ### P2 (Orta Öncelik)
-- Günlük analiz detayı
+- Günlük analiz detayı (grafiğe tıklayınca makine bazlı detay)
 - QR/Barkod tarama
 
 ### P3 (Düşük Öncelik)
-- WebSocket mesajlaşma
+- WebSocket mesajlaşma (anlık bildirimler)
