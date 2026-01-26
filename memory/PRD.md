@@ -24,9 +24,27 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 ### Boya Modülü
 - **Şifre**: `buse11993`
 
-## Son Güncelleme: 24 Ocak 2025
+## Son Güncelleme: 26 Ocak 2025
 
 ### Yeni Özellikler ✅
+
+1. **İş Sıralama (Drag & Drop)**
+   - Operatör panelinde işleri sürükle-bırak ile sıralama
+   - İş sırası görsel olarak numaralandırılmış
+   - Sıra değişikliği anında veritabanına kaydedilir
+
+2. **Vardiya Sonu Raporu**
+   - Aktif iş varken vardiya bitirirken üretim ve defo sayısı girilebilir
+   - Makine bazlı rapor formu
+   - Otomatik defo kaydı oluşturma
+
+3. **Defo (Hatalı Ürün) Takibi**
+   - Yönetim panelinde "Defo" sekmesi
+   - Toplam defo istatistikleri
+   - Makine bazlı defo grafiği
+   - Günlük defo dağılımı tablosu
+
+### Önceki Özellikler (24 Ocak 2025)
 
 1. **Merkezi Kullanıcı Yönetimi**
    - Yönetim panelinde "Kullanıcılar" sekmesi
@@ -47,6 +65,7 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 4. **Şifre Güncellemeleri**
    - Yönetim: `432122` → `buse11993`
    - Boya: `432122` → `buse11993`
+
 
 5. **Oturum Yönetimi**
    - Tüm panellerde localStorage ile oturum hatırlama
