@@ -107,6 +107,8 @@ class Job(BaseModel):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     completed_koli: int = 0
+    remaining_koli: int = 0  # Kalan koli (vardiya bitişinde)
+    order: int = 0  # Sıra numarası (düşük = öncelikli)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class Shift(BaseModel):
@@ -115,6 +117,33 @@ class Shift(BaseModel):
     started_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     ended_at: Optional[str] = None
     status: str = "active"
+
+# Defo (Defect) Takip Modeli
+class DefectLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    machine_id: str
+    machine_name: str
+    shift_id: Optional[str] = None
+    defect_count: int = 0
+    date: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# Vardiya Sonu Raporu
+class ShiftEndReport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    shift_id: str
+    machine_id: str
+    machine_name: str
+    job_id: Optional[str] = None
+    job_name: Optional[str] = None
+    target_koli: int = 0
+    produced_koli: int = 0
+    remaining_koli: int = 0
+    defect_count: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class MaintenanceLog(BaseModel):
     model_config = ConfigDict(extra="ignore")
