@@ -66,7 +66,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setSessionChecked(true);
     };
     checkSession();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   useEffect(() => {
