@@ -494,6 +494,190 @@ async def complete_job(job_id: str, data: dict = Body(None)):
     
     return {"message": "Job completed"}
 
+# İş Sırası Değiştirme
+@api_router.put("/jobs/{job_id}/reorder")
+async def reorder_job(job_id: str, data: dict = Body(...)):
+    """İşin sırasını değiştir"""
+    new_order = data.get("order", 0)
+    
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$set": {"order": new_order}}
+    )
+    return {"success": True}
+
+@api_router.put("/jobs/reorder-batch")
+async def reorder_jobs_batch(data: dict = Body(...)):
+    """Birden fazla işin sırasını değiştir"""
+    job_orders = data.get("job_orders", [])  # [{"job_id": "xxx", "order": 1}, ...]
+    
+    for item in job_orders:
+        await db.jobs.update_one(
+            {"id": item["job_id"]},
+            {"$set": {"order": item["order"]}}
+        )
+    return {"success": True}
+
+# Vardiya Sonu Raporu
+@api_router.post("/shifts/end-with-report")
+async def end_shift_with_report(data: dict = Body(...)):
+    """Vardiya bitişinde makine bazlı üretim ve defo raporu"""
+    machine_reports = data.get("machine_reports", [])
+    # Her rapor: {machine_id, machine_name, job_id, job_name, target_koli, produced_koli, defect_count}
+    
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    if not active_shift:
+        raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
+    
+    shift_id = active_shift["id"]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    for report in machine_reports:
+        machine_id = report.get("machine_id")
+        machine_name = report.get("machine_name", "")
+        job_id = report.get("job_id")
+        job_name = report.get("job_name", "")
+        target_koli = report.get("target_koli", 0)
+        produced_koli = report.get("produced_koli", 0)
+        defect_count = report.get("defect_count", 0)
+        remaining_koli = target_koli - produced_koli
+        
+        # Vardiya sonu raporu kaydet
+        shift_report = ShiftEndReport(
+            shift_id=shift_id,
+            machine_id=machine_id,
+            machine_name=machine_name,
+            job_id=job_id,
+            job_name=job_name,
+            target_koli=target_koli,
+            produced_koli=produced_koli,
+            remaining_koli=remaining_koli if remaining_koli > 0 else 0,
+            defect_count=defect_count
+        )
+        await db.shift_end_reports.insert_one(shift_report.model_dump())
+        
+        # İşin kalan kolisini güncelle
+        if job_id and remaining_koli > 0:
+            await db.jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "remaining_koli": remaining_koli,
+                    "completed_koli": produced_koli
+                }}
+            )
+        
+        # Defo kaydı oluştur
+        if defect_count > 0:
+            defect_log = DefectLog(
+                machine_id=machine_id,
+                machine_name=machine_name,
+                shift_id=shift_id,
+                defect_count=defect_count,
+                date=today
+            )
+            await db.defect_logs.insert_one(defect_log.model_dump())
+        
+        # Makineyi idle yap
+        await db.machines.update_one(
+            {"id": machine_id},
+            {"$set": {"status": "idle", "current_job_id": None}}
+        )
+    
+    # Vardiyayı bitir
+    await db.shifts.update_one(
+        {"id": shift_id},
+        {"$set": {
+            "status": "ended",
+            "ended_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Vardiya raporu kaydedildi ve vardiya bitirildi"}
+
+# Defo Takibi API'leri
+@api_router.post("/defects")
+async def create_defect_log(data: dict = Body(...)):
+    """Defo kaydı oluştur"""
+    defect_log = DefectLog(
+        machine_id=data.get("machine_id"),
+        machine_name=data.get("machine_name"),
+        shift_id=data.get("shift_id"),
+        defect_count=data.get("defect_count", 0),
+        notes=data.get("notes")
+    )
+    await db.defect_logs.insert_one(defect_log.model_dump())
+    return defect_log
+
+@api_router.get("/defects")
+async def get_defect_logs(machine_id: Optional[str] = None, date: Optional[str] = None, limit: int = 100):
+    """Defo kayıtlarını listele"""
+    query = {}
+    if machine_id:
+        query["machine_id"] = machine_id
+    if date:
+        query["date"] = date
+    
+    defects = await db.defect_logs.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return defects
+
+@api_router.get("/defects/analytics")
+async def get_defect_analytics(period: str = "weekly"):
+    """Defo analitikleri"""
+    from datetime import timedelta
+    
+    if period == "daily":
+        start_date = datetime.now(timezone.utc) - timedelta(days=1)
+    elif period == "weekly":
+        start_date = datetime.now(timezone.utc) - timedelta(days=7)
+    elif period == "monthly":
+        start_date = datetime.now(timezone.utc) - timedelta(days=30)
+    else:
+        start_date = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    start_date_str = start_date.strftime("%Y-%m-%d")
+    
+    defects = await db.defect_logs.find(
+        {"date": {"$gte": start_date_str}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Makine bazlı defo istatistikleri
+    machine_defects = {}
+    daily_defects = {}
+    total_defects = 0
+    
+    for defect in defects:
+        machine = defect.get("machine_name", "Bilinmiyor")
+        count = defect.get("defect_count", 0)
+        date = defect.get("date", "")
+        
+        total_defects += count
+        
+        if machine not in machine_defects:
+            machine_defects[machine] = 0
+        machine_defects[machine] += count
+        
+        if date not in daily_defects:
+            daily_defects[date] = 0
+        daily_defects[date] += count
+    
+    return {
+        "total_defects": total_defects,
+        "machine_defects": machine_defects,
+        "daily_defects": daily_defects,
+        "period": period
+    }
+
+@api_router.get("/shift-reports")
+async def get_shift_reports(shift_id: Optional[str] = None, limit: int = 50):
+    """Vardiya sonu raporlarını listele"""
+    query = {}
+    if shift_id:
+        query["shift_id"] = shift_id
+    
+    reports = await db.shift_end_reports.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return reports
+
 @api_router.post("/shifts/start")
 async def start_shift():
     active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
