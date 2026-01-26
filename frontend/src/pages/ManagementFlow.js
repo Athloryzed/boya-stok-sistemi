@@ -1025,6 +1025,94 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </TabsContent>
 
+          {/* DEFO TAB */}
+          <TabsContent value="defects">
+            <div className="space-y-6">
+              {/* Defo İstatistikleri */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-text-secondary text-sm">Toplam Defo</p>
+                    <p className="text-4xl font-heading font-bold text-error">{defectAnalytics?.total_defects || 0}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-text-secondary text-sm">En Çok Defo</p>
+                    <p className="text-2xl font-heading font-bold text-warning">
+                      {defectAnalytics?.machine_defects && Object.keys(defectAnalytics.machine_defects).length > 0
+                        ? Object.entries(defectAnalytics.machine_defects).sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
+                        : "-"}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-surface border-border">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-text-secondary text-sm">Dönem</p>
+                    <p className="text-xl font-heading font-bold text-text-primary">{defectAnalytics?.period === "weekly" ? "Haftalık" : "Aylık"}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Makine Bazlı Defo Grafiği */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-xl font-heading flex items-center gap-2">
+                    <XCircle className="h-5 w-5 text-error" /> Makine Bazlı Defo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {defectAnalytics?.machine_defects && Object.keys(defectAnalytics.machine_defects).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={prepareChartData(defectAnalytics.machine_defects, "Defo")}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                        <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                        <YAxis stroke="#888" />
+                        <Tooltip contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #444" }} />
+                        <Bar dataKey="Defo" fill="#ef4444" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-text-secondary text-center py-8">Henüz defo kaydı yok.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Günlük Defo Tablosu */}
+              <Card className="bg-surface border-border">
+                <CardHeader>
+                  <CardTitle className="text-xl font-heading">Günlük Defo Dağılımı</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {defectAnalytics?.daily_defects && Object.keys(defectAnalytics.daily_defects).length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full" data-testid="defects-table">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-3 font-heading text-text-primary">Tarih</th>
+                            <th className="text-left p-3 font-heading text-text-primary">Defo Sayısı</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(defectAnalytics.daily_defects)
+                            .sort((a, b) => b[0].localeCompare(a[0]))
+                            .map(([date, count]) => (
+                              <tr key={date} className="border-b border-border">
+                                <td className="p-3 text-text-primary">{date}</td>
+                                <td className="p-3 text-error font-bold">{count}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-text-secondary text-center py-8">Henüz günlük defo kaydı yok.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* BAKIM TAB */}
           <TabsContent value="maintenance">
             <Card className="bg-surface border-border">
