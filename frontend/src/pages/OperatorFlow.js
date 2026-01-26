@@ -664,7 +664,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
             {/* Bekleyen İşler */}
             <div>
-              <h2 className="text-xl font-heading font-bold text-text-primary mb-4">Sıradaki İşler ({filteredJobs.length})</h2>
+              <h2 className="text-xl font-heading font-bold text-text-primary mb-4">
+                Sıradaki İşler ({filteredJobs.length})
+                {filteredJobs.length > 1 && <span className="text-sm font-normal text-text-secondary ml-2">(Sıralamak için sürükleyin)</span>}
+              </h2>
               {filteredJobs.length === 0 ? (
                 <Card className="bg-surface border-border">
                   <CardContent className="p-8 text-center">
@@ -673,18 +676,36 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {filteredJobs.map((job) => (
-                    <Card key={job.id} className="bg-surface border-border" data-testid={`job-${job.id}`}>
+                  {filteredJobs.map((job, index) => (
+                    <Card 
+                      key={job.id} 
+                      className={`bg-surface border-border cursor-grab active:cursor-grabbing transition-all ${
+                        dragOverJob?.id === job.id ? "border-secondary border-2 scale-[1.02]" : ""
+                      } ${draggedJob?.id === job.id ? "opacity-50" : ""}`}
+                      data-testid={`job-${job.id}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, job)}
+                      onDragOver={(e) => handleDragOver(e, job)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, job)}
+                      onDragEnd={handleDragEnd}
+                    >
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-xl font-heading font-bold text-text-primary">{job.name}</h3>
-                              {job.format && <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">{job.format}</span>}
+                          <div className="flex items-start gap-3">
+                            <div className="flex flex-col items-center justify-center pt-1">
+                              <GripVertical className="h-5 w-5 text-text-secondary" />
+                              <span className="text-xs text-text-secondary mt-1">#{index + 1}</span>
                             </div>
-                            <p className="text-text-secondary">Koli: {job.koli_count}</p>
-                            <p className="text-text-secondary">Renkler: {job.colors}</p>
-                            {job.notes && <p className="text-text-secondary text-sm mt-2">Not: {job.notes}</p>}
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-xl font-heading font-bold text-text-primary">{job.name}</h3>
+                                {job.format && <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">{job.format}</span>}
+                              </div>
+                              <p className="text-text-secondary">Koli: {job.koli_count}</p>
+                              <p className="text-text-secondary">Renkler: {job.colors}</p>
+                              {job.notes && <p className="text-text-secondary text-sm mt-2">Not: {job.notes}</p>}
+                            </div>
                           </div>
                           {!currentJobOnMachine && (
                             <Button onClick={() => handleStartJob(job)} disabled={loading} className="bg-secondary text-white hover:bg-secondary/90">
