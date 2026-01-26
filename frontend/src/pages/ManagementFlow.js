@@ -1380,6 +1380,70 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Vardiya Sonu Raporu Dialog */}
+        <Dialog open={isShiftEndDialogOpen} onOpenChange={setIsShiftEndDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading flex items-center gap-2">
+                <PowerOff className="h-6 w-6 text-error" /> Vardiya Sonu Raporu
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-text-secondary text-sm">Her makine için üretilen koli ve defo sayısını girin. Boş bırakılan makineler kaydedilmez.</p>
+              
+              <div className="space-y-3">
+                {shiftEndReports.map((report) => (
+                  <Card key={report.machine_id} className={`border ${report.job_name ? "border-success" : "border-border"}`}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1">
+                          <h4 className="font-heading font-bold text-text-primary">{report.machine_name}</h4>
+                          {report.job_name && (
+                            <p className="text-sm text-success">Aktif iş: {report.job_name} (Hedef: {report.target_koli} koli)</p>
+                          )}
+                        </div>
+                        <div className="flex gap-3">
+                          <div>
+                            <Label className="text-xs text-text-secondary">Üretilen Koli</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={report.produced_koli || ""}
+                              onChange={(e) => handleShiftEndReportChange(report.machine_id, "produced_koli", e.target.value)}
+                              className="w-24 bg-background border-border text-text-primary"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-text-secondary">Defo Sayısı</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={report.defect_count || ""}
+                              onChange={(e) => handleShiftEndReportChange(report.machine_id, "defect_count", e.target.value)}
+                              className="w-24 bg-background border-border text-text-primary"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" onClick={() => setIsShiftEndDialogOpen(false)} className="flex-1">
+                  İptal
+                </Button>
+                <Button onClick={handleEndShiftWithReport} className="flex-1 bg-error text-white hover:bg-error/90">
+                  <PowerOff className="mr-2 h-4 w-4" /> Vardiyayı Bitir
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
