@@ -1484,12 +1484,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             />
                           </div>
                           <div>
-                            <Label className="text-xs text-text-secondary">Defo Sayısı</Label>
+                            <Label className="text-xs text-text-secondary">Defo (kg)</Label>
                             <Input
                               type="number"
                               min="0"
-                              value={report.defect_count || ""}
-                              onChange={(e) => handleShiftEndReportChange(report.machine_id, "defect_count", e.target.value)}
+                              step="0.1"
+                              value={report.defect_kg || ""}
+                              onChange={(e) => handleShiftEndReportChange(report.machine_id, "defect_kg", e.target.value)}
                               className="w-24 bg-background border-border text-text-primary"
                               placeholder="0"
                             />
