@@ -106,7 +106,31 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       return;
     }
 
-    if ((movementType === "to_machine" || movementType === "from_machine") && !selectedMachine) {
+    try {
+      if (movementType === "add" || movementType === "remove") {
+        await axios.post(`${API}/paints/transaction`, {
+          paint_id: selectedPaint.id,
+          movement_type: movementType,
+          amount_kg: parseFloat(amount),
+          note: note
+        });
+        toast.success("İşlem başarılı!");
+      }
+      
+      closeAllDialogs();
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İşlem başarısız");
+    }
+  };
+
+  // Yeni: Makineye boya ver
+  const handleGiveToMachine = async () => {
+    if (!selectedPaint || !amount || parseFloat(amount) <= 0) {
+      toast.error("Lütfen geçerli bir miktar girin");
+      return;
+    }
+    if (!selectedMachine) {
       toast.error("Lütfen bir makine seçin");
       return;
     }
@@ -114,16 +138,33 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     const machine = machines.find(m => m.id === selectedMachine);
 
     try {
-      await axios.post(`${API}/paints/transaction`, {
+      await axios.post(`${API}/paints/give-to-machine`, {
         paint_id: selectedPaint.id,
-        movement_type: movementType,
-        amount_kg: parseFloat(amount),
-        machine_id: selectedMachine || null,
-        machine_name: machine?.name || null,
-        note: note
+        machine_id: selectedMachine,
+        machine_name: machine?.name || "",
+        amount_kg: parseFloat(amount)
       });
+      toast.success(`${selectedPaint.name} - ${amount} kg ${machine?.name} makinesine verildi!`);
+      closeAllDialogs();
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İşlem başarısız");
+    }
+  };
 
-      toast.success("İşlem başarılı!");
+  // Yeni: Makineden boya geri al
+  const handleReturnFromMachine = async () => {
+    if (!selectedActivePaint || !amount) {
+      toast.error("Lütfen geçerli bir miktar girin");
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/paints/return-from-machine`, {
+        active_paint_id: selectedActivePaint.id,
+        returned_amount_kg: parseFloat(amount)
+      });
+      toast.success(`Kullanılan: ${response.data.used_amount} kg`);
       closeAllDialogs();
       fetchData();
     } catch (error) {
