@@ -31,19 +31,26 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
 1. **İş Sıralama (Drag & Drop)**
    - Operatör panelinde işleri sürükle-bırak ile sıralama
    - İş sırası görsel olarak numaralandırılmış
-   - Sıra değişikliği anında veritabanına kaydedilir
 
-2. **Vardiya Sonu Raporu**
+2. **Vardiya Sonu Raporu & Kısmi Üretim**
    - Aktif iş varken vardiya bitirirken üretim ve defo miktarı (kg) girilebilir
-   - Makine bazlı rapor formu
-   - Otomatik defo kaydı oluşturma
+   - Kısmi üretim günlük/haftalık/aylık analize yansır
+   - Operatör kalan koliyi "DEVAM" etiketi ile görür
 
-3. **Defo (Hatalı Ürün) Takibi - KİLO CİNSİNDEN**
-   - Yönetim panelinde "Defo" sekmesi
-   - **Günlük grafik** (hafta bazında navigasyon)
-   - **Haftalık makine bazlı grafik**
-   - **Aylık makine bazlı grafik** (ay/yıl seçimi)
-   - Toplam defo istatistikleri (haftalık ve aylık)
+3. **Defo Takibi (Kilo Cinsinden)**
+   - Günlük/Haftalık/Aylık defo grafikleri
+   - Makine bazlı defo analizi
+
+4. **Boya Takip Sistemi (Yenilendi)**
+   - Makineye Ver: Tartıdan okunan değeri gir
+   - Geri Al: Sadece boya verilen makineler listelenir
+   - Sistem farkı hesaplar (Verilen - Kalan = Kullanılan)
+   - Kullanılan miktar analize işlenir
+
+5. **İş Görseli Ekleme** ✅ YENİ
+   - Plan panelinde iş eklerken görsel yüklenebilir
+   - İş kartlarında görsel ikonu ile önizleme
+   - Operatör panelinde de görsel görüntülenebilir
 
 ### Önceki Özellikler (24 Ocak 2025)
 
