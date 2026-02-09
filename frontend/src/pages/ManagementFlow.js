@@ -1288,6 +1288,94 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ONAY BEKLEYEN TAB */}
+          <TabsContent value="pending-approval">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
+                    <Clock className="h-6 w-6 text-orange-500" /> Onay Bekleyen Raporlar
+                  </CardTitle>
+                  {pendingReports.length > 0 && (
+                    <Button
+                      onClick={handleApproveAllAndEndShift}
+                      className="bg-success text-white hover:bg-success/90"
+                      data-testid="approve-all-reports-btn"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" /> Tümünü Onayla & Vardiyayı Bitir
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {pendingReports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="h-16 w-16 mx-auto text-text-secondary mb-4 opacity-50" />
+                    <p className="text-text-secondary text-lg">Onay bekleyen rapor yok.</p>
+                    <p className="text-text-secondary text-sm mt-2">Vardiya bitirme bildirimi gönderdiğinizde, operatörlerin raporları burada görünecek.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingReports.map((report) => (
+                      <Card key={report.id} className="bg-background border-border" data-testid={`pending-report-${report.id}`}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${report.is_completed ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                  {report.is_completed ? 'TAMAMLANDI' : 'KISMİ'}
+                                </span>
+                                <span className="text-text-secondary text-sm">
+                                  {new Date(report.created_at).toLocaleString("tr-TR")}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-heading font-bold text-text-primary">{report.job_name}</h4>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                                <div>
+                                  <p className="text-text-secondary text-xs">Operatör</p>
+                                  <p className="text-text-primary font-semibold">{report.operator_name || '-'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-text-secondary text-xs">Makine</p>
+                                  <p className="text-text-primary font-semibold">{report.machine_name}</p>
+                                </div>
+                                <div>
+                                  <p className="text-text-secondary text-xs">Hedef</p>
+                                  <p className="text-text-primary font-semibold">{report.target_koli} koli</p>
+                                </div>
+                                <div>
+                                  <p className="text-text-secondary text-xs">Üretilen</p>
+                                  <p className="text-success font-semibold text-lg">{report.produced_koli} koli</p>
+                                </div>
+                              </div>
+                              {report.defect_kg > 0 && (
+                                <div className="mt-2 p-2 bg-error/10 border border-error/30 rounded">
+                                  <p className="text-error text-sm">
+                                    <XCircle className="h-4 w-4 inline mr-1" />
+                                    Defo: {report.defect_kg} kg
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                              <Button
+                                onClick={() => handleApproveReport(report.id)}
+                                className="flex-1 md:flex-none bg-success text-white hover:bg-success/90"
+                                data-testid={`approve-report-${report.id}`}
+                              >
+                                <Check className="h-4 w-4 mr-1" /> Onayla
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* BAKIM DIALOG */}
