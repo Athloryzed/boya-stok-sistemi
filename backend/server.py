@@ -414,6 +414,36 @@ async def cleanup_duplicate_machines():
     
     return {"message": f"Cleaned up {len(duplicates_to_delete)} duplicate machines"}
 
+# Dosya Yükleme Endpoint'i
+@api_router.post("/upload/image")
+async def upload_image(file: UploadFile = File(...)):
+    """Görsel yükle ve URL döndür"""
+    try:
+        # Dosya uzantısı kontrolü
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+        file_ext = Path(file.filename).suffix.lower()
+        if file_ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, jpeg, png, gif, webp)")
+        
+        # Benzersiz dosya adı oluştur
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = UPLOADS_DIR / unique_filename
+        
+        # Dosyayı kaydet
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # URL döndür
+        return {
+            "success": True,
+            "filename": unique_filename,
+            "url": f"/uploads/{unique_filename}"
+        }
+    except Exception as e:
+        logging.error(f"Upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/jobs", response_model=List[Job])
 async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None):
     query = {}
