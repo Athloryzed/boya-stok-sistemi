@@ -26,6 +26,36 @@ Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
    - `/ws/operator/{machine_id}` - Operatör bildirimleri
    - `/ws/warehouse` - Depo bildirimleri
 
+## Bekleyen Görevler (Backlog)
+
+### P0 - Kritik (Deploy Sonrası Test)
+1. **Beyaz Ekran / iPhone Erişim Sorunu**
+   - Service Worker kaldırıldı
+   - iPhone uyumlu notification kontrolleri eklendi
+   - ⚠️ Deploy sonrası kullanıcı testi gerekli
+
+2. **WebSocket Vardiya Sonu Bildirimi**
+   - Kod tamamlandı, preview ortamda WebSocket çalışmıyor
+   - ⚠️ Deploy sonrası canlı ortamda test edilecek
+
+### P1 - Yüksek Öncelik
+3. **Yönetim Müdahale Hatası**
+   - Operatör başlattığı işe yönetimin müdahale edememesi sorunu
+   - Tekrarlayan sorun, çözüm bekliyor
+
+### P2 - Orta Öncelik
+4. **Sevkiyat & Sürücü Modülü**
+   - Harita/konum takibi
+   - Sürücü durum güncelleme
+   - Palet atama UI
+
+5. **Günlük Analitik Detay**
+   - Grafiğe tıklayınca makine bazlı detay
+
+### P3 - Düşük Öncelik
+6. **PWA / Mobil Uygulama**
+7. **QR/Barkod Tarama**
+
 ## Kullanıcı Yönetimi
 
 ### Yönetim Paneli (Tek şifre ile giriş)
