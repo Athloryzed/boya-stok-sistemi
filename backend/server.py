@@ -2230,24 +2230,27 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
                 machine_breakdown[machine] = 0
             machine_breakdown[machine] += job.get("completed_koli", job.get("koli_count", 0))
         
-        # Vardiya raporlarından kısmi üretim ekle (tamamlanmamış işler için)
-        for report in shift_reports:
-            produced = report.get("produced_koli", 0)
-            if produced > 0:
-                # İşin tamamlanıp tamamlanmadığını kontrol et
-                job_id = report.get("job_id")
-                if job_id:
-                    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
-                    # Eğer iş tamamlanmışsa zaten yukarıda sayıldı, tekrar ekleme
-                    if job and job.get("status") == "completed":
-                        continue
-                
-                machine = report.get("machine_name", "")
-                if machine:
-                    if machine not in machine_breakdown:
-                        machine_breakdown[machine] = 0
-                    machine_breakdown[machine] += produced
-                    total_koli += produced
+        # Vardiya raporlarından kısmi üretim ekle (tamamlanmamış işler için) - Batch query
+        job_ids = [r["job_id"] for r in shift_reports if r.get("job_id") and r.get("produced_koli", 0) > 0]
+        if job_ids:
+            jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
+            jobs_dict = {j["id"]: j for j in jobs_list}
+            
+            for report in shift_reports:
+                produced = report.get("produced_koli", 0)
+                if produced > 0:
+                    job_id = report.get("job_id")
+                    if job_id:
+                        job = jobs_dict.get(job_id)
+                        if job and job.get("status") == "completed":
+                            continue
+                    
+                    machine = report.get("machine_name", "")
+                    if machine:
+                        if machine not in machine_breakdown:
+                            machine_breakdown[machine] = 0
+                        machine_breakdown[machine] += produced
+                        total_koli += produced
         
         day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
         daily_stats.append({
