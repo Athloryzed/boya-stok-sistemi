@@ -33,7 +33,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [messages, setMessages] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [lastNotificationMessage, setLastNotificationMessage] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
