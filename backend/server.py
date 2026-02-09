@@ -1434,7 +1434,7 @@ async def get_driver_locations():
 
 @api_router.get("/paints/analytics")
 async def get_paint_analytics(period: str = "weekly"):
-    """Boya tüketim analitiği"""
+    """Boya tüketim analitiği - Gerçek kullanım (makineden geri alındıktan sonra hesaplanan fark)"""
     from datetime import timedelta
     
     if period == "weekly":
@@ -1444,10 +1444,11 @@ async def get_paint_analytics(period: str = "weekly"):
     
     date_ago_str = date_ago.isoformat()
     
-    # Tüketim hareketleri (remove, to_machine)
+    # Gerçek kullanım hareketleri ("used" = makineden geri alındığında hesaplanan fark)
+    # ve "remove" (stoktan direkt çıkarılan)
     movements = await db.paint_movements.find(
         {
-            "movement_type": {"$in": ["remove", "to_machine"]},
+            "movement_type": {"$in": ["remove", "used"]},
             "created_at": {"$gte": date_ago_str}
         },
         {"_id": 0}
@@ -1468,8 +1469,8 @@ async def get_paint_analytics(period: str = "weekly"):
             paint_consumption[paint_name] = 0
         paint_consumption[paint_name] += amount
         
-        # Makine bazında
-        if machine_name and machine_name != "Bilinmeyen":
+        # Makine bazında (sadece "used" tipi için)
+        if mov["movement_type"] == "used" and machine_name and machine_name != "Bilinmeyen":
             if machine_name not in machine_consumption:
                 machine_consumption[machine_name] = 0
             machine_consumption[machine_name] += amount
