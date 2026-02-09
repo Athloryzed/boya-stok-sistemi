@@ -1283,6 +1283,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             >
                               {job.status === "in_progress" ? "Devam Ediyor" : "Bekliyor"}
                             </span>
+                            {job.image_url && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openImagePreview(job.image_url)}
+                                className="text-secondary border-secondary/50"
+                              >
+                                <Image className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-text-secondary">
                             <div>
