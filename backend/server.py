@@ -165,7 +165,28 @@ class Shift(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     started_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     ended_at: Optional[str] = None
-    status: str = "active"
+    status: str = "active"  # active, pending_reports, ended
+    pending_approval: bool = False  # Onay bekliyor mu?
+
+# Vardiya Sonu Operatör Raporu (Onay Bekleyen)
+class ShiftEndOperatorReport(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    shift_id: str
+    operator_id: str
+    operator_name: str
+    machine_id: str
+    machine_name: str
+    job_id: Optional[str] = None
+    job_name: Optional[str] = None
+    target_koli: int = 0
+    produced_koli: int = 0
+    defect_kg: float = 0.0
+    is_completed: bool = False  # İş tamamlandı mı?
+    status: str = "pending"  # pending, approved, rejected
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    approved_at: Optional[str] = None
+    approved_by: Optional[str] = None
 
 # Defo (Defect) Takip Modeli
 class DefectLog(BaseModel):
