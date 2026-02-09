@@ -173,6 +173,93 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   }, [messages, isChatOpen]);
 
+  // WebSocket ile vardiya sonu bildirimi dinle
+  useEffect(() => {
+    if (!selectedMachine?.id) return;
+
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = API.replace('https://', '').replace('http://', '').replace('/api', '');
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/operator/${selectedMachine.id}`;
+    
+    let ws;
+    try {
+      ws = new WebSocket(wsUrl);
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'shift_end_request') {
+            const notification = data.data;
+            // Bu makineye ait bildirim mi kontrol et
+            if (notification.machine_id === selectedMachine.id) {
+              setShiftEndData(notification);
+              setShiftEndProducedKoli("");
+              setShiftEndDefectKg("");
+              setShiftEndIsCompleted(false);
+              setIsShiftEndDialogOpen(true);
+              
+              // Push bildirimi
+              if (notificationPermission === 'granted') {
+                showNotification(
+                  "⏰ Vardiya Sonu!",
+                  notification.message,
+                  { tag: 'shift-end' }
+                );
+              }
+              
+              toast.warning("Vardiya sonu bildirimi geldi!", { duration: 10000 });
+            }
+          }
+        } catch (e) {
+          console.error("WS message parse error:", e);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+    } catch (e) {
+      console.error("WebSocket connection error:", e);
+    }
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [selectedMachine?.id, notificationPermission]);
+
+  // Vardiya sonu raporu gönder
+  const handleSubmitShiftEndReport = async () => {
+    if (!shiftEndData) return;
+    
+    if (!shiftEndIsCompleted && (!shiftEndProducedKoli || parseInt(shiftEndProducedKoli) <= 0)) {
+      toast.error("Lütfen üretilen koli sayısını girin");
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/shifts/operator-report`, {
+        shift_id: shiftEndData.shift_id,
+        operator_id: userData?.id || "",
+        operator_name: operatorName,
+        machine_id: selectedMachine.id,
+        machine_name: selectedMachine.name,
+        job_id: shiftEndData.job_id,
+        job_name: shiftEndData.job_name,
+        target_koli: shiftEndData.target_koli,
+        produced_koli: shiftEndIsCompleted ? shiftEndData.target_koli : parseInt(shiftEndProducedKoli),
+        defect_kg: parseFloat(shiftEndDefectKg) || 0,
+        is_completed: shiftEndIsCompleted
+      });
+
+      toast.success("Rapor gönderildi! Yönetim onayı bekleniyor.");
+      setIsShiftEndDialogOpen(false);
+      setShiftEndData(null);
+      fetchJobs();
+    } catch (error) {
+      toast.error("Rapor gönderilemedi");
+    }
+  };
+
   const fetchMachinesData = async () => {
     try {
       const response = await axios.get(`${API}/machines`);
