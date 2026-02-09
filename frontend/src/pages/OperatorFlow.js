@@ -701,8 +701,18 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                               <div className="flex items-center gap-2 mb-2">
                                 <h3 className="text-xl font-heading font-bold text-text-primary">{job.name}</h3>
                                 {job.format && <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">{job.format}</span>}
+                                {job.remaining_koli > 0 && job.remaining_koli < job.koli_count && (
+                                  <span className="px-2 py-1 bg-warning/20 text-warning text-xs font-bold rounded">DEVAM</span>
+                                )}
                               </div>
-                              <p className="text-text-secondary">Koli: {job.koli_count}</p>
+                              {job.remaining_koli > 0 && job.remaining_koli < job.koli_count ? (
+                                <>
+                                  <p className="text-warning font-bold">Kalan Koli: {job.remaining_koli} / {job.koli_count}</p>
+                                  <p className="text-text-secondary text-sm">Üretilen: {job.koli_count - job.remaining_koli} koli</p>
+                                </>
+                              ) : (
+                                <p className="text-text-secondary">Koli: {job.koli_count}</p>
+                              )}
                               <p className="text-text-secondary">Renkler: {job.colors}</p>
                               {job.notes && <p className="text-text-secondary text-sm mt-2">Not: {job.notes}</p>}
                             </div>
