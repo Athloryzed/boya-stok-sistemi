@@ -53,15 +53,27 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     setIsImagePreviewOpen(true);
   };
 
-  // Bildirim izni state
-  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+  // Bildirim izni state - Safari/iOS uyumluluğu için güvenli kontrol
+  const getNotificationPermission = () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'denied';
+  };
+  const [notificationPermission, setNotificationPermission] = useState(getNotificationPermission());
 
-  // Service Worker ve bildirim izni
+  // Service Worker ve bildirim izni - sadece destekleyen tarayıcılarda
   useEffect(() => {
-    registerServiceWorker();
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      registerServiceWorker();
+    }
   }, []);
 
   const handleEnableNotifications = async () => {
+    if (!('Notification' in window)) {
+      toast.error("Bu tarayıcı bildirimleri desteklemiyor");
+      return;
+    }
     const granted = await requestNotificationPermission();
     if (granted) {
       setNotificationPermission('granted');
