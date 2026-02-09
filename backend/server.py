@@ -102,6 +102,7 @@ class Job(BaseModel):
     delivery_date: Optional[str] = None
     delivery_address: Optional[str] = None
     delivery_phone: Optional[str] = None
+    image_url: Optional[str] = None  # İş görseli URL'i
     status: str = "pending"
     operator_name: Optional[str] = None
     started_at: Optional[str] = None
