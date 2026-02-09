@@ -917,6 +917,77 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Vardiya Sonu Dialog */}
+        <Dialog open={isShiftEndDialogOpen} onOpenChange={setIsShiftEndDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading text-warning flex items-center gap-2">
+                ⏰ Vardiya Sonu
+              </DialogTitle>
+            </DialogHeader>
+            {shiftEndData && (
+              <div className="space-y-4">
+                <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-text-primary font-bold">{shiftEndData.message}</p>
+                </div>
+                
+                <div className="p-4 bg-surface-highlight rounded-lg space-y-2">
+                  <p className="text-text-secondary">Makine: <span className="text-text-primary font-bold">{shiftEndData.machine_name}</span></p>
+                  <p className="text-text-secondary">İş: <span className="text-text-primary font-bold">{shiftEndData.job_name}</span></p>
+                  <p className="text-text-secondary">Hedef Koli: <span className="text-text-primary font-bold">{shiftEndData.target_koli}</span></p>
+                </div>
+
+                {/* İş Tamamlandı mı? */}
+                <div className="flex items-center gap-3 p-4 bg-success/10 border border-success/30 rounded-lg cursor-pointer" onClick={() => setShiftEndIsCompleted(!shiftEndIsCompleted)}>
+                  <input 
+                    type="checkbox" 
+                    checked={shiftEndIsCompleted}
+                    onChange={(e) => setShiftEndIsCompleted(e.target.checked)}
+                    className="w-5 h-5"
+                  />
+                  <span className="text-text-primary font-bold">İşi Tamamladım ✅</span>
+                </div>
+
+                {!shiftEndIsCompleted && (
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-text-primary">Üretilen Koli Sayısı *</Label>
+                      <Input
+                        type="number"
+                        value={shiftEndProducedKoli}
+                        onChange={(e) => setShiftEndProducedKoli(e.target.value)}
+                        placeholder="Kaç koli ürettiniz?"
+                        className="bg-background border-border text-text-primary"
+                        data-testid="shift-end-produced-koli"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-text-primary">Defo (kg)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={shiftEndDefectKg}
+                        onChange={(e) => setShiftEndDefectKg(e.target.value)}
+                        placeholder="Defo miktarı (kg)"
+                        className="bg-background border-border text-text-primary"
+                        data-testid="shift-end-defect-kg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleSubmitShiftEndReport}
+                  className="w-full bg-warning text-black hover:bg-warning/90 font-bold"
+                  data-testid="submit-shift-end-report"
+                >
+                  Raporu Gönder
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
