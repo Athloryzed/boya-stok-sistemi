@@ -247,11 +247,58 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // YENİ: Operatörlere bildirim gönder
+  const handleRequestShiftEnd = async () => {
+    const activeJobs = jobs.filter(j => j.status === "in_progress");
+    if (activeJobs.length === 0) {
+      // Aktif iş yok, direkt bitir
+      try {
+        await axios.post(`${API}/shifts/end`);
+        toast.success("Vardiya bitirildi!");
+        fetchData();
+      } catch (error) {
+        toast.error(error.response?.data?.detail || "Vardiya bitirilemedi");
+      }
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/shifts/request-end`);
+      toast.success(`${response.data.notifications_sent} operatöre bildirim gönderildi!`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Bildirim gönderilemedi");
+    }
+  };
+
+  // Rapor onaylama
+  const handleApproveReport = async (reportId) => {
+    try {
+      await axios.post(`${API}/shifts/approve-report/${reportId}`);
+      toast.success("Rapor onaylandı!");
+      fetchData();
+    } catch (error) {
+      toast.error("Rapor onaylanamadı");
+    }
+  };
+
+  // Tümünü onayla ve vardiyayı bitir
+  const handleApproveAllAndEndShift = async () => {
+    try {
+      await axios.post(`${API}/shifts/approve-all`);
+      toast.success("Tüm raporlar onaylandı ve vardiya bitirildi!");
+      fetchData();
+    } catch (error) {
+      toast.error("İşlem başarısız");
+    }
+  };
+
   const handleEndShift = async () => {
     // Aktif iş var mı kontrol et
     const activeJobs = jobs.filter(j => j.status === "in_progress");
     if (activeJobs.length > 0) {
-      openShiftEndDialog();
+      // Yeni akış: operatörlere bildirim gönder
+      handleRequestShiftEnd();
     } else {
       try {
         await axios.post(`${API}/shifts/end`);
