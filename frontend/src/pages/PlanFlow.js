@@ -824,6 +824,57 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     className="bg-background border-border text-text-primary"
                   />
                 </div>
+                
+                {/* Görsel Yükleme */}
+                <div>
+                  <Label className="text-text-primary">İş Görseli (Opsiyonel)</Label>
+                  <div className="mt-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      data-testid="job-image-input"
+                    />
+                    {!previewImage ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="w-full border-dashed border-2 h-24 flex flex-col items-center justify-center gap-2"
+                      >
+                        {uploadingImage ? (
+                          <span className="text-text-secondary">Yükleniyor...</span>
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 text-text-secondary" />
+                            <span className="text-text-secondary text-sm">Görsel Yükle</span>
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="relative">
+                        <img 
+                          src={`${API.replace('/api', '')}${previewImage}`} 
+                          alt="Preview" 
+                          className="w-full h-32 object-cover rounded-lg border border-border"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={clearImage}
+                          className="absolute top-2 right-2"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <Button
                   data-testid="submit-job-button"
                   onClick={handleAddJob}
