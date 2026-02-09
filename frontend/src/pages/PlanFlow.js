@@ -556,7 +556,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         ...formData,
         koli_count: parseInt(formData.koli_count),
         machine_name: machine.name,
-        format: formatOptions.length > 0 ? formData.format : null
+        format: formatOptions.length > 0 ? formData.format : null,
+        image_url: formData.image_url || null
       });
       toast.success("İş eklendi!");
       setIsDialogOpen(false);
@@ -567,8 +568,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         machine_id: "",
         format: "",
         notes: "",
-        delivery_date: ""
+        delivery_date: "",
+        delivery_address: "",
+        delivery_phone: "",
+        image_url: ""
       });
+      setPreviewImage(null);
       fetchJobs();
     } catch (error) {
       toast.error("İş eklenemedi");
