@@ -75,6 +75,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [defectWeekOffset, setDefectWeekOffset] = useState(0);
   const [defectYear, setDefectYear] = useState(new Date().getFullYear());
   const [defectMonth, setDefectMonth] = useState(new Date().getMonth() + 1);
+  
+  // Onay Bekleyen Raporlar
+  const [pendingReports, setPendingReports] = useState([]);
+  const [shiftStatus, setShiftStatus] = useState(null);
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
@@ -82,7 +86,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, shiftStatusRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
