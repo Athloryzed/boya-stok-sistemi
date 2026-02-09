@@ -43,13 +43,15 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [analytics, setAnalytics] = useState(null);
   const [analyticsPeriod, setAnalyticsPeriod] = useState("weekly");
   const [lowStockPaints, setLowStockPaints] = useState([]);
+  const [activePaintsOnMachines, setActivePaintsOnMachines] = useState([]);
   
   // Dialog states
   const [isAddStockOpen, setIsAddStockOpen] = useState(false);
   const [isRemoveStockOpen, setIsRemoveStockOpen] = useState(false);
-  const [isToMachineOpen, setIsToMachineOpen] = useState(false);
-  const [isFromMachineOpen, setIsFromMachineOpen] = useState(false);
+  const [isGiveToMachineOpen, setIsGiveToMachineOpen] = useState(false);
+  const [isReturnFromMachineOpen, setIsReturnFromMachineOpen] = useState(false);
   const [selectedPaint, setSelectedPaint] = useState(null);
+  const [selectedActivePaint, setSelectedActivePaint] = useState(null);
   
   // Form states
   const [amount, setAmount] = useState("");
