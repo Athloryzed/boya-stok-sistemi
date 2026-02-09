@@ -924,6 +924,11 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
             {"status": "completed", "completed_at": {"$gte": start_date_str, "$lt": end_date_str}},
             {"_id": 0}
         ).to_list(1000)
+        
+        shift_reports = await db.shift_end_reports.find(
+            {"created_at": {"$gte": start_date_str, "$lt": end_date_str}},
+            {"_id": 0}
+        ).to_list(1000)
     else:
         month_ago = datetime.now(timezone.utc) - timedelta(days=30)
         month_ago_str = month_ago.isoformat()
@@ -932,16 +937,33 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
             {"status": "completed", "completed_at": {"$gte": month_ago_str}},
             {"_id": 0}
         ).to_list(1000)
+        
+        shift_reports = await db.shift_end_reports.find(
+            {"created_at": {"$gte": month_ago_str}},
+            {"_id": 0}
+        ).to_list(1000)
     
     machine_stats = {}
     
     for job in jobs:
         machine = job["machine_name"]
-        koli = job["completed_koli"]
+        koli = job.get("completed_koli", job.get("koli_count", 0))
         
         if machine not in machine_stats:
             machine_stats[machine] = 0
         machine_stats[machine] += koli
+    
+    # Vardiya raporlarından kısmi üretim
+    for report in shift_reports:
+        if report.get("job_id"):
+            job = await db.jobs.find_one({"id": report["job_id"]}, {"_id": 0})
+            if job and job.get("status") != "completed":
+                machine = report.get("machine_name", "")
+                koli = report.get("produced_koli", 0)
+                if machine and koli > 0:
+                    if machine not in machine_stats:
+                        machine_stats[machine] = 0
+                    machine_stats[machine] += koli
     
     return {
         "machine_stats": machine_stats
