@@ -47,10 +47,20 @@ Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden olu�
    - Sistem farkı hesaplar (Verilen - Kalan = Kullanılan)
    - Kullanılan miktar analize işlenir
 
-5. **İş Görseli Ekleme** ✅ YENİ
+5. **İş Görseli Ekleme** ✅
    - Plan panelinde iş eklerken görsel yüklenebilir
    - İş kartlarında görsel ikonu ile önizleme
    - Operatör panelinde de görsel görüntülenebilir
+
+6. **Tarayıcı Push Bildirimleri** ✅ YENİ
+   - Operatör panelinde 🔔 butonu ile bildirim izni
+   - Yeni mesaj geldiğinde tarayıcı bildirimi
+   - Service Worker ile arka planda bildirim
+
+7. **WhatsApp Bildirimi (Twilio)** ✅ YENİ
+   - İş tamamlandığında otomatik WhatsApp bildirimi
+   - Bildirim içeriği: İş adı, makine, koli, operatör, tarih
+   - Twilio Sandbox üzerinden çalışıyor
 
 ### Önceki Özellikler (24 Ocak 2025)
 
