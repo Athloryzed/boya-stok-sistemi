@@ -675,10 +675,10 @@ async def request_shift_end():
         notifications_sent.append(notification)
         
         # WebSocket üzerinden bildirim gönder
-        await manager.broadcast(json.dumps({
+        await manager.broadcast({
             "type": "shift_end_request",
             "data": notification
-        }))
+        })
     
     return {
         "message": "Vardiya sonu bildirimi gönderildi",
