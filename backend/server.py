@@ -2089,7 +2089,7 @@ async def get_warehouse_shipment_logs(limit: int = 100):
 
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):
-    """Hafta bazında günlük üretim analitiği"""
+    """Hafta bazında günlük üretim analitiği - Vardiya sonu raporları dahil"""
     from datetime import timedelta
     
     # Hedef haftayı hesapla
@@ -2106,18 +2106,45 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
         start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = start_of_day + timedelta(days=1)
         
+        # Tamamlanan işler
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
             {"_id": 0}
         ).to_list(1000)
         
-        total_koli = sum(job["completed_koli"] for job in jobs)
+        # Vardiya sonu raporları (kısmi üretimler)
+        shift_reports = await db.shift_end_reports.find(
+            {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        total_koli = sum(job.get("completed_koli", job.get("koli_count", 0)) for job in jobs)
         machine_breakdown = {}
+        
         for job in jobs:
             machine = job["machine_name"]
             if machine not in machine_breakdown:
                 machine_breakdown[machine] = 0
-            machine_breakdown[machine] += job["completed_koli"]
+            machine_breakdown[machine] += job.get("completed_koli", job.get("koli_count", 0))
+        
+        # Vardiya raporlarından kısmi üretim ekle (tamamlanmamış işler için)
+        for report in shift_reports:
+            produced = report.get("produced_koli", 0)
+            if produced > 0:
+                # İşin tamamlanıp tamamlanmadığını kontrol et
+                job_id = report.get("job_id")
+                if job_id:
+                    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+                    # Eğer iş tamamlanmışsa zaten yukarıda sayıldı, tekrar ekleme
+                    if job and job.get("status") == "completed":
+                        continue
+                
+                machine = report.get("machine_name", "")
+                if machine:
+                    if machine not in machine_breakdown:
+                        machine_breakdown[machine] = 0
+                    machine_breakdown[machine] += produced
+                    total_koli += produced
         
         day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
         daily_stats.append({
