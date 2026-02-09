@@ -2545,6 +2545,24 @@ async def warehouse_websocket(websocket: WebSocket):
         logging.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
+# WebSocket endpoint - Operatör bildirimleri için
+@app.websocket("/ws/operator/{machine_id}")
+async def operator_websocket(websocket: WebSocket, machine_id: str):
+    await manager.connect(websocket)
+    logging.info(f"Operator WebSocket connected for machine: {machine_id}")
+    try:
+        while True:
+            # Bağlantıyı canlı tutmak için ping-pong
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        logging.info(f"Operator WebSocket disconnected for machine: {machine_id}")
+    except Exception as e:
+        logging.error(f"Operator WebSocket error: {e}")
+        manager.disconnect(websocket)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
