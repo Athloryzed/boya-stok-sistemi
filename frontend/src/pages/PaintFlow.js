@@ -704,8 +704,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
-        {/* MAKİNEYE GÖNDER DIALOG */}
-        <Dialog open={isToMachineOpen} onOpenChange={setIsToMachineOpen}>
+        {/* MAKİNEYE VER DIALOG */}
+        <Dialog open={isGiveToMachineOpen} onOpenChange={setIsGiveToMachineOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
               <DialogTitle className="text-2xl font-heading text-blue-500 flex items-center gap-2">
@@ -716,7 +716,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                     borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
                   }}
                 />
-                Makineye Gönder - {selectedPaint?.name}
+                Makineye Ver - {selectedPaint?.name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -724,7 +724,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
               <div>
                 <Label className="text-text-primary">Makine</Label>
                 <Select value={selectedMachine} onValueChange={setSelectedMachine}>
-                  <SelectTrigger data-testid="select-machine-to" className="bg-background border-border text-text-primary">
+                  <SelectTrigger data-testid="select-machine-give" className="bg-background border-border text-text-primary">
                     <SelectValue placeholder="Makine seçin..." />
                   </SelectTrigger>
                   <SelectContent className="bg-surface border-border">
@@ -737,97 +737,69 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                 </Select>
               </div>
               <div>
-                <Label className="text-text-primary">Miktar (L)</Label>
+                <Label className="text-text-primary">Tartıdan Okunan Miktar (L)</Label>
                 <Input
-                  data-testid="to-machine-amount"
+                  data-testid="give-machine-amount"
                   type="number"
                   step="0.1"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.0"
-                  className="bg-background border-border text-text-primary"
-                />
-              </div>
-              <div>
-                <Label className="text-text-primary">Not (Opsiyonel)</Label>
-                <Input
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="İş numarası vb."
+                  placeholder="Tartıdan okuduğunuz değeri girin"
                   className="bg-background border-border text-text-primary"
                 />
               </div>
               <Button 
-                data-testid="confirm-to-machine"
-                onClick={() => handleTransaction("to_machine")} 
+                data-testid="confirm-give-machine"
+                onClick={handleGiveToMachine} 
                 className="w-full bg-blue-500 text-white hover:bg-blue-600"
               >
                 <Send className="mr-2 h-4 w-4" />
-                Makineye Gönder
+                Makineye Ver
               </Button>
             </div>
           </DialogContent>
         </Dialog>
 
-        {/* MAKİNEDEN AL DIALOG */}
-        <Dialog open={isFromMachineOpen} onOpenChange={setIsFromMachineOpen}>
+        {/* MAKİNEDEN GERİ AL DIALOG */}
+        <Dialog open={isReturnFromMachineOpen} onOpenChange={setIsReturnFromMachineOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
               <DialogTitle className="text-2xl font-heading text-yellow-500 flex items-center gap-2">
-                <div 
-                  className="w-6 h-6 rounded-full border"
-                  style={{ 
-                    backgroundColor: selectedPaint ? getPaintColor(selectedPaint.name) : "#888",
-                    borderColor: selectedPaint?.name === "Beyaz" ? "#ccc" : (selectedPaint ? getPaintColor(selectedPaint.name) : "#888")
-                  }}
-                />
-                Makineden Al - {selectedPaint?.name}
+                <RotateCcw className="h-6 w-6" />
+                Geri Al - {selectedActivePaint?.paint_name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label className="text-text-primary">Makine</Label>
-                <Select value={selectedMachine} onValueChange={setSelectedMachine}>
-                  <SelectTrigger data-testid="select-machine-from" className="bg-background border-border text-text-primary">
-                    <SelectValue placeholder="Makine seçin..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-surface border-border">
-                    {machines.map(machine => (
-                      <SelectItem key={machine.id} value={machine.id} className="text-text-primary">
-                        {machine.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <p className="text-blue-400 font-bold">Makine: {selectedActivePaint?.machine_name}</p>
+                <p className="text-text-primary">Verilen Miktar: <span className="font-bold text-blue-500">{selectedActivePaint?.given_amount_kg} L</span></p>
               </div>
               <div>
-                <Label className="text-text-primary">Miktar (L)</Label>
+                <Label className="text-text-primary">Tartıdan Okunan (Kalan) Miktar (L)</Label>
                 <Input
-                  data-testid="from-machine-amount"
+                  data-testid="return-machine-amount"
                   type="number"
                   step="0.1"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.0"
+                  placeholder="Tartıdan okuduğunuz değeri girin"
                   className="bg-background border-border text-text-primary"
                 />
-              </div>
-              <div>
-                <Label className="text-text-primary">Not (Opsiyonel)</Label>
-                <Input
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="İade sebebi vb."
-                  className="bg-background border-border text-text-primary"
-                />
+                {amount && selectedActivePaint && (
+                  <p className="mt-2 text-lg">
+                    Kullanılan: <span className="font-bold text-purple-500">
+                      {(selectedActivePaint.given_amount_kg - parseFloat(amount || 0)).toFixed(1)} L
+                    </span>
+                  </p>
+                )}
               </div>
               <Button 
-                data-testid="confirm-from-machine"
-                onClick={() => handleTransaction("from_machine")} 
+                data-testid="confirm-return-machine"
+                onClick={handleReturnFromMachine} 
                 className="w-full bg-yellow-500 text-black hover:bg-yellow-600"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Makineden Al
+                Geri Al ve Kullanımı Kaydet
               </Button>
             </div>
           </DialogContent>
