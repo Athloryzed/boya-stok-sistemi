@@ -16,9 +16,50 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import json
 import base64
+from twilio.rest import Client as TwilioClient
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Twilio WhatsApp Setup
+twilio_client = None
+try:
+    twilio_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    twilio_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    if twilio_sid and twilio_token:
+        twilio_client = TwilioClient(twilio_sid, twilio_token)
+        logging.info("Twilio client initialized successfully")
+except Exception as e:
+    logging.warning(f"Twilio initialization failed: {e}")
+
+async def send_whatsapp_notification(message: str):
+    """WhatsApp bildirimi gönder"""
+    if not twilio_client:
+        logging.warning("Twilio client not available")
+        return False
+    
+    try:
+        whatsapp_from = os.environ.get('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
+        whatsapp_to = os.environ.get('WHATSAPP_NOTIFY_NUMBER')
+        
+        if not whatsapp_to:
+            logging.warning("WHATSAPP_NOTIFY_NUMBER not set")
+            return False
+        
+        # Numara formatını düzelt
+        if not whatsapp_to.startswith('whatsapp:'):
+            whatsapp_to = f"whatsapp:{whatsapp_to}"
+        
+        msg = twilio_client.messages.create(
+            body=message,
+            from_=whatsapp_from,
+            to=whatsapp_to
+        )
+        logging.info(f"WhatsApp message sent: {msg.sid}")
+        return True
+    except Exception as e:
+        logging.error(f"WhatsApp send failed: {e}")
+        return False
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
