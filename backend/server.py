@@ -586,6 +586,13 @@ async def complete_job(job_id: str, data: dict = Body(None)):
         {"$set": {"status": "idle", "current_job_id": None}}
     )
     
+    # WhatsApp bildirimi gönder
+    try:
+        message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+        await send_whatsapp_notification(message)
+    except Exception as e:
+        logging.error(f"WhatsApp notification error: {e}")
+    
     return {"message": "Job completed"}
 
 # İş Sırası Değiştirme
