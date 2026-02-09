@@ -42,13 +42,34 @@
         -->
         <title>Buse Kağıt | Üretim Yönetim Sistemi</title>
         
-        <!-- Service Worker Registration -->
+        <!-- Service Worker Registration with Cache Clear -->
         <script>
+            // Önce eski Service Worker'ları temizle
             if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (let registration of registrations) {
+                        registration.unregister().then(function() {
+                            console.log('Old SW unregistered');
+                        });
+                    }
+                });
+                
+                // Tüm cache'leri temizle
+                if ('caches' in window) {
+                    caches.keys().then(function(names) {
+                        for (let name of names) {
+                            caches.delete(name);
+                        }
+                    });
+                }
+                
+                // Yeni SW'yi kaydet (sadece push notifications için)
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/service-worker.js')
+                    navigator.serviceWorker.register('/sw.js')
                         .then(registration => {
                             console.log('SW registered: ', registration);
+                            // Force update
+                            registration.update();
                         })
                         .catch(registrationError => {
                             console.log('SW registration failed: ', registrationError);
