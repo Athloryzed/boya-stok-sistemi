@@ -53,6 +53,25 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     setIsImagePreviewOpen(true);
   };
 
+  // Bildirim izni state
+  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+
+  // Service Worker ve bildirim izni
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      setNotificationPermission('granted');
+      toast.success("Bildirimler aktif edildi!");
+      showNotification("Buse Kağıt", "Bildirimler başarıyla aktif edildi!");
+    } else {
+      toast.error("Bildirim izni reddedildi");
+    }
+  };
+
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
     const checkSession = async () => {
