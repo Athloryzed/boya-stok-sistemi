@@ -1189,6 +1189,143 @@ async def get_paint_movements(paint_id: Optional[str] = None, limit: int = 100):
     movements = await db.paint_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return movements
 
+# Yeni Boya Takip Sistemi - Makineye Ver/Geri Al
+
+@api_router.post("/paints/give-to-machine")
+async def give_paint_to_machine(data: dict = Body(...)):
+    """Makineye boya ver - tartıdan okunan değeri gir"""
+    paint_id = data.get("paint_id")
+    machine_id = data.get("machine_id")
+    machine_name = data.get("machine_name")
+    given_amount_kg = float(data.get("amount_kg", 0))
+    
+    if given_amount_kg <= 0:
+        raise HTTPException(status_code=400, detail="Geçerli bir miktar girin")
+    
+    # Boya kontrol
+    paint = await db.paints.find_one({"id": paint_id}, {"_id": 0})
+    if not paint:
+        raise HTTPException(status_code=404, detail="Boya bulunamadı")
+    
+    # Stok kontrol
+    current_stock = paint.get("stock_kg", 0)
+    if current_stock < given_amount_kg:
+        raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {current_stock} kg")
+    
+    # Aktif boya kaydı oluştur
+    active_paint = ActivePaintToMachine(
+        paint_id=paint_id,
+        paint_name=paint["name"],
+        machine_id=machine_id,
+        machine_name=machine_name,
+        given_amount_kg=given_amount_kg
+    )
+    await db.active_paints_to_machine.insert_one(active_paint.model_dump())
+    
+    # Stoktan düş
+    new_stock = current_stock - given_amount_kg
+    await db.paints.update_one({"id": paint_id}, {"$set": {"stock_kg": new_stock}})
+    
+    # Hareket kaydı
+    movement = PaintMovement(
+        paint_id=paint_id,
+        paint_name=paint["name"],
+        movement_type="to_machine",
+        amount_kg=given_amount_kg,
+        machine_id=machine_id,
+        machine_name=machine_name,
+        note=f"Makineye verildi: {given_amount_kg} kg"
+    )
+    await db.paint_movements.insert_one(movement.model_dump())
+    
+    return {
+        "message": f"{paint['name']} - {given_amount_kg} kg {machine_name} makinesine verildi",
+        "active_paint_id": active_paint.id,
+        "new_stock": new_stock
+    }
+
+@api_router.get("/paints/active-on-machines")
+async def get_active_paints_on_machines():
+    """Makinelerde aktif (geri alınmamış) boyaları listele"""
+    active_paints = await db.active_paints_to_machine.find(
+        {"returned": False},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return active_paints
+
+@api_router.post("/paints/return-from-machine")
+async def return_paint_from_machine(data: dict = Body(...)):
+    """Makineden boya geri al - tartıdan okunan değeri gir, sistem farkı hesaplar"""
+    active_paint_id = data.get("active_paint_id")
+    returned_amount_kg = float(data.get("returned_amount_kg", 0))
+    
+    if returned_amount_kg < 0:
+        raise HTTPException(status_code=400, detail="Geçersiz miktar")
+    
+    # Aktif boya kaydını bul
+    active_paint = await db.active_paints_to_machine.find_one(
+        {"id": active_paint_id, "returned": False},
+        {"_id": 0}
+    )
+    if not active_paint:
+        raise HTTPException(status_code=404, detail="Aktif boya kaydı bulunamadı")
+    
+    given_amount = active_paint["given_amount_kg"]
+    used_amount = given_amount - returned_amount_kg
+    
+    if used_amount < 0:
+        raise HTTPException(status_code=400, detail="Geri alınan miktar verilen miktardan fazla olamaz")
+    
+    # Aktif kaydı güncelle
+    await db.active_paints_to_machine.update_one(
+        {"id": active_paint_id},
+        {"$set": {
+            "returned": True,
+            "returned_amount_kg": returned_amount_kg,
+            "used_amount_kg": used_amount,
+            "returned_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Geri alınan miktarı stoka ekle
+    paint = await db.paints.find_one({"id": active_paint["paint_id"]}, {"_id": 0})
+    if paint:
+        new_stock = paint.get("stock_kg", 0) + returned_amount_kg
+        await db.paints.update_one({"id": active_paint["paint_id"]}, {"$set": {"stock_kg": new_stock}})
+    
+    # Hareket kaydı - Geri alındı
+    movement_return = PaintMovement(
+        paint_id=active_paint["paint_id"],
+        paint_name=active_paint["paint_name"],
+        movement_type="from_machine",
+        amount_kg=returned_amount_kg,
+        machine_id=active_paint["machine_id"],
+        machine_name=active_paint["machine_name"],
+        note=f"Makineden geri alındı: {returned_amount_kg} kg"
+    )
+    await db.paint_movements.insert_one(movement_return.model_dump())
+    
+    # Hareket kaydı - Kullanılan
+    if used_amount > 0:
+        movement_used = PaintMovement(
+            paint_id=active_paint["paint_id"],
+            paint_name=active_paint["paint_name"],
+            movement_type="used",
+            amount_kg=used_amount,
+            machine_id=active_paint["machine_id"],
+            machine_name=active_paint["machine_name"],
+            note=f"Makine kullanımı: {used_amount} kg (Verilen: {given_amount} kg, Kalan: {returned_amount_kg} kg)"
+        )
+        await db.paint_movements.insert_one(movement_used.model_dump())
+    
+    return {
+        "message": f"{active_paint['paint_name']} - {active_paint['machine_name']} makinesinden geri alındı",
+        "given_amount": given_amount,
+        "returned_amount": returned_amount_kg,
+        "used_amount": used_amount,
+        "new_stock": paint.get("stock_kg", 0) + returned_amount_kg if paint else 0
+    }
+
 # ==================== KULLANICI YÖNETİMİ ====================
 
 @api_router.post("/users", response_model=User)
