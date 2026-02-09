@@ -863,18 +863,39 @@ async def get_daily_analytics():
         start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = start_of_day + timedelta(days=1)
         
+        # Tamamlanan işler
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
             {"_id": 0}
         ).to_list(1000)
         
-        total_koli = sum(job["completed_koli"] for job in jobs)
+        # Vardiya raporları
+        shift_reports = await db.shift_end_reports.find(
+            {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        total_koli = sum(job.get("completed_koli", job.get("koli_count", 0)) for job in jobs)
         machine_breakdown = {}
+        
         for job in jobs:
             machine = job["machine_name"]
             if machine not in machine_breakdown:
                 machine_breakdown[machine] = 0
-            machine_breakdown[machine] += job["completed_koli"]
+            machine_breakdown[machine] += job.get("completed_koli", job.get("koli_count", 0))
+        
+        # Vardiya raporlarından kısmi üretim (tamamlanmamış işler için)
+        for report in shift_reports:
+            if report.get("job_id"):
+                job = await db.jobs.find_one({"id": report["job_id"]}, {"_id": 0})
+                if job and job.get("status") != "completed":
+                    machine = report.get("machine_name", "")
+                    koli = report.get("produced_koli", 0)
+                    if machine and koli > 0:
+                        if machine not in machine_breakdown:
+                            machine_breakdown[machine] = 0
+                        machine_breakdown[machine] += koli
+                        total_koli += koli
         
         daily_stats.append({
             "date": start_of_day.strftime("%d %b"),
