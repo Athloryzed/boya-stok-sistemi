@@ -631,7 +631,7 @@ async def reorder_job(job_id: str, data: dict = Body(...)):
 @api_router.put("/jobs/reorder-batch")
 async def reorder_jobs_batch(data: dict = Body(...)):
     """Birden fazla işin sırasını değiştir"""
-    job_orders = data.get("job_orders", [])  # [{"job_id": "xxx", "order": 1}, ...]
+    job_orders = data.get("jobs", [])  # [{"job_id": "xxx", "order": 1}, ...]
     
     for item in job_orders:
         await db.jobs.update_one(
@@ -640,7 +640,245 @@ async def reorder_jobs_batch(data: dict = Body(...)):
         )
     return {"success": True}
 
-# Vardiya Sonu Raporu
+# ==================== YENİ VARDİYA SONU AKIŞI ====================
+
+@api_router.post("/shifts/request-end")
+async def request_shift_end():
+    """Vardiya sonu bildirimi gönder - tüm aktif operatörlere"""
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    if not active_shift:
+        raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
+    
+    # Vardiyayı "pending_reports" durumuna al
+    await db.shifts.update_one(
+        {"id": active_shift["id"]},
+        {"$set": {"status": "pending_reports", "pending_approval": True}}
+    )
+    
+    # Aktif işleri olan makineleri bul
+    active_jobs = await db.jobs.find({"status": "in_progress"}, {"_id": 0}).to_list(100)
+    
+    # Her aktif iş için operatöre bildirim gönder (WebSocket üzerinden)
+    notifications_sent = []
+    for job in active_jobs:
+        notification = {
+            "type": "shift_end_request",
+            "shift_id": active_shift["id"],
+            "job_id": job["id"],
+            "job_name": job["name"],
+            "machine_id": job["machine_id"],
+            "machine_name": job["machine_name"],
+            "target_koli": job["koli_count"],
+            "operator_name": job.get("operator_name", ""),
+            "message": "Vardiya bitti! Lütfen işinizi tamamlayın veya üretim bilgilerinizi girin."
+        }
+        notifications_sent.append(notification)
+        
+        # WebSocket üzerinden bildirim gönder
+        await manager.broadcast(json.dumps({
+            "type": "shift_end_request",
+            "data": notification
+        }))
+    
+    return {
+        "message": "Vardiya sonu bildirimi gönderildi",
+        "shift_id": active_shift["id"],
+        "notifications_sent": len(notifications_sent),
+        "active_jobs": notifications_sent
+    }
+
+@api_router.post("/shifts/operator-report")
+async def submit_operator_report(data: dict = Body(...)):
+    """Operatörün vardiya sonu raporu - onay için gönder"""
+    shift_id = data.get("shift_id")
+    operator_id = data.get("operator_id", "")
+    operator_name = data.get("operator_name", "")
+    machine_id = data.get("machine_id")
+    machine_name = data.get("machine_name", "")
+    job_id = data.get("job_id")
+    job_name = data.get("job_name", "")
+    target_koli = data.get("target_koli", 0)
+    produced_koli = data.get("produced_koli", 0)
+    defect_kg = float(data.get("defect_kg", 0))
+    is_completed = data.get("is_completed", False)
+    
+    # Rapor oluştur
+    report = ShiftEndOperatorReport(
+        shift_id=shift_id,
+        operator_id=operator_id,
+        operator_name=operator_name,
+        machine_id=machine_id,
+        machine_name=machine_name,
+        job_id=job_id,
+        job_name=job_name,
+        target_koli=target_koli,
+        produced_koli=produced_koli,
+        defect_kg=defect_kg,
+        is_completed=is_completed,
+        status="pending"
+    )
+    
+    await db.shift_operator_reports.insert_one(report.model_dump())
+    
+    # WebSocket ile yönetime bildir
+    await manager.broadcast(json.dumps({
+        "type": "new_operator_report",
+        "data": {
+            "report_id": report.id,
+            "operator_name": operator_name,
+            "machine_name": machine_name,
+            "job_name": job_name
+        }
+    }))
+    
+    return {"message": "Rapor gönderildi, onay bekleniyor", "report_id": report.id}
+
+@api_router.get("/shifts/pending-reports")
+async def get_pending_reports():
+    """Onay bekleyen operatör raporlarını listele"""
+    reports = await db.shift_operator_reports.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return reports
+
+@api_router.post("/shifts/approve-report/{report_id}")
+async def approve_operator_report(report_id: str, data: dict = Body(None)):
+    """Operatör raporunu onayla"""
+    approved_by = data.get("approved_by", "Yönetim") if data else "Yönetim"
+    
+    report = await db.shift_operator_reports.find_one({"id": report_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Rapor bulunamadı")
+    
+    # Raporu onayla
+    await db.shift_operator_reports.update_one(
+        {"id": report_id},
+        {"$set": {
+            "status": "approved",
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "approved_by": approved_by
+        }}
+    )
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # İş tamamlandıysa
+    if report.get("is_completed"):
+        job_id = report.get("job_id")
+        if job_id:
+            job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+            if job:
+                completed_koli = report.get("target_koli", job.get("koli_count", 0))
+                await db.jobs.update_one(
+                    {"id": job_id},
+                    {"$set": {
+                        "status": "completed",
+                        "completed_at": datetime.now(timezone.utc).isoformat(),
+                        "completed_koli": completed_koli
+                    }}
+                )
+                await db.machines.update_one(
+                    {"id": report["machine_id"]},
+                    {"$set": {"status": "idle", "current_job_id": None}}
+                )
+                
+                # WhatsApp bildirimi
+                try:
+                    message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {report.get('operator_name', '-')}"
+                    await send_whatsapp_notification(message)
+                except Exception as e:
+                    logging.error(f"WhatsApp error: {e}")
+    else:
+        # Kısmi üretim - shift_end_reports'a kaydet
+        shift_report = ShiftEndReport(
+            shift_id=report["shift_id"],
+            machine_id=report["machine_id"],
+            machine_name=report["machine_name"],
+            job_id=report.get("job_id"),
+            job_name=report.get("job_name"),
+            target_koli=report.get("target_koli", 0),
+            produced_koli=report.get("produced_koli", 0),
+            remaining_koli=report.get("target_koli", 0) - report.get("produced_koli", 0),
+            defect_kg=report.get("defect_kg", 0)
+        )
+        await db.shift_end_reports.insert_one(shift_report.model_dump())
+        
+        # İşin kalan kolisini güncelle
+        if report.get("job_id"):
+            remaining = report.get("target_koli", 0) - report.get("produced_koli", 0)
+            await db.jobs.update_one(
+                {"id": report["job_id"]},
+                {"$set": {
+                    "remaining_koli": remaining if remaining > 0 else 0,
+                    "completed_koli": report.get("produced_koli", 0),
+                    "status": "pending"  # Tekrar beklemede
+                }}
+            )
+        
+        # Defo kaydı
+        if report.get("defect_kg", 0) > 0:
+            defect_log = DefectLog(
+                machine_id=report["machine_id"],
+                machine_name=report["machine_name"],
+                shift_id=report["shift_id"],
+                defect_kg=report["defect_kg"],
+                date=today
+            )
+            await db.defect_logs.insert_one(defect_log.model_dump())
+        
+        # Makineyi idle yap
+        await db.machines.update_one(
+            {"id": report["machine_id"]},
+            {"$set": {"status": "idle", "current_job_id": None}}
+        )
+    
+    return {"message": "Rapor onaylandı"}
+
+@api_router.post("/shifts/approve-all")
+async def approve_all_reports_and_end_shift():
+    """Tüm raporları onayla ve vardiyayı bitir"""
+    pending_reports = await db.shift_operator_reports.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    for report in pending_reports:
+        await approve_operator_report(report["id"], {"approved_by": "Yönetim (Toplu)"})
+    
+    # Vardiyayı bitir
+    active_shift = await db.shifts.find_one({"status": "pending_reports"}, {"_id": 0})
+    if active_shift:
+        await db.shifts.update_one(
+            {"id": active_shift["id"]},
+            {"$set": {
+                "status": "ended",
+                "ended_at": datetime.now(timezone.utc).isoformat(),
+                "pending_approval": False
+            }}
+        )
+    
+    return {"message": f"{len(pending_reports)} rapor onaylandı ve vardiya bitirildi"}
+
+@api_router.get("/shifts/status")
+async def get_shift_status():
+    """Mevcut vardiya durumunu getir"""
+    shift = await db.shifts.find_one(
+        {"status": {"$in": ["active", "pending_reports"]}},
+        {"_id": 0}
+    )
+    if not shift:
+        return {"status": "no_active_shift", "shift": None}
+    
+    pending_count = await db.shift_operator_reports.count_documents({"status": "pending", "shift_id": shift["id"]})
+    
+    return {
+        "status": shift["status"],
+        "shift": shift,
+        "pending_reports_count": pending_count
+    }
+
+# Vardiya Sonu Raporu (Eski - Geriye Uyumluluk)
 @api_router.post("/shifts/end-with-report")
 async def end_shift_with_report(data: dict = Body(...)):
     """Vardiya bitişinde makine bazlı üretim ve defo raporu"""
