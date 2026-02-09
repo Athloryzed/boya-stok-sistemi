@@ -205,8 +205,9 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     const labels = {
       "add": "Stok Eklendi",
       "remove": "Stok Çıkarıldı",
-      "to_machine": "Makineye Gönderildi",
-      "from_machine": "Makineden Alındı"
+      "to_machine": "Makineye Verildi",
+      "from_machine": "Makineden Alındı",
+      "used": "Kullanıldı"
     };
     return labels[type] || type;
   };
@@ -216,7 +217,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       "add": "text-green-500",
       "remove": "text-red-500",
       "to_machine": "text-blue-500",
-      "from_machine": "text-yellow-500"
+      "from_machine": "text-yellow-500",
+      "used": "text-purple-500"
     };
     return colors[type] || "text-gray-500";
   };
