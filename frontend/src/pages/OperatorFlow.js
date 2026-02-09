@@ -475,7 +475,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 Çıkış Yap
               </Button>
             )}
-            {notificationPermission !== 'granted' && (
+            {notificationPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window && (
               <Button 
                 variant="outline" 
                 size="icon" 
