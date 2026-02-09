@@ -216,7 +216,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const openChat = () => {
     setIsChatOpen(true);
     markMessagesAsRead();
-    setShowNotification(false);
+    setShowNotificationBanner(false);
   };
 
   const handleSendReply = async () => {
@@ -471,7 +471,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
         {/* Bildirim Pop-up */}
         <AnimatePresence>
-          {showNotification && lastNotificationMessage && (
+          {showNotificationBanner && lastNotificationMessage && (
             <motion.div
               initial={{ opacity: 0, y: -50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -491,7 +491,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      onClick={() => setShowNotification(false)}
+                      onClick={() => setShowNotificationBanner(false)}
                       className="text-white hover:bg-white/20 h-6 w-6 p-0"
                     >
                       <X className="h-4 w-4" />
