@@ -713,6 +713,16 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                                 {job.remaining_koli > 0 && job.remaining_koli < job.koli_count && (
                                   <span className="px-2 py-1 bg-warning/20 text-warning text-xs font-bold rounded">DEVAM</span>
                                 )}
+                                {job.image_url && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => { e.stopPropagation(); openImagePreview(job.image_url); }}
+                                    className="text-secondary border-secondary/50 h-7 px-2"
+                                  >
+                                    <Image className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                               {job.remaining_koli > 0 && job.remaining_koli < job.koli_count ? (
                                 <>
