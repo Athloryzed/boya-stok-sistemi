@@ -71,12 +71,13 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     try {
       await axios.post(`${API}/paints/init`);
       
-      const [paintsRes, machinesRes, movementsRes, analyticsRes, lowStockRes] = await Promise.all([
+      const [paintsRes, machinesRes, movementsRes, analyticsRes, lowStockRes, activePaintsRes] = await Promise.all([
         axios.get(`${API}/paints`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/paints/movements?limit=50`),
         axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`),
-        axios.get(`${API}/paints/low-stock`)
+        axios.get(`${API}/paints/low-stock`),
+        axios.get(`${API}/paints/active-on-machines`)
       ]);
       
       setPaints(paintsRes.data);
@@ -84,6 +85,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       setMovements(movementsRes.data);
       setAnalytics(analyticsRes.data);
       setLowStockPaints(lowStockRes.data.low_stock_paints || []);
+      setActivePaintsOnMachines(activePaintsRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
