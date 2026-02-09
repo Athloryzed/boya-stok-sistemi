@@ -175,9 +175,10 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const closeAllDialogs = () => {
     setIsAddStockOpen(false);
     setIsRemoveStockOpen(false);
-    setIsToMachineOpen(false);
-    setIsFromMachineOpen(false);
+    setIsGiveToMachineOpen(false);
+    setIsReturnFromMachineOpen(false);
     setSelectedPaint(null);
+    setSelectedActivePaint(null);
     setAmount("");
     setSelectedMachine("");
     setNote("");
@@ -191,8 +192,13 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     
     if (type === "add") setIsAddStockOpen(true);
     else if (type === "remove") setIsRemoveStockOpen(true);
-    else if (type === "to_machine") setIsToMachineOpen(true);
-    else if (type === "from_machine") setIsFromMachineOpen(true);
+    else if (type === "give_to_machine") setIsGiveToMachineOpen(true);
+  };
+
+  const openReturnDialog = (activePaint) => {
+    setSelectedActivePaint(activePaint);
+    setAmount("");
+    setIsReturnFromMachineOpen(true);
   };
 
   const getMovementTypeLabel = (type) => {
