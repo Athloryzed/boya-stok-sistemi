@@ -69,7 +69,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     notes: "",
     delivery_date: "",
     delivery_address: "",
-    delivery_phone: ""
+    delivery_phone: "",
+    image_url: ""
   });
 
   const [cloneFormData, setCloneFormData] = useState({
@@ -81,6 +82,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     notes: "",
     delivery_date: ""
   });
+
+  // Görsel yükleme state'leri
+  const fileInputRef = useRef(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [selectedJobImage, setSelectedJobImage] = useState(null);
 
   // Oturum kontrolü
   useEffect(() => {
