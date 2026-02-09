@@ -182,6 +182,51 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // Görsel yükleme fonksiyonu
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Dosya boyutu kontrolü (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Dosya boyutu 5MB'dan küçük olmalıdır");
+      return;
+    }
+    
+    setUploadingImage(true);
+    const uploadFormData = new FormData();
+    uploadFormData.append("file", file);
+    
+    try {
+      const response = await axios.post(`${API}/upload/image`, uploadFormData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      const imageUrl = response.data.url;
+      setFormData(prev => ({ ...prev, image_url: imageUrl }));
+      setPreviewImage(imageUrl);
+      toast.success("Görsel yüklendi!");
+    } catch (error) {
+      toast.error("Görsel yüklenemedi");
+      console.error("Upload error:", error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const clearImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+    setPreviewImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const openImagePreview = (imageUrl) => {
+    setSelectedJobImage(imageUrl);
+    setIsImagePreviewOpen(true);
+  };
+
   const handleAddVehicle = async () => {
     if (!newVehiclePlate.trim()) {
       toast.error("Plaka giriniz");
