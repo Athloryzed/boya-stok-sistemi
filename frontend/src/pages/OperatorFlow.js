@@ -48,6 +48,13 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [selectedJobImage, setSelectedJobImage] = useState(null);
 
+  // Vardiya Sonu state'leri
+  const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
+  const [shiftEndData, setShiftEndData] = useState(null);
+  const [shiftEndProducedKoli, setShiftEndProducedKoli] = useState("");
+  const [shiftEndDefectKg, setShiftEndDefectKg] = useState("");
+  const [shiftEndIsCompleted, setShiftEndIsCompleted] = useState(false);
+
   const openImagePreview = (imageUrl) => {
     setSelectedJobImage(imageUrl);
     setIsImagePreviewOpen(true);
