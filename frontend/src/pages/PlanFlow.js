@@ -1914,6 +1914,26 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
+        {/* Görsel Önizleme Dialog */}
+        <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+          <DialogContent className="bg-surface border-border max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading flex items-center gap-2">
+                <Image className="h-5 w-5" /> İş Görseli
+              </DialogTitle>
+            </DialogHeader>
+            {selectedJobImage && (
+              <div className="flex justify-center">
+                <img 
+                  src={`${API.replace('/api', '')}${selectedJobImage}`} 
+                  alt="İş Görseli" 
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
