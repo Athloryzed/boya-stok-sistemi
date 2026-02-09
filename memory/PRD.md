@@ -3,7 +3,30 @@
 ## Proje Özeti
 Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
 
-## Kullanıcı Yönetimi (24 Ocak 2025 Güncellemesi)
+## Son Güncelleme: 9 Şubat 2026
+
+### Yeni Özellikler ✅
+
+1. **Vardiya Sonu Onay Akışı** ✅ YENİ
+   - Yönetim panelinde "Onay Bekleyen" sekmesi eklendi
+   - Yönetici "Vardiya Bitir" dediğinde operatörlere WebSocket bildirimi gider
+   - Operatörler üretim miktarı ve defo bilgisi girer
+   - Yönetici "Onay Bekleyen" sekmesinden raporları onaylar
+   - "Tümünü Onayla & Vardiyayı Bitir" toplu onay butonu
+   - Bekleyen rapor sayısı badge ile gösterilir
+
+2. **Backend API'leri (Vardiya Onay)**
+   - `POST /shifts/request-end` - Operatörlere bildirim gönder
+   - `POST /shifts/operator-report` - Operatör raporu gönder
+   - `GET /shifts/pending-reports` - Bekleyen raporları listele
+   - `POST /shifts/approve-report/{id}` - Tek rapor onayla
+   - `POST /shifts/approve-all` - Tümünü onayla
+
+3. **WebSocket Endpoint'leri**
+   - `/ws/operator/{machine_id}` - Operatör bildirimleri
+   - `/ws/warehouse` - Depo bildirimleri
+
+## Kullanıcı Yönetimi
 
 ### Yönetim Paneli (Tek şifre ile giriş)
 - **Şifre**: `buse11993`
