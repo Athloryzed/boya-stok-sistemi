@@ -813,19 +813,40 @@ async def get_weekly_analytics():
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     week_ago_str = week_ago.isoformat()
     
-    jobs = await db.jobs.find(
+    # Tamamlanan işlerden üretim
+    completed_jobs = await db.jobs.find(
         {"status": "completed", "completed_at": {"$gte": week_ago_str}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Vardiya raporlarından kısmi üretim
+    shift_reports = await db.shift_end_reports.find(
+        {"created_at": {"$gte": week_ago_str}},
         {"_id": 0}
     ).to_list(1000)
     
     machine_stats = {}
     
-    for job in jobs:
+    # Tamamlanan işler
+    for job in completed_jobs:
         machine = job["machine_name"]
-        koli = job["completed_koli"]
+        koli = job.get("completed_koli", job.get("koli_count", 0))
         if machine not in machine_stats:
             machine_stats[machine] = 0
         machine_stats[machine] += koli
+    
+    # Vardiya raporlarından ekleme (sadece tamamlanmamış işler için)
+    for report in shift_reports:
+        # Eğer iş hala tamamlanmamışsa vardiya raporunu ekle
+        if report.get("job_id"):
+            job = await db.jobs.find_one({"id": report["job_id"]}, {"_id": 0})
+            if job and job.get("status") != "completed":
+                machine = report.get("machine_name", "")
+                koli = report.get("produced_koli", 0)
+                if machine and koli > 0:
+                    if machine not in machine_stats:
+                        machine_stats[machine] = 0
+                    machine_stats[machine] += koli
     
     return {
         "machine_stats": machine_stats
