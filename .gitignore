@@ -95,6 +95,4 @@ frontend/node_modules/.cache/default-development/11.pack
 frontend/node_modules/.cache/default-development/12.pack
 frontend/node_modules/.cache/default-development/15.pack
 -e 
-# Environment files
-*.env
-*.env.*
+# Environment files - DO NOT IGNORE for Emergent deployment
