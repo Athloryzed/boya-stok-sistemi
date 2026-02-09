@@ -387,20 +387,11 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => openDialog(paint, "to_machine")}
-                            className="text-blue-500 border-blue-500/50 hover:bg-blue-500/10 h-8"
-                            data-testid={`to-machine-${paint.name}`}
+                            onClick={() => openDialog(paint, "give_to_machine")}
+                            className="col-span-2 text-blue-500 border-blue-500/50 hover:bg-blue-500/10 h-8"
+                            data-testid={`give-to-machine-${paint.name}`}
                           >
-                            <Send className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => openDialog(paint, "from_machine")}
-                            className="text-yellow-500 border-yellow-500/50 hover:bg-yellow-500/10 h-8"
-                            data-testid={`from-machine-${paint.name}`}
-                          >
-                            <RotateCcw className="h-3 w-3" />
+                            <Send className="h-3 w-3 mr-1" /> Makineye Ver
                           </Button>
                         </div>
                       </CardContent>
@@ -409,6 +400,44 @@ const PaintFlow = ({ theme, toggleTheme }) => {
                 );
               })}
             </div>
+
+            {/* Makinelerde Aktif Boyalar - Geri Al Bölümü */}
+            {activePaintsOnMachines.length > 0 && (
+              <Card className="mt-6 bg-surface border-yellow-500/50 border-2">
+                <CardHeader>
+                  <CardTitle className="text-xl font-heading text-yellow-500 flex items-center gap-2">
+                    <RotateCcw className="h-5 w-5" />
+                    Makinelerde Aktif Boyalar (Geri Al)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {activePaintsOnMachines.map((ap) => (
+                      <Card key={ap.id} className="bg-background border-border">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-bold text-text-primary">{ap.paint_name}</p>
+                              <p className="text-sm text-text-secondary">{ap.machine_name}</p>
+                              <p className="text-lg font-bold text-blue-500">{ap.given_amount_kg} L verildi</p>
+                              <p className="text-xs text-text-secondary">{new Date(ap.created_at).toLocaleString("tr-TR")}</p>
+                            </div>
+                            <Button 
+                              size="sm"
+                              onClick={() => openReturnDialog(ap)}
+                              className="bg-yellow-500 text-black hover:bg-yellow-600"
+                              data-testid={`return-paint-${ap.id}`}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" /> Geri Al
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* GEÇMİŞ TAB */}
