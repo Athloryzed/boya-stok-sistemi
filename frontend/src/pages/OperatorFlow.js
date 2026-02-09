@@ -42,6 +42,15 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   // Sürükle-bırak state'leri
   const [draggedJob, setDraggedJob] = useState(null);
   const [dragOverJob, setDragOverJob] = useState(null);
+  
+  // Görsel önizleme state'leri
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [selectedJobImage, setSelectedJobImage] = useState(null);
+
+  const openImagePreview = (imageUrl) => {
+    setSelectedJobImage(imageUrl);
+    setIsImagePreviewOpen(true);
+  };
 
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
