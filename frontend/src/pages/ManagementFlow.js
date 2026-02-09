@@ -605,6 +605,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <TabsTrigger value="maintenance" data-testid="maintenance-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 Bakım
               </TabsTrigger>
+              <TabsTrigger value="pending-approval" data-testid="pending-approval-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-sm px-3">
+                <Clock className="h-4 w-4 mr-1" /> Onay Bekleyen
+                {pendingReports.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                    {pendingReports.length}
+                  </span>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
