@@ -463,6 +463,18 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 Çıkış Yap
               </Button>
             )}
+            {notificationPermission !== 'granted' && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleEnableNotifications} 
+                data-testid="enable-notifications"
+                className="border-border bg-surface hover:bg-surface-highlight"
+                title="Bildirimleri Aktif Et"
+              >
+                <BellRing className="h-5 w-5 text-warning" />
+              </Button>
+            )}
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
