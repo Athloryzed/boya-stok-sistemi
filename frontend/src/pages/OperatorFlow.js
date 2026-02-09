@@ -120,7 +120,16 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       const newMessage = messages[messages.length - 1];
       if (!newMessage.is_read) {
         setLastNotificationMessage(newMessage);
-        setShowNotification(true);
+        setShowNotificationBanner(true);
+        
+        // Tarayıcı push bildirimi gönder
+        if (notificationPermission === 'granted') {
+          showNotification(
+            `Yeni Mesaj - ${newMessage.sender_name || 'Yönetim'}`,
+            newMessage.message,
+            { tag: `message-${newMessage.id}` }
+          );
+        }
         
         // Ses çal (opsiyonel)
         try {
@@ -132,11 +141,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         }
         
         // 5 saniye sonra bildirimi kapat
-        setTimeout(() => setShowNotification(false), 5000);
+        setTimeout(() => setShowNotificationBanner(false), 5000);
       }
     }
     prevMessagesLengthRef.current = messages.length;
-  }, [messages]);
+  }, [messages, notificationPermission]);
 
   useEffect(() => {
     // Chat açıkken en alta scroll
