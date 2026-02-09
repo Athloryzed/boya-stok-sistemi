@@ -529,10 +529,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         )}
 
         <Tabs defaultValue="machines" className="space-y-6">
-          {/* Mobile: 2-row grid layout, Desktop: horizontal scroll */}
+          {/* Mobile: 3-row grid layout, Desktop: horizontal scroll */}
           <div className="block md:hidden">
-            <div className="grid grid-cols-4 gap-1">
-              <TabsList className="bg-surface border-border col-span-4 grid grid-cols-4 h-auto p-1">
+            <div className="grid grid-cols-3 gap-1">
+              <TabsList className="bg-surface border-border col-span-3 grid grid-cols-3 h-auto p-1 gap-1">
                 <TabsTrigger value="machines" data-testid="machines-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Makine
                 </TabsTrigger>
