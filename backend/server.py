@@ -186,12 +186,27 @@ class PaintMovement(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     paint_id: str
     paint_name: str
-    movement_type: str  # "add", "remove", "to_machine", "from_machine"
+    movement_type: str  # "add", "remove", "to_machine", "from_machine", "used"
     amount_kg: float
     machine_id: Optional[str] = None
     machine_name: Optional[str] = None
     note: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# Makineye Verilen Aktif Boya Takibi
+class ActivePaintToMachine(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    paint_id: str
+    paint_name: str
+    machine_id: str
+    machine_name: str
+    given_amount_kg: float  # Verilen miktar
+    returned: bool = False  # Geri alındı mı?
+    returned_amount_kg: float = 0.0  # Geri alınan miktar
+    used_amount_kg: float = 0.0  # Kullanılan (fark)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    returned_at: Optional[str] = None
 
 # Makine Mesaj Modeli
 class MachineMessage(BaseModel):
