@@ -104,7 +104,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/users/drivers/locations`),
         axios.get(`${API}/defects/analytics/weekly`),
         axios.get(`${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`),
-        axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`)
+        axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`),
+        axios.get(`${API}/shifts/pending-reports`),
+        axios.get(`${API}/shifts/status`)
       ]);
       setCurrentShift(shiftRes.data);
       const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
@@ -128,6 +130,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setDefectWeeklyAnalytics(defectWeeklyRes.data);
       setDefectMonthlyAnalytics(defectMonthlyRes.data);
       setDefectDailyAnalytics(defectDailyRes.data);
+      setPendingReports(pendingRes.data);
+      setShiftStatus(shiftStatusRes.data);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
