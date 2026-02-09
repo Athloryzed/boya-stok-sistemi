@@ -721,7 +721,7 @@ async def submit_operator_report(data: dict = Body(...)):
     await db.shift_operator_reports.insert_one(report.model_dump())
     
     # WebSocket ile yönetime bildir
-    await manager.broadcast(json.dumps({
+    await manager.broadcast({
         "type": "new_operator_report",
         "data": {
             "report_id": report.id,
@@ -729,7 +729,7 @@ async def submit_operator_report(data: dict = Body(...)):
             "machine_name": machine_name,
             "job_name": job_name
         }
-    }))
+    })
     
     return {"message": "Rapor gönderildi, onay bekleniyor", "report_id": report.id}
 
