@@ -1065,17 +1065,23 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
             machine_stats[machine] = 0
         machine_stats[machine] += koli
     
-    # Vardiya raporlarından kısmi üretim
-    for report in shift_reports:
-        if report.get("job_id"):
-            job = await db.jobs.find_one({"id": report["job_id"]}, {"_id": 0})
-            if job and job.get("status") != "completed":
-                machine = report.get("machine_name", "")
-                koli = report.get("produced_koli", 0)
-                if machine and koli > 0:
-                    if machine not in machine_stats:
-                        machine_stats[machine] = 0
-                    machine_stats[machine] += koli
+    # Vardiya raporlarından kısmi üretim - Batch query
+    job_ids = [r["job_id"] for r in shift_reports if r.get("job_id")]
+    if job_ids:
+        jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
+        jobs_dict = {j["id"]: j for j in jobs_list}
+        
+        for report in shift_reports:
+            job_id = report.get("job_id")
+            if job_id:
+                job = jobs_dict.get(job_id)
+                if job and job.get("status") != "completed":
+                    machine = report.get("machine_name", "")
+                    koli = report.get("produced_koli", 0)
+                    if machine and koli > 0:
+                        if machine not in machine_stats:
+                            machine_stats[machine] = 0
+                        machine_stats[machine] += koli
     
     return {
         "machine_stats": machine_stats
