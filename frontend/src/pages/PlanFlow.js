@@ -904,8 +904,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           <h2 className="text-xl md:text-2xl font-heading font-bold text-text-primary mb-4">Makine Durumları</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             {machines.map((machine) => {
-              const currentJob = jobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
-              const pendingCount = jobs.filter(j => j.machine_id === machine.id && j.status === "pending").length;
+              const currentJob = allJobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
+              const pendingCount = allJobs.filter(j => j.machine_id === machine.id && j.status === "pending").length;
               
               return (
                 <Card
