@@ -68,6 +68,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   
   // Vardiya Sonu & Defo state'leri
   const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
+  const [isShiftEndChoiceDialogOpen, setIsShiftEndChoiceDialogOpen] = useState(false);
   const [shiftEndReports, setShiftEndReports] = useState([]);
   const [defectWeeklyAnalytics, setDefectWeeklyAnalytics] = useState(null);
   const [defectMonthlyAnalytics, setDefectMonthlyAnalytics] = useState(null);
