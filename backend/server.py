@@ -50,10 +50,18 @@ async def send_whatsapp_notification(message: str):
         if not whatsapp_to.startswith('whatsapp:'):
             whatsapp_to = f"whatsapp:{whatsapp_to}"
         
-        msg = twilio_client.messages.create(
-            body=message,
-            from_=whatsapp_from,
-            to=whatsapp_to
+        logging.info(f"Sending WhatsApp to {whatsapp_to}")
+        
+        # Twilio sync call'ı thread'de çalıştır
+        import asyncio
+        loop = asyncio.get_event_loop()
+        msg = await loop.run_in_executor(
+            None,
+            lambda: twilio_client.messages.create(
+                body=message,
+                from_=whatsapp_from,
+                to=whatsapp_to
+            )
         )
         logging.info(f"WhatsApp message sent: {msg.sid}")
         return True
