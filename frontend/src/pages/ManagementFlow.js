@@ -298,8 +298,22 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     // Aktif iş var mı kontrol et
     const activeJobs = jobs.filter(j => j.status === "in_progress");
     if (activeJobs.length > 0) {
-      // Yeni akış: operatörlere bildirim gönder
-      handleRequestShiftEnd();
+      // Seçenek dialog'unu aç: Operatörlere bildir veya kendim doldur
+      // Önce rapor formunu hazırla
+      const reports = machines.map(m => {
+        const activeJob = activeJobs.find(j => j.machine_id === m.id);
+        return {
+          machine_id: m.id,
+          machine_name: m.name,
+          job_id: activeJob?.id || null,
+          job_name: activeJob?.name || null,
+          target_koli: activeJob?.koli_count || 0,
+          produced_koli: "",
+          defect_kg: ""
+        };
+      }).filter(r => r.job_id); // Sadece aktif işi olan makineler
+      setShiftEndReports(reports);
+      setIsShiftEndChoiceDialogOpen(true);
     } else {
       try {
         await axios.post(`${API}/shifts/end`);
@@ -309,6 +323,18 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         toast.error(error.response?.data?.detail || "Vardiya bitirilemedi");
       }
     }
+  };
+  
+  // Seçenek: Operatörlere bildir
+  const handleChoiceNotifyOperators = () => {
+    setIsShiftEndChoiceDialogOpen(false);
+    handleRequestShiftEnd();
+  };
+  
+  // Seçenek: Kendim doldurayım
+  const handleChoiceFillMyself = () => {
+    setIsShiftEndChoiceDialogOpen(false);
+    setIsShiftEndDialogOpen(true);
   };
 
   const handleToggleMaintenance = async (machine, maintenance) => {
