@@ -109,6 +109,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     if (authenticated) {
       fetchMachines();
       fetchJobs();
+      fetchAllJobs(); // Makine durumları için tüm işler
       fetchCompletedJobs();
       fetchIncomingMessages();
       fetchVehicles();
@@ -116,10 +117,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       fetchShipments();
       fetchPallets();
       
-      // Mesajları periyodik olarak kontrol et
+      // Mesajları ve işleri periyodik olarak kontrol et
       const interval = setInterval(() => {
         fetchIncomingMessages();
         fetchShipments();
+        fetchAllJobs(); // Makine durumlarını güncelle
       }, 10000);
       return () => clearInterval(interval);
     }
