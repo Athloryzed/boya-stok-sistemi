@@ -1891,6 +1891,20 @@ async def send_message(data: dict = Body(...)):
     )
     
     await db.machine_messages.insert_one(message.model_dump())
+    
+    # WebSocket ile operatöre bildirim gönder
+    await manager.broadcast({
+        "type": "new_message",
+        "data": {
+            "machine_id": machine_id,
+            "machine_name": machine_name,
+            "sender_role": sender_role,
+            "sender_name": sender_name,
+            "message": message_text,
+            "created_at": message.created_at
+        }
+    })
+    
     return message
 
 @api_router.get("/messages/{machine_id}")
