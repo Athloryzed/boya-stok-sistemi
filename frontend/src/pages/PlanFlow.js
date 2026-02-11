@@ -1575,8 +1575,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             {selectedMachineDetail && (
               <div className="space-y-6">
                 {(() => {
-                  const currentJob = jobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress");
-                  const pendingJobs = jobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending");
+                  const currentJob = allJobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress");
+                  const pendingJobs = allJobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending");
                   
                   return (
                     <>
