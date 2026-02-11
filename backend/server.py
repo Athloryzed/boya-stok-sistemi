@@ -18,6 +18,13 @@ import json
 import base64
 from twilio.rest import Client as TwilioClient
 
+# Logging'i erken yapılandır
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -26,11 +33,15 @@ twilio_client = None
 try:
     twilio_sid = os.environ.get('TWILIO_ACCOUNT_SID')
     twilio_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    logger.info(f"Twilio SID: {twilio_sid[:10] if twilio_sid else 'NOT SET'}...")
+    logger.info(f"Twilio Token: {twilio_token[:10] if twilio_token else 'NOT SET'}...")
     if twilio_sid and twilio_token:
         twilio_client = TwilioClient(twilio_sid, twilio_token)
-        logging.info("Twilio client initialized successfully")
+        logger.info("Twilio client initialized successfully!")
+    else:
+        logger.warning("Twilio credentials missing - WhatsApp disabled")
 except Exception as e:
-    logging.warning(f"Twilio initialization failed: {e}")
+    logger.warning(f"Twilio initialization failed: {e}")
 
 async def send_whatsapp_notification(message: str):
     """WhatsApp bildirimi gönder"""
