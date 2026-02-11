@@ -929,8 +929,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     ) : currentJob ? (
                       <div className="space-y-0.5 md:space-y-1">
                         <p className="text-xs md:text-sm text-success font-semibold">ÇALIŞIYOR</p>
-                        <p className="text-xs text-text-secondary truncate hidden md:block">{currentJob.name}</p>
-                        <p className="text-xs text-text-secondary truncate hidden md:block">Op: {currentJob.operator_name}</p>
+                        <p className="text-xs text-text-secondary truncate">{currentJob.name}</p>
+                        <p className="text-xs text-text-secondary truncate">Op: {currentJob.operator_name}</p>
                       </div>
                     ) : (
                       <p className="text-xs md:text-sm text-text-secondary">Boşta</p>
