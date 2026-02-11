@@ -188,6 +188,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Vardiya sonu bildirimi
           if (data.type === 'shift_end_request') {
             const notification = data.data;
             // Bu makineye ait bildirim mi kontrol et
@@ -208,6 +210,27 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               }
               
               toast.warning("Vardiya sonu bildirimi geldi!", { duration: 10000 });
+            }
+          }
+          
+          // Yeni mesaj bildirimi
+          if (data.type === 'new_message') {
+            const msgData = data.data;
+            // Bu makineye ait mesaj mı kontrol et
+            if (msgData.machine_id === selectedMachine.id) {
+              // Mesajları yenile
+              fetchMessages();
+              
+              // Push bildirimi
+              if (notificationPermission === 'granted') {
+                showNotification(
+                  `💬 Yeni Mesaj - ${msgData.sender_name}`,
+                  msgData.message,
+                  { tag: 'new-message' }
+                );
+              }
+              
+              toast.info(`Yeni mesaj: ${msgData.message.substring(0, 50)}...`, { duration: 5000 });
             }
           }
         } catch (e) {
