@@ -1635,6 +1635,62 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
+        {/* Vardiya Sonu Seçenek Dialog */}
+        <Dialog open={isShiftEndChoiceDialogOpen} onOpenChange={setIsShiftEndChoiceDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading flex items-center gap-2">
+                <PowerOff className="h-5 w-5 text-error" /> Vardiya Bitirme
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-text-secondary">
+                Aktif işler var. Vardiya sonu raporlarını nasıl tamamlamak istersiniz?
+              </p>
+              
+              <div className="space-y-3">
+                <Card 
+                  className="border-border hover:border-info cursor-pointer transition-colors"
+                  onClick={handleChoiceNotifyOperators}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-info" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-text-primary">Operatörlere Bildir</h4>
+                      <p className="text-sm text-text-secondary">Operatörler kendi üretim bilgilerini girsin</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card 
+                  className="border-border hover:border-warning cursor-pointer transition-colors"
+                  onClick={handleChoiceFillMyself}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+                      <Edit className="h-5 w-5 text-warning" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-text-primary">Kendim Doldurayım</h4>
+                      <p className="text-sm text-text-secondary">Tüm raporları buradan gir</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setIsShiftEndChoiceDialogOpen(false)} 
+                className="w-full mt-2"
+              >
+                İptal
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Vardiya Sonu Raporu Dialog */}
         <Dialog open={isShiftEndDialogOpen} onOpenChange={setIsShiftEndDialogOpen}>
           <DialogContent className="bg-surface border-border max-w-3xl max-h-[80vh] overflow-y-auto">
