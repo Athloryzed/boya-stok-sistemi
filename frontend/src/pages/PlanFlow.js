@@ -22,6 +22,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [userData, setUserData] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [allJobs, setAllJobs] = useState([]); // Tüm işler (makine durumları için)
   const [completedJobs, setCompletedJobs] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
