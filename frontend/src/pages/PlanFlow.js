@@ -363,6 +363,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // Tüm işleri çek (makine durumları için - pending + in_progress)
+  const fetchAllJobs = async () => {
+    try {
+      const response = await axios.get(`${API}/jobs`);
+      setAllJobs(response.data.filter(j => j.status === "pending" || j.status === "in_progress"));
+    } catch (error) {
+      console.error("Tüm işler yüklenemedi");
+    }
+  };
+
   const fetchCompletedJobs = async () => {
     try {
       const params = new URLSearchParams();
