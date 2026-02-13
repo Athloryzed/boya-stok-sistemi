@@ -54,6 +54,12 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [shiftEndProducedKoli, setShiftEndProducedKoli] = useState("");
   const [shiftEndDefectKg, setShiftEndDefectKg] = useState("");
   const [shiftEndIsCompleted, setShiftEndIsCompleted] = useState(false);
+  
+  // İş durdurma state'leri
+  const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
+  const [jobToPause, setJobToPause] = useState(null);
+  const [pauseReason, setPauseReason] = useState("");
+  const [pauseProducedKoli, setPauseProducedKoli] = useState("");
 
   const openImagePreview = (imageUrl) => {
     setSelectedJobImage(imageUrl);
