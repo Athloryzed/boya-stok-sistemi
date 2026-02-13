@@ -3,6 +3,13 @@
   "appName": "Buse Kagit",
   "webDir": "build",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://shift-end-manager.preview.emergentagent.com",
+    "cleartext": true
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
   }
 }
