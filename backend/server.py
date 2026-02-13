@@ -170,7 +170,7 @@ class Job(BaseModel):
     delivery_address: Optional[str] = None
     delivery_phone: Optional[str] = None
     image_url: Optional[str] = None  # İş görseli URL'i
-    status: str = "pending"
+    status: str = "pending"  # pending, in_progress, paused, completed
     operator_name: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
@@ -178,6 +178,10 @@ class Job(BaseModel):
     remaining_koli: int = 0  # Kalan koli (vardiya bitişinde)
     order: int = 0  # Sıra numarası (düşük = öncelikli)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Durdurma bilgileri
+    paused_at: Optional[str] = None
+    pause_reason: Optional[str] = None
+    produced_before_pause: int = 0  # Durdurmadan önce üretilen miktar
 
 class Shift(BaseModel):
     model_config = ConfigDict(extra="ignore")
