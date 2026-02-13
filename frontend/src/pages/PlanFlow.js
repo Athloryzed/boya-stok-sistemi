@@ -369,7 +369,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const fetchAllJobs = async () => {
     try {
       const response = await axios.get(`${API}/jobs`);
-      setAllJobs(response.data.filter(j => j.status === "pending" || j.status === "in_progress"));
+      setAllJobs(response.data.filter(j => j.status === "pending" || j.status === "in_progress" || j.status === "paused"));
     } catch (error) {
       console.error("Tüm işler yüklenemedi");
     }
