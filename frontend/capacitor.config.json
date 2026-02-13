@@ -1,0 +1,8 @@
+{
+  "appId": "com.busekagit.app",
+  "appName": "Buse Kagit",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https"
+  }
+}
