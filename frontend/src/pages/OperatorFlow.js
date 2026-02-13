@@ -448,6 +448,50 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // İş Durdurma
+  const openPauseDialog = (job) => {
+    setJobToPause(job);
+    setPauseReason("");
+    setPauseProducedKoli("");
+    setIsPauseDialogOpen(true);
+  };
+
+  const handlePauseJob = async () => {
+    if (!jobToPause) return;
+    
+    setLoading(true);
+    try {
+      await axios.put(`${API}/jobs/${jobToPause.id}/pause`, {
+        pause_reason: pauseReason,
+        produced_koli: parseInt(pauseProducedKoli) || 0
+      });
+      toast.success("İş durduruldu!");
+      setIsPauseDialogOpen(false);
+      setJobToPause(null);
+      fetchJobs();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İş durdurulamadı");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Durdurulan İşe Devam Et
+  const handleResumeJob = async (job) => {
+    setLoading(true);
+    try {
+      await axios.put(`${API}/jobs/${job.id}/resume`, {
+        operator_name: operatorName
+      });
+      toast.success("İşe devam edildi!");
+      fetchJobs();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İşe devam edilemedi");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getFormatOptions = (machineName) => {
     if (machineName === "24x24" || machineName === "33x33 (Büyük)") return ["all", "1/4", "1/8"];
     else if (machineName === "33x33 ICM") return ["all", "33x33", "33x24"];
