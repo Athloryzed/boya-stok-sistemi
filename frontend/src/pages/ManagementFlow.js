@@ -1832,6 +1832,64 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* İş Durdurma Dialog */}
+        <Dialog open={isPauseDialogOpen} onOpenChange={setIsPauseDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-heading flex items-center gap-2">
+                <Pause className="h-5 w-5 text-warning" /> İşi Durdur
+              </DialogTitle>
+            </DialogHeader>
+            {jobToPause && (
+              <div className="space-y-4">
+                <div className="p-4 bg-surface-highlight rounded-lg">
+                  <p className="text-text-secondary">İş: <span className="text-text-primary font-bold">{jobToPause.name}</span></p>
+                  <p className="text-text-secondary">Makine: <span className="text-text-primary">{jobToPause.machine_name}</span></p>
+                  <p className="text-text-secondary">Hedef: <span className="text-text-primary font-bold">{jobToPause.koli_count} koli</span></p>
+                </div>
+                
+                <div>
+                  <Label className="text-text-primary">Şu ana kadar üretilen koli (opsiyonel)</Label>
+                  <Input
+                    type="number"
+                    value={pauseProducedKoli}
+                    onChange={(e) => setPauseProducedKoli(e.target.value)}
+                    placeholder="0"
+                    className="bg-background border-border"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-text-primary">Durdurma Sebebi *</Label>
+                  <Input
+                    value={pauseReason}
+                    onChange={(e) => setPauseReason(e.target.value)}
+                    placeholder="Neden durduruluyor?"
+                    className="bg-background border-border"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsPauseDialogOpen(false)}
+                    className="flex-1"
+                  >
+                    İptal
+                  </Button>
+                  <Button 
+                    onClick={handlePauseJob}
+                    disabled={!pauseReason}
+                    className="flex-1 bg-warning text-black hover:bg-warning/90"
+                  >
+                    Durdur
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
