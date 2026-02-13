@@ -80,6 +80,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // Onay Bekleyen Raporlar
   const [pendingReports, setPendingReports] = useState([]);
   const [shiftStatus, setShiftStatus] = useState(null);
+  
+  // İş Durdurma
+  const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
+  const [jobToPause, setJobToPause] = useState(null);
+  const [pauseReason, setPauseReason] = useState("");
+  const [pauseProducedKoli, setPauseProducedKoli] = useState("");
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
