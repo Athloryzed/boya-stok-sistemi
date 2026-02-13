@@ -4,7 +4,7 @@
   "webDir": "build",
   "server": {
     "androidScheme": "https",
-    "url": "https://shift-end-manager.preview.emergentagent.com",
+    "url": "https://pause-resume-jobs.preview.emergentagent.com",
     "cleartext": true
   },
   "plugins": {

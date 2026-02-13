@@ -10,7 +10,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://shift-end-manager.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://pause-resume-jobs.preview.emergentagent.com').rstrip('/')
 
 class TestShiftApprovalWorkflow:
     """Test cases for shift-end approval workflow"""
