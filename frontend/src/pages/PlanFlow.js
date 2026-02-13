@@ -1262,6 +1262,36 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
           <TabsContent value="pending">
             <div className="space-y-4">
+              {/* Durdurulan İşler */}
+              {allJobs.filter(j => j.status === "paused").length > 0 && (
+                <Card className="bg-warning/10 border-warning border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-warning flex items-center gap-2">
+                      <Pause className="h-5 w-5" /> Durdurulan İşler ({allJobs.filter(j => j.status === "paused").length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {allJobs.filter(j => j.status === "paused").map(job => (
+                      <div key={job.id} className="flex justify-between items-center p-3 bg-background rounded-lg border border-border">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-text-primary">{job.name}</p>
+                            <span className="text-xs bg-surface px-2 py-0.5 rounded">{job.machine_name}</span>
+                          </div>
+                          <p className="text-sm text-text-secondary">Sebep: {job.pause_reason || "-"}</p>
+                          {job.produced_before_pause > 0 && (
+                            <p className="text-sm text-success">Üretilen: {job.produced_before_pause} / {job.koli_count} koli</p>
+                          )}
+                          <p className="text-xs text-text-secondary">
+                            Durdurulma: {job.paused_at ? new Date(job.paused_at).toLocaleString("tr-TR") : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
               {filteredJobs.length === 0 ? (
                 <Card className="bg-surface border-border">
                   <CardContent className="p-8 text-center">
