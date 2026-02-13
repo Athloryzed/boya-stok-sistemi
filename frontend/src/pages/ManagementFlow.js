@@ -343,6 +343,45 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     setIsShiftEndDialogOpen(true);
   };
 
+  // İş Durdurma
+  const openPauseDialog = (job) => {
+    setJobToPause(job);
+    setPauseReason("");
+    setPauseProducedKoli("");
+    setIsPauseDialogOpen(true);
+  };
+
+  const handlePauseJob = async () => {
+    if (!jobToPause || !pauseReason) {
+      toast.error("Durdurma sebebi gerekli");
+      return;
+    }
+    try {
+      await axios.put(`${API}/jobs/${jobToPause.id}/pause`, {
+        pause_reason: pauseReason,
+        produced_koli: parseInt(pauseProducedKoli) || 0
+      });
+      toast.success("İş durduruldu!");
+      setIsPauseDialogOpen(false);
+      setJobToPause(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İş durdurulamadı");
+    }
+  };
+
+  const handleResumeJob = async (job) => {
+    try {
+      await axios.put(`${API}/jobs/${job.id}/resume`, {
+        operator_name: job.operator_name
+      });
+      toast.success("İşe devam edildi!");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "İşe devam edilemedi");
+    }
+  };
+
   const handleToggleMaintenance = async (machine, maintenance) => {
     if (maintenance && !maintenanceReason.trim()) {
       toast.error("Lütfen bakım sebebi girin");
