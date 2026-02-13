@@ -871,10 +871,47 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       <p className="text-text-secondary">Renkler: {currentJobOnMachine.colors}</p>
                       {currentJobOnMachine.format && <p className="text-text-secondary">Format: {currentJobOnMachine.format}</p>}
                     </div>
-                    <Button onClick={() => handleCompleteJob(currentJobOnMachine)} disabled={loading} className="bg-success text-white hover:bg-success/90">
-                      <CheckCircle className="mr-2 h-4 w-4" /> Tamamla
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => openPauseDialog(currentJobOnMachine)} disabled={loading} variant="outline" className="border-warning text-warning hover:bg-warning/20">
+                        <Pause className="mr-2 h-4 w-4" /> Durdur
+                      </Button>
+                      <Button onClick={() => handleCompleteJob(currentJobOnMachine)} disabled={loading} className="bg-success text-white hover:bg-success/90">
+                        <CheckCircle className="mr-2 h-4 w-4" /> Tamamla
+                      </Button>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Durdurulan İşler */}
+            {jobs.filter(j => j.machine_id === selectedMachine.id && j.status === "paused").length > 0 && (
+              <Card className="bg-warning/10 border-warning border">
+                <CardHeader>
+                  <CardTitle className="text-warning flex items-center gap-2">
+                    <Pause className="h-5 w-5" /> DURDURULMUŞ İŞLER
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {jobs.filter(j => j.machine_id === selectedMachine.id && j.status === "paused").map(job => (
+                    <div key={job.id} className="flex justify-between items-center p-3 bg-background rounded-lg border border-border">
+                      <div>
+                        <p className="font-semibold text-text-primary">{job.name}</p>
+                        <p className="text-sm text-text-secondary">Sebep: {job.pause_reason || "-"}</p>
+                        {job.produced_before_pause > 0 && (
+                          <p className="text-sm text-text-secondary">Üretilen: {job.produced_before_pause} koli</p>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={() => handleResumeJob(job)} 
+                        disabled={loading || currentJobOnMachine}
+                        className="bg-info text-white hover:bg-info/90"
+                        size="sm"
+                      >
+                        <Play className="mr-1 h-3 w-3" /> Devam Et
+                      </Button>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
