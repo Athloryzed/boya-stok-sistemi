@@ -731,9 +731,41 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       )}
                       {currentJob && (
                         <div className="mb-3 p-3 bg-success/20 border border-success rounded-md">
-                          <p className="text-sm font-semibold text-text-primary">Aktif İş:</p>
-                          <p className="text-sm text-text-secondary">{currentJob.name}</p>
-                          <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm font-semibold text-text-primary">Aktif İş:</p>
+                              <p className="text-sm text-text-secondary">{currentJob.name}</p>
+                              <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); openPauseDialog(currentJob); }}
+                              className="border-warning text-warning hover:bg-warning/20 text-xs"
+                            >
+                              <Pause className="h-3 w-3 mr-1" /> Durdur
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {/* Durdurulmuş İşler */}
+                      {jobs.filter(j => j.machine_id === machine.id && j.status === "paused").length > 0 && (
+                        <div className="mb-3 p-3 bg-warning/20 border border-warning rounded-md">
+                          <p className="text-sm font-semibold text-warning mb-2">Durdurulmuş:</p>
+                          {jobs.filter(j => j.machine_id === machine.id && j.status === "paused").map(pj => (
+                            <div key={pj.id} className="flex justify-between items-center text-xs mb-1">
+                              <span className="text-text-secondary">{pj.name}</span>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={(e) => { e.stopPropagation(); handleResumeJob(pj); }}
+                                className="text-info hover:bg-info/20 text-xs h-6 px-2"
+                                disabled={!!currentJob}
+                              >
+                                <Play className="h-3 w-3 mr-1" /> Devam
+                              </Button>
+                            </div>
+                          ))}
                         </div>
                       )}
                       {upcomingJobs.length > 0 && (
