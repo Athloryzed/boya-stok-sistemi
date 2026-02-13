@@ -639,6 +639,93 @@ async def complete_job(job_id: str, data: dict = Body(None)):
     
     return {"message": "Job completed"}
 
+# İş Durdurma
+@api_router.put("/jobs/{job_id}/pause")
+async def pause_job(job_id: str, data: dict = Body(...)):
+    """İşi durdur ve sebep not et"""
+    pause_reason = data.get("pause_reason", "")
+    produced_koli = data.get("produced_koli", 0)  # Durdurmadan önce üretilen
+    
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    
+    if job["status"] != "in_progress":
+        raise HTTPException(status_code=400, detail="Sadece devam eden işler durdurulabilir")
+    
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$set": {
+            "status": "paused",
+            "paused_at": datetime.now(timezone.utc).isoformat(),
+            "pause_reason": pause_reason,
+            "produced_before_pause": produced_koli
+        }}
+    )
+    
+    # Makineyi boşalt
+    await db.machines.update_one(
+        {"id": job["machine_id"]},
+        {"$set": {"status": "idle", "current_job_id": None}}
+    )
+    
+    # WebSocket bildirimi
+    await manager.broadcast({
+        "type": "job_paused",
+        "data": {
+            "job_id": job_id,
+            "job_name": job["name"],
+            "machine_id": job["machine_id"],
+            "pause_reason": pause_reason
+        }
+    })
+    
+    return {"message": "İş durduruldu", "job_id": job_id}
+
+# Durdurulan İşe Devam Et
+@api_router.put("/jobs/{job_id}/resume")
+async def resume_job(job_id: str, data: dict = Body(...)):
+    """Durdurulan işe devam et"""
+    operator_name = data.get("operator_name", "")
+    
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    
+    if job["status"] != "paused":
+        raise HTTPException(status_code=400, detail="Sadece durdurulmuş işlere devam edilebilir")
+    
+    # Makinede başka aktif iş var mı kontrol et
+    active_on_machine = await db.jobs.find_one({
+        "machine_id": job["machine_id"],
+        "status": "in_progress"
+    })
+    if active_on_machine:
+        raise HTTPException(status_code=400, detail="Bu makinede zaten aktif bir iş var")
+    
+    await db.jobs.update_one(
+        {"id": job_id},
+        {"$set": {
+            "status": "in_progress",
+            "operator_name": operator_name or job.get("operator_name"),
+            "started_at": datetime.now(timezone.utc).isoformat()  # Yeni başlangıç zamanı
+        }}
+    )
+    
+    await db.machines.update_one(
+        {"id": job["machine_id"]},
+        {"$set": {"status": "working", "current_job_id": job_id}}
+    )
+    
+    return {"message": "İşe devam edildi", "job_id": job_id}
+
+# Durdurulan İşleri Listele
+@api_router.get("/jobs/paused")
+async def get_paused_jobs():
+    """Durdurulmuş işleri listele"""
+    paused = await db.jobs.find({"status": "paused"}, {"_id": 0}).to_list(100)
+    return paused
+
 # İş Sırası Değiştirme
 @api_router.put("/jobs/{job_id}/reorder")
 async def reorder_job(job_id: str, data: dict = Body(...)):
