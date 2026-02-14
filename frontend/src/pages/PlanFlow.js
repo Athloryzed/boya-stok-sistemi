@@ -106,6 +106,47 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   }, []);
 
+  // FCM Token kaydı ve bildirim dinleme
+  useEffect(() => {
+    const setupFCM = async () => {
+      if (authenticated && userData) {
+        try {
+          const token = await requestNotificationPermission();
+          if (token) {
+            await axios.post(`${API}/notifications/register-token`, {
+              token: token,
+              user_type: "plan",
+              user_id: userData.id
+            });
+            console.log("Plan FCM token registered");
+          }
+        } catch (error) {
+          console.error("FCM setup error:", error);
+        }
+      }
+    };
+    setupFCM();
+  }, [authenticated, userData]);
+
+  // FCM Foreground mesaj dinleyici
+  useEffect(() => {
+    if (authenticated) {
+      onMessageListener().then((payload) => {
+        if (payload) {
+          toast.success(payload.notification?.body || "Yeni bildirim", {
+            duration: 8000,
+            icon: "🔔"
+          });
+          // Verileri yenile
+          fetchJobs();
+          fetchAllJobs();
+          fetchCompletedJobs();
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated]);
+
   useEffect(() => {
     if (authenticated) {
       fetchMachines();
