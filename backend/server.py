@@ -575,6 +575,18 @@ async def get_maintenance_logs():
 async def create_job(job: Job):
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
+    
+    # FCM Push Bildirimi gönder (ilgili makinedeki operatörlere)
+    try:
+        await send_notification_to_operators(
+            machine_id=job.machine_id,
+            title=f"📋 Yeni İş Atandı",
+            body=f"{job.name} - {job.machine_name}\n📦 {job.koli_count} koli",
+            data={"type": "new_job", "job_id": job.id, "machine_id": job.machine_id}
+        )
+    except Exception as e:
+        logging.error(f"FCM notification error for new job: {e}")
+    
     return job
 
 @api_router.post("/machines/cleanup")
