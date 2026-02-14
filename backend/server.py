@@ -726,7 +726,24 @@ async def complete_job(job_id: str, data: dict = Body(None)):
     )
     
     # Bildirim mesajı
+    notification_title = "✅ İş Tamamlandı!"
+    notification_body = f"📋 {job['name']}\n🏭 {job['machine_name']}\n📦 {completed_koli} koli\n👷 {job.get('operator_name', '-')}"
     message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+    
+    # FCM Push Bildirimi gönder (yöneticilere)
+    try:
+        await send_notification_to_managers(
+            title=notification_title,
+            body=notification_body,
+            data={
+                "type": "job_completed",
+                "job_id": job_id,
+                "job_name": job['name'],
+                "machine_name": job['machine_name']
+            }
+        )
+    except Exception as e:
+        logging.error(f"FCM notification error: {e}")
     
     # Yöneticilere WebSocket bildirimi gönder
     try:
