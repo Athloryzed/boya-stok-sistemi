@@ -100,14 +100,17 @@ frontend/node_modules/.cache/default-development/13.pack
 frontend/node_modules/.cache/default-development/18.pack
 -e 
 # Environment files - SECURITY: Never commit secrets
-*.env
-*.env.*
 .env
 .env.local
 .env.development
 .env.production
 backend/.env
 frontend/.env
+
+# Allow example env files
+!*.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # Twilio credentials
 *TWILIO*
