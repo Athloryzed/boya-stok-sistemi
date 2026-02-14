@@ -151,14 +151,15 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               duration: 10000,
               icon: "⏰"
             });
-            // Aktif işi al ve rapor formunu aç
-            if (currentJob) {
+            // Aktif işi bul ve rapor formunu aç
+            const activeJob = selectedMachine ? jobs.find(j => j.machine_id === selectedMachine.id && j.status === "in_progress") : null;
+            if (activeJob && selectedMachine) {
               setShiftEndData({
-                job_id: currentJob.id,
-                job_name: currentJob.name,
+                job_id: activeJob.id,
+                job_name: activeJob.name,
                 machine_id: selectedMachine.id,
                 machine_name: selectedMachine.name,
-                target_koli: currentJob.koli_count
+                target_koli: activeJob.koli_count
               });
               setShiftEndProducedKoli("");
               setShiftEndDefectKg("");
@@ -181,7 +182,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, selectedMachine, currentJob]);
+  }, [userData, selectedMachine, jobs]);
 
   useEffect(() => {
     if (selectedMachine) {
