@@ -1324,19 +1324,23 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                                   : "bg-info text-white"
                               }`}
                             >
-                              {job.status === "in_progress" ? "Devam Ediyor" : "Bekliyor"}
+                              {job.status === "in_progress" ? "Devam Ediyor" : job.status === "paused" ? "Duraklatıldı" : "Bekliyor"}
                             </span>
-                            {job.image_url && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openImagePreview(job.image_url)}
-                                className="text-secondary border-secondary/50"
-                              >
-                                <Image className="h-4 w-4" />
-                              </Button>
-                            )}
                           </div>
+                          {/* İş Resmi Thumbnail */}
+                          {job.image_url && (
+                            <div 
+                              className="mt-3 mb-3 cursor-pointer"
+                              onClick={() => openImagePreview(job.image_url)}
+                            >
+                              <img 
+                                src={job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
+                                alt={job.name}
+                                className="w-32 h-24 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
+                              />
+                              <p className="text-xs text-text-secondary mt-1">Büyütmek için tıklayın</p>
+                            </div>
+                          )}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-text-secondary">
                             <div>
                               <p className="text-sm font-semibold">Makine</p>
