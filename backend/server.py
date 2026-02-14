@@ -2872,6 +2872,39 @@ async def send_notification_to_operators(machine_id: str, title: str, body: str,
     except Exception as e:
         logging.error(f"Error sending notification to operators: {e}")
 
+# Plan kullanıcılarına bildirim gönderme
+async def send_notification_to_plan_users(title: str, body: str, data: dict = None):
+    """Tüm kayıtlı Plan kullanıcılarına FCM bildirimi gönder"""
+    try:
+        tokens_cursor = db.fcm_tokens.find({"user_type": "plan"}, {"token": 1, "_id": 0})
+        tokens = [doc["token"] async for doc in tokens_cursor]
+        
+        if tokens:
+            await send_fcm_notification(tokens, title, body, data)
+            logging.info(f"Notification sent to {len(tokens)} plan users")
+        else:
+            logging.warning("No plan FCM tokens found")
+    except Exception as e:
+        logging.error(f"Error sending notification to plan users: {e}")
+
+# Tüm çalışanlara bildirim gönderme (vardiya başlat/bitir için)
+async def send_notification_to_all_workers(title: str, body: str, data: dict = None):
+    """Tüm operatör ve plan kullanıcılarına FCM bildirimi gönder"""
+    try:
+        tokens_cursor = db.fcm_tokens.find(
+            {"user_type": {"$in": ["operator", "plan"]}}, 
+            {"token": 1, "_id": 0}
+        )
+        tokens = [doc["token"] async for doc in tokens_cursor]
+        
+        if tokens:
+            await send_fcm_notification(tokens, title, body, data)
+            logging.info(f"Notification sent to {len(tokens)} workers")
+        else:
+            logging.warning("No worker FCM tokens found")
+    except Exception as e:
+        logging.error(f"Error sending notification to all workers: {e}")
+
 app.include_router(api_router)
 
 # WebSocket endpoint - Yönetici bildirimleri için
