@@ -507,9 +507,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
   
   // Seçenek: Operatörlere bildir
-  const handleChoiceNotifyOperators = () => {
+  const handleChoiceNotifyOperators = async () => {
     setIsShiftEndChoiceDialogOpen(false);
-    handleRequestShiftEnd();
+    try {
+      await axios.post(`${API}/shifts/notify-end`);
+      toast.success("Operatörlere bildirim gönderildi! Raporlarını doldurmalarını bekleyin.");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Bildirim gönderilemedi");
+    }
   };
   
   // Seçenek: Kendim doldurayım
