@@ -99,6 +99,21 @@ frontend/node_modules/.cache/default-development/15.pack
 frontend/node_modules/.cache/default-development/13.pack
 frontend/node_modules/.cache/default-development/18.pack
 -e 
-# Environment files
+# Environment files - SECURITY: Never commit secrets
 *.env
 *.env.*
+.env
+.env.local
+.env.development
+.env.production
+backend/.env
+frontend/.env
+
+# Twilio credentials
+*TWILIO*
+*twilio*
+
+# API Keys and Secrets
+*SECRET*
+*TOKEN*
+*CREDENTIALS*
