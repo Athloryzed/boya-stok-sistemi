@@ -29,6 +29,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [managerId, setManagerId] = useState(null);
+  const wsRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   // 1 günlük oturum kontrolü
   useEffect(() => {
