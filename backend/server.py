@@ -146,6 +146,37 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Yönetici WebSocket bağlantı yöneticisi
+class ManagerConnectionManager:
+    def __init__(self):
+        self.active_connections: dict = {}  # manager_id -> WebSocket
+    
+    async def connect(self, websocket: WebSocket, manager_id: str):
+        await websocket.accept()
+        self.active_connections[manager_id] = websocket
+        logging.info(f"Manager WebSocket connected: {manager_id}. Total: {len(self.active_connections)}")
+    
+    def disconnect(self, manager_id: str):
+        if manager_id in self.active_connections:
+            del self.active_connections[manager_id]
+        logging.info(f"Manager WebSocket disconnected: {manager_id}. Total: {len(self.active_connections)}")
+    
+    async def broadcast_to_managers(self, message: dict):
+        """Tüm yöneticilere mesaj gönder"""
+        disconnected = []
+        for manager_id, connection in self.active_connections.items():
+            try:
+                await connection.send_json(message)
+                logging.info(f"Notification sent to manager: {manager_id}")
+            except Exception as e:
+                logging.error(f"Manager WebSocket send error: {e}")
+                disconnected.append(manager_id)
+        
+        for mgr_id in disconnected:
+            self.disconnect(mgr_id)
+
+manager_ws = ManagerConnectionManager()
+
 class Machine(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
