@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { requestNotificationPermission, onMessageListener } from "../firebase";
 
 // Boya renk haritası
 const PAINT_COLORS = {
