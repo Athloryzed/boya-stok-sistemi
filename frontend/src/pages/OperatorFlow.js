@@ -115,18 +115,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             setStep(2);
           }
           
-          // FCM Token kaydı (oturum varsa)
+          // Push Notification kurulumu - Platform bazlı
           try {
-            const fcmToken = await requestFCMPermission();
-            if (fcmToken) {
-              await axios.post(`${API}/notifications/register-token`, {
-                token: fcmToken,
-                user_type: "operator",
-                user_id: session.id
-              });
+            if (isNativePlatform()) {
+              // Android için Capacitor Push Notifications
+              await initializePushNotifications(session.id, "operator");
+              console.log("Native push notifications initialized");
+            } else {
+              // Web için Firebase Web SDK
+              const fcmToken = await requestFCMPermission();
+              if (fcmToken) {
+                await axios.post(`${API}/notifications/register-token`, {
+                  token: fcmToken,
+                  user_type: "operator",
+                  user_id: session.id,
+                  platform: "web"
+                });
+              }
             }
-          } catch (fcmError) {
-            console.error("FCM setup error:", fcmError);
+          } catch (pushError) {
+            console.error("Push notification setup error:", pushError);
           }
         } catch (e) {
           localStorage.removeItem("operator_session");
