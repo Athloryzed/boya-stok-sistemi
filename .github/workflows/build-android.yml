@@ -35,10 +35,15 @@ jobs:
         working-directory: frontend
         run: yarn install --frozen-lockfile
 
+      - name: Create frontend .env
+        working-directory: frontend
+        run: |
+          echo "REACT_APP_BACKEND_URL=${{ secrets.BACKEND_URL || 'https://pause-resume-jobs.preview.emergentagent.com' }}" > .env
+          echo "WDS_SOCKET_PORT=443" >> .env
+          echo "ENABLE_HEALTH_CHECK=false" >> .env
+
       - name: Build frontend
         working-directory: frontend
-        env:
-          REACT_APP_BACKEND_URL: https://pause-resume-jobs.preview.emergentagent.com
         run: yarn build
 
       - name: Sync Capacitor
