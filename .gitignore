@@ -117,3 +117,7 @@ frontend/.env
 *SECRET*
 *TOKEN*
 *CREDENTIALS*
+-e 
+# Environment files
+*.env
+*.env.*
