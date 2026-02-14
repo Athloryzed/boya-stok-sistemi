@@ -580,7 +580,7 @@ async def create_job(job: Job):
     try:
         await send_notification_to_operators(
             machine_id=job.machine_id,
-            title=f"📋 Yeni İş Atandı",
+            title="📋 Yeni İş Atandı",
             body=f"{job.name} - {job.machine_name}\n📦 {job.koli_count} koli",
             data={"type": "new_job", "job_id": job.id, "machine_id": job.machine_id}
         )
