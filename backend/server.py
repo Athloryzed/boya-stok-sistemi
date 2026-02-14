@@ -17,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 import json
 import base64
 from twilio.rest import Client as TwilioClient
+import firebase_admin
+from firebase_admin import credentials, messaging
 
 # Logging'i erken yapılandır
 logging.basicConfig(
@@ -27,6 +29,68 @@ logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Firebase Admin SDK Setup
+firebase_app = None
+try:
+    # Firebase için servis hesabı veya proje ID kullan
+    firebase_config = {
+        "type": "service_account",
+        "project_id": "buse-kagit",
+    }
+    
+    # Eğer servis hesabı JSON yoksa, varsayılan kimlik bilgilerini kullan
+    if not firebase_admin._apps:
+        # Application Default Credentials veya minimal config ile başlat
+        try:
+            cred = credentials.Certificate(ROOT_DIR / 'firebase-service-account.json')
+            firebase_app = firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin SDK initialized with service account!")
+        except Exception:
+            # Servis hesabı yoksa, sadece proje ID ile başlat (sınırlı özellikler)
+            firebase_app = firebase_admin.initialize_app(options={'projectId': 'buse-kagit'})
+            logger.info("Firebase Admin SDK initialized with project ID only")
+except Exception as e:
+    logger.warning(f"Firebase Admin SDK initialization failed: {e}")
+
+async def send_fcm_notification(tokens: List[str], title: str, body: str, data: dict = None):
+    """Firebase Cloud Messaging ile bildirim gönder"""
+    if not tokens:
+        logger.warning("No FCM tokens to send notification")
+        return False
+    
+    try:
+        message = messaging.MulticastMessage(
+            notification=messaging.Notification(
+                title=title,
+                body=body,
+            ),
+            data=data or {},
+            tokens=tokens,
+            android=messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    priority='high',
+                    channel_id='job_notifications'
+                )
+            ),
+            webpush=messaging.WebpushConfig(
+                notification=messaging.WebpushNotification(
+                    icon='/logo192.png',
+                    badge='/logo192.png',
+                    vibrate=[200, 100, 200],
+                    require_interaction=True
+                )
+            )
+        )
+        
+        response = messaging.send_each_for_multicast(message)
+        logger.info(f"FCM notification sent: {response.success_count} success, {response.failure_count} failed")
+        return True
+    except Exception as e:
+        logger.error(f"FCM notification error: {e}")
+        return False
 
 # Twilio WhatsApp Setup
 twilio_client = None
