@@ -13,6 +13,7 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
+import { requestNotificationPermission, onMessageListener } from "../firebase";
 
 const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
