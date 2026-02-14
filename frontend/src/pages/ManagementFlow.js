@@ -28,6 +28,27 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [managerId, setManagerId] = useState(null);
+
+  // 1 günlük oturum kontrolü
+  useEffect(() => {
+    const savedSession = localStorage.getItem("management_session");
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        const now = new Date().getTime();
+        // 24 saat = 86400000 ms
+        if (session.expiry > now) {
+          setAuthenticated(true);
+          setManagerId(session.managerId);
+        } else {
+          localStorage.removeItem("management_session");
+        }
+      } catch (e) {
+        localStorage.removeItem("management_session");
+      }
+    }
+  }, []);
   const [currentShift, setCurrentShift] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
