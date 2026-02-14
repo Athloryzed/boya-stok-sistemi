@@ -702,9 +702,19 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           <Button variant="outline" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight">
             <ArrowLeft className="mr-2 h-4 w-4" /> Ana Sayfa
           </Button>
-          <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout} 
+              data-testid="logout-button" 
+              className="border-error text-error hover:bg-error/10"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Çıkış
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
