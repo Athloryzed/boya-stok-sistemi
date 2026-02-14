@@ -2695,8 +2695,6 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
         "daily_stats": daily_stats
     }
 
-app.include_router(api_router)
-
 # Yönetici kaydı endpoint
 @api_router.post("/managers/register")
 async def register_manager(data: dict = Body(...)):
@@ -2713,6 +2711,8 @@ async def register_manager(data: dict = Body(...)):
     )
     logging.info(f"Manager registered: {manager_id}")
     return {"status": "registered", "manager_id": manager_id}
+
+app.include_router(api_router)
 
 # WebSocket endpoint - Yönetici bildirimleri için
 @app.websocket("/ws/manager/{manager_id}")
