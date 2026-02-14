@@ -2844,6 +2844,22 @@ async def send_notification_to_managers(title: str, body: str, data: dict = None
     except Exception as e:
         logging.error(f"Error sending notification to managers: {e}")
 
+# Belirli makinedeki operatörlere bildirim gönderme
+async def send_notification_to_operators(machine_id: str, title: str, body: str, data: dict = None):
+    """Belirli bir makinedeki operatörlere FCM bildirimi gönder"""
+    try:
+        # Tüm operatör token'larını al (şimdilik hepsine gönder)
+        tokens_cursor = db.fcm_tokens.find({"user_type": "operator"}, {"token": 1, "_id": 0})
+        tokens = [doc["token"] async for doc in tokens_cursor]
+        
+        if tokens:
+            await send_fcm_notification(tokens, title, body, data)
+            logging.info(f"Notification sent to {len(tokens)} operators for machine {machine_id}")
+        else:
+            logging.warning("No operator FCM tokens found")
+    except Exception as e:
+        logging.error(f"Error sending notification to operators: {e}")
+
 app.include_router(api_router)
 
 # WebSocket endpoint - Yönetici bildirimleri için
