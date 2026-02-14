@@ -180,3 +180,7 @@ frontend/.env
 # Firebase Service Account (sensitive)
 backend/firebase-service-account.json
 firebase-service-account.json
+-e 
+# Environment files
+*.env
+*.env.*
