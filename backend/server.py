@@ -757,6 +757,21 @@ async def complete_job(job_id: str, data: dict = Body(None)):
     except Exception as e:
         logging.error(f"FCM notification error: {e}")
     
+    # Plan kullanıcılarına da FCM bildirimi gönder
+    try:
+        await send_notification_to_plan_users(
+            title=notification_title,
+            body=notification_body,
+            data={
+                "type": "job_completed",
+                "job_id": job_id,
+                "job_name": job['name'],
+                "machine_name": job['machine_name']
+            }
+        )
+    except Exception as e:
+        logging.error(f"FCM notification error for plan users: {e}")
+    
     # Yöneticilere WebSocket bildirimi gönder
     try:
         await manager_ws.broadcast_to_managers({
