@@ -13,6 +13,7 @@ import axios from "axios";
 import { API } from "../App";
 import { requestNotificationPermission, showNotification, registerServiceWorker } from "../utils/notifications";
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
+import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 
 const OperatorFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
