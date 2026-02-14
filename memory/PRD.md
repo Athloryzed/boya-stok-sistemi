@@ -1,87 +1,74 @@
-# Buse Kağıt - Üretim Yönetim Sistemi PRD
+# Buse Kagit - Fabrika Yönetim Sistemi PRD
 
-## Proje Özeti
-Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
+## Problem Statement
+Bir kağıt fabrikası için tam kapsamlı yönetim sistemi. Yöneticiler, operatörler ve planlama ekibi için ayrı arayüzler ile iş takibi, vardiya yönetimi ve bildirim sistemi.
 
-## Son Güncelleme: 14 Şubat 2026
+## Core Requirements
+1. **Android APK & Live Data:** Canlı backend'e bağlanan Android APK
+2. **Automatic APK Updates:** Web güncellemeleri APK içinde otomatik yansımalı
+3. **Firebase Push Notifications:** Uygulama kapalıyken bile çalışan bildirimler
+4. **Persistent Manager Login:** Yöneticiler için 1 günlük oturum süresi
+5. **Job Image Previews:** Plan ekranında iş görsellerinin önizlemesi
+6. **Advanced Shift-End Workflow:** Gelişmiş vardiya sonu rapor akışı
 
-### Bu Oturumda Tamamlanan Özellikler ✅
+## Technical Architecture
+- **Backend:** FastAPI, Motor (MongoDB async), WebSockets
+- **Frontend:** React, TailwindCSS, Shadcn/UI, Capacitor
+- **Database:** MongoDB
+- **3rd Party:** Twilio (SMS), Firebase Cloud Messaging (Push Notifications)
+- **CI/CD:** GitHub Actions (APK build)
 
-1. **Firebase Push Bildirimleri** ✅
-   - Firebase Cloud Messaging (FCM) tam entegrasyonu
-   - Web push bildirimleri (tarayıcı kapalıyken bile çalışır)
-   - Android push bildirimleri (APK'da uygulama kapalıyken bile çalışır)
+## User Roles
+1. **Yönetim (Management):** Tam yetki, vardiya başlatma/bitirme
+2. **Operatör (Operator):** İş başlatma/bitirme, rapor gönderme
+3. **Plan (Planning):** İş oluşturma, takip
 
-2. **Bildirim Akışı** ✅
-   | Olay | Kime Gider |
-   |------|-----------|
-   | İş tamamlandı | Yöneticiler + Plan |
-   | Yeni iş atandı | Operatörler |
-   | Mesaj gönderildi | Operatörler |
-   | Vardiya başladı | Tüm çalışanlar |
-   | Vardiya bitti | Operatörler (rapor formu açılır) |
+## What's Implemented ✅
+- [x] GitHub Actions CI/CD for APK (2026-02-14)
+- [x] Production APK Configuration (2026-02-14)
+- [x] Persistent Manager Session (1-day JWT) (2026-02-14)
+- [x] Firebase Push Notifications (2026-02-14)
+- [x] Advanced Shift-End Workflow (2026-02-14)
+- [x] Job Image Thumbnails on Plan Screen (2026-02-14)
+- [x] Git Secrets Cleanup (firebase-service-account.json removed from history) (2026-02-15)
 
-3. **Yönetim Paneli - 1 Günlük Oturum** ✅
-   - 24 saat boyunca şifre sorulmayacak
-   - Çıkış butonu eklendi
+## Pending Issues 🔴
+1. **P0:** End-to-end testing for Firebase notifications
+2. **P1:** "White Screen" bug verification on iPhone
+3. **P2:** Management Intervention Bug (managers blocked from editing operator-started jobs)
+4. **P2:** Nested component lint error in ManagementFlow.js
 
-4. **Vardiya Bitirme İş Akışı** ✅
-   - Yönetici "Vardiya Bitir" dediğinde seçenek sunuluyor:
-     1. Operatörlere bildir (rapor doldurmaları için)
-     2. Kendim doldurayım
-   - Operatörlere push bildirimi gidiyor
-   - Operatörler koli ve defo bilgisi giriyor
-   - Yönetici onay bekleyen raporları görebiliyor
+## Upcoming Tasks 🟡
+- [ ] Full E2E Testing with testing_agent
+- [ ] User verification after deployment
 
-5. **İş Resimleri Thumbnail** ✅
-   - Sıradaki işlerde resimler küçük thumbnail olarak görünüyor
+## Future Tasks (Backlog) 🔵
+- [ ] Shipment & Driver Module
+- [ ] Daily Analytics Drill-Down (per-machine breakdown)
+- [ ] QR/Barcode Scanning
 
-6. **Android APK - GitHub Actions** ✅
-   - Otomatik APK build sistemi
-   - Firebase Cloud Messaging entegreli
+## Key Files
+- `/app/backend/server.py` - Main backend with FCM logic
+- `/app/frontend/src/pages/ManagementFlow.js` - Manager UI
+- `/app/frontend/src/pages/OperatorFlow.js` - Operator UI with shift-end reports
+- `/app/frontend/src/pages/PlanFlow.js` - Planning UI with image thumbnails
+- `/app/.github/workflows/build-android.yml` - APK build workflow
 
-### Backend API Endpoints
+## Database Schema
+- `jobs`: { status, pause_reason, ... }
+- `users`: { fcm_tokens: [string], ... }
+- `shifts`: { start_time, end_time, ... }
 
-#### Yeni Endpoint'ler
-- `POST /notifications/register-token` - FCM token kaydet
-- `POST /managers/register` - Yönetici kaydı
-- `POST /shifts/notify-end` - Vardiya bitiş bildirimi gönder
-- `POST /jobs/{job_id}/pause` - İş durdur
-- `POST /jobs/{job_id}/resume` - İş devam ettir
+## API Endpoints
+- `POST /api/fcm-token` - Register FCM token
+- `POST /api/shifts/start` - Start shift (sends notification)
+- `POST /api/shifts/end/notify-operators` - Notify operators for shift end
 
-#### WebSocket Endpoint'leri
-- `/ws/manager/{manager_id}` - Yönetici bildirimleri
-- `/ws/operator/{machine_id}` - Operatör bildirimleri
+## Test Credentials
+- Management: `yonetim` / `buse11993`
+- Operator: `ali` / `134679`
 
-### Bekleyen Görevler (Backlog)
-
-#### P0 - Kritik
-1. **Deploy sonrası test** - Push bildirimleri canlı ortamda test edilecek
-
-#### P1 - Yüksek Öncelik
-2. **Yönetim Müdahale Hatası** - Tekrarlayan sorun (4 kez)
-3. **Beyaz Ekran / iPhone Erişim** - Deploy sonrası doğrulama
-
-#### P2 - Orta Öncelik
-4. **Sevkiyat & Sürücü Modülü**
-5. **Günlük Analitik Detay**
-
-#### P3 - Düşük Öncelik
-6. **QR/Barkod Tarama**
-
-### Teknik Detaylar
-
-#### 3rd Party Entegrasyonlar
-- **Firebase**: Push bildirimleri (FCM)
-- **Twilio**: WhatsApp bildirimleri (Sandbox)
-- **Capacitor**: Android APK
-
-#### Kimlik Bilgileri (Test)
-- **Yönetim**: `buse11993`
-- **Operatör**: `ali` / `134679`
-
-#### Önemli Dosyalar
-- `/app/backend/firebase-service-account.json` - Firebase servis hesabı (GİZLİ)
-- `/app/frontend/android/app/google-services.json` - Android Firebase config
-- `/app/frontend/public/firebase-messaging-sw.js` - Web push service worker
-- `/app/frontend/src/firebase.js` - Firebase client config
+## GitHub Secrets Required
+- `FIREBASE_SERVICE_ACCOUNT_KEY` - Firebase Admin SDK credentials
+- `GOOGLE_SERVICES_JSON` - Android Firebase config (optional, has fallback)
+- `BACKEND_URL` - Production backend URL (optional, defaults to busemgmt.emergent.host)
