@@ -3,247 +3,98 @@
 ## Proje Özeti
 Flexo kağıt fabrikası için kapsamlı web ve mobil üretim yönetim sistemi.
 
-## Son Güncelleme: 9 Şubat 2026
+## Son Güncelleme: 14 Şubat 2026
 
-### Yeni Özellikler ✅
+### Bu Oturumda Tamamlanan Özellikler ✅
 
-1. **Vardiya Sonu Onay Akışı** ✅ YENİ
-   - Yönetim panelinde "Onay Bekleyen" sekmesi eklendi
-   - Yönetici "Vardiya Bitir" dediğinde operatörlere WebSocket bildirimi gider
-   - Operatörler üretim miktarı ve defo bilgisi girer
-   - Yönetici "Onay Bekleyen" sekmesinden raporları onaylar
-   - "Tümünü Onayla & Vardiyayı Bitir" toplu onay butonu
-   - Bekleyen rapor sayısı badge ile gösterilir
+1. **Firebase Push Bildirimleri** ✅ YENİ
+   - Firebase Cloud Messaging (FCM) tam entegrasyonu
+   - Web push bildirimleri (tarayıcı kapalıyken bile çalışır)
+   - Android push bildirimleri (APK'da uygulama kapalıyken bile çalışır)
+   - Sadece yöneticilere bildirim gönderimi
+   - İş tamamlandığında otomatik push bildirimi
 
-2. **Backend API'leri (Vardiya Onay)**
-   - `POST /shifts/request-end` - Operatörlere bildirim gönder
-   - `POST /shifts/operator-report` - Operatör raporu gönder
-   - `GET /shifts/pending-reports` - Bekleyen raporları listele
-   - `POST /shifts/approve-report/{id}` - Tek rapor onayla
-   - `POST /shifts/approve-all` - Tümünü onayla
+2. **Yönetim Paneli - 1 Günlük Oturum** ✅ YENİ
+   - 24 saat boyunca şifre sorulmayacak (localStorage)
+   - Çıkış butonu eklendi
+   - Oturum süresi dolunca otomatik çıkış
 
-3. **WebSocket Endpoint'leri**
-   - `/ws/operator/{machine_id}` - Operatör bildirimleri
-   - `/ws/warehouse` - Depo bildirimleri
+3. **İş Resimleri Thumbnail Görünümü** ✅ YENİ
+   - Sıradaki işlerde resimler küçük thumbnail olarak görünüyor
+   - Resme tıklayınca büyük formatta açılıyor
+
+4. **Android APK - GitHub Actions** ✅ YENİ
+   - Otomatik APK build sistemi
+   - Firebase Cloud Messaging entegreli
+   - Canlı URL'ye bağlı (busemgmt.emergent.host)
+
+### Önceki Oturumlarda Tamamlanan Özellikler
+
+5. **İş Durdurma/Devam Ettirme** ✅
+   - Operatör veya yönetici işi durdurabilir
+   - Durdurma sebebi kaydedilir
+   - Duraklatılmış işler listesi
+
+6. **Yönetici Vardiya Sonu Raporlama** ✅
+   - İki seçenek: Operatörlere bildir veya kendisi doldur
+   - Toplu rapor onaylama
+
+7. **WhatsApp Bildirimleri (Twilio)** ✅
+   - İş tamamlandığında WhatsApp bildirimi
+   - Sandbox mode
+
+## Backend API Endpoints
+
+### Yeni Endpoint'ler
+- `POST /notifications/register-token` - FCM token kaydet
+- `POST /managers/register` - Yönetici kaydı
+- `POST /jobs/{job_id}/pause` - İş durdur
+- `POST /jobs/{job_id}/resume` - İş devam ettir
+
+### WebSocket Endpoint'leri
+- `/ws/manager/{manager_id}` - Yönetici bildirimleri
+- `/ws/operator/{machine_id}` - Operatör bildirimleri
+- `/ws/warehouse` - Depo bildirimleri
 
 ## Bekleyen Görevler (Backlog)
 
 ### P0 - Kritik (Deploy Sonrası Test)
 1. **Beyaz Ekran / iPhone Erişim Sorunu**
    - Service Worker kaldırıldı
-   - iPhone uyumlu notification kontrolleri eklendi
    - ⚠️ Deploy sonrası kullanıcı testi gerekli
 
-2. **WebSocket Vardiya Sonu Bildirimi**
-   - Kod tamamlandı, preview ortamda WebSocket çalışmıyor
-   - ⚠️ Deploy sonrası canlı ortamda test edilecek
+2. **Push Bildirimi Testi**
+   - Firebase entegrasyonu tamamlandı
+   - ⚠️ Canlı ortamda test edilecek
 
 ### P1 - Yüksek Öncelik
 3. **Yönetim Müdahale Hatası**
-   - Operatör başlattığı işe yönetimin müdahale edememesi sorunu
-   - Tekrarlayan sorun, çözüm bekliyor
+   - Operatör başlattığı işe yönetimin müdahale edememesi
+   - Tekrarlayan sorun (4 kez)
 
 ### P2 - Orta Öncelik
 4. **Sevkiyat & Sürücü Modülü**
    - Harita/konum takibi
    - Sürücü durum güncelleme
-   - Palet atama UI
 
 5. **Günlük Analitik Detay**
    - Grafiğe tıklayınca makine bazlı detay
 
 ### P3 - Düşük Öncelik
-6. **PWA / Mobil Uygulama**
-7. **QR/Barkod Tarama**
+6. **QR/Barkod Tarama**
 
-## Kullanıcı Yönetimi
+## Teknik Detaylar
 
-### Yönetim Paneli (Tek şifre ile giriş)
-- **Şifre**: `buse11993`
-- Kullanıcı oluşturma/silme yetkisi
-- Tüm panellere erişim
-- Şoför konumlarını görme
+### 3rd Party Entegrasyonlar
+- **Firebase**: Push bildirimleri (FCM)
+- **Twilio**: WhatsApp bildirimleri (Sandbox)
+- **Capacitor**: Android APK
 
-### Rol Bazlı Giriş Sistemi
-Tüm roller kullanıcı adı + şifre ile giriş yapar. Yönetim panelinden oluşturulur.
+### Kimlik Bilgileri (Test)
+- **Yönetim**: `buse11993`
+- **Operatör**: `ali` / `134679`
 
-| Rol | Sayfa | Test Kullanıcı | Şifre |
-|-----|-------|----------------|-------|
-| Operatör | /operator | operator1 | op123 |
-| Planlama | /plan | plan1 | plan123 |
-| Depo | /depo | depo1 | depo123 |
-| Şoför | /driver | sofor1 | sofor123 |
-
-### Boya Modülü
-- **Şifre**: `buse11993`
-
-## Son Güncelleme: 26 Ocak 2025
-
-### Yeni Özellikler ✅
-
-1. **İş Sıralama (Drag & Drop)**
-   - Operatör panelinde işleri sürükle-bırak ile sıralama
-   - İş sırası görsel olarak numaralandırılmış
-
-2. **Vardiya Sonu Raporu & Kısmi Üretim**
-   - Aktif iş varken vardiya bitirirken üretim ve defo miktarı (kg) girilebilir
-   - Kısmi üretim günlük/haftalık/aylık analize yansır
-   - Operatör kalan koliyi "DEVAM" etiketi ile görür
-
-3. **Defo Takibi (Kilo Cinsinden)**
-   - Günlük/Haftalık/Aylık defo grafikleri
-   - Makine bazlı defo analizi
-
-4. **Boya Takip Sistemi (Yenilendi)**
-   - Makineye Ver: Tartıdan okunan değeri gir
-   - Geri Al: Sadece boya verilen makineler listelenir
-   - Sistem farkı hesaplar (Verilen - Kalan = Kullanılan)
-   - Kullanılan miktar analize işlenir
-
-5. **İş Görseli Ekleme** ✅
-   - Plan panelinde iş eklerken görsel yüklenebilir
-   - İş kartlarında görsel ikonu ile önizleme
-   - Operatör panelinde de görsel görüntülenebilir
-
-6. **Tarayıcı Push Bildirimleri** ✅ YENİ
-   - Operatör panelinde 🔔 butonu ile bildirim izni
-   - Yeni mesaj geldiğinde tarayıcı bildirimi
-   - Service Worker ile arka planda bildirim
-
-7. **WhatsApp Bildirimi (Twilio)** ✅ YENİ
-   - İş tamamlandığında otomatik WhatsApp bildirimi
-   - Bildirim içeriği: İş adı, makine, koli, operatör, tarih
-   - Twilio Sandbox üzerinden çalışıyor
-
-### Önceki Özellikler (24 Ocak 2025)
-
-1. **Merkezi Kullanıcı Yönetimi**
-   - Yönetim panelinde "Kullanıcılar" sekmesi
-   - Kullanıcı oluşturma: Kullanıcı adı + Şifre + Rol seçimi
-   - Rol seçenekleri: Operatör, Planlama, Depo, Şoför
-   - Kullanıcı silme
-   - Aktif kullanıcı listesi
-
-2. **Rol Bazlı Erişim Kontrolü**
-   - Her kullanıcı sadece atandığı sayfaya girebilir
-   - Yanlış sayfaya girmeye çalışınca "Bu sayfaya erişim yetkiniz yok" hatası
-
-3. **Şoför Konum Takibi**
-   - Yönetim panelinde şoförlerin anlık konumları
-   - "Haritada Gör" butonu ile Google Maps'te konum
-   - Son güncelleme zamanı
-
-4. **Şifre Güncellemeleri**
-   - Yönetim: `432122` → `buse11993`
-   - Boya: `432122` → `buse11993`
-
-
-5. **Oturum Yönetimi**
-   - Tüm panellerde localStorage ile oturum hatırlama
-   - Çıkış yapma butonu
-   - Sayfa yenilendiğinde oturum korunur
-
-## Tamamlanan Özellikler
-
-### Ana Modüller ✅
-
-1. **Yönetim Paneli**
-   - Kullanıcı yönetimi (YENİ)
-   - Şoför konum takibi (YENİ)
-   - Vardiya başlatma/bitirme
-   - Makine durumu takibi
-   - Analitik (günlük/haftalık/aylık)
-   - Bakım kayıtları
-   - Boya stok tablosu
-   - Mesajlaşma
-
-2. **Operatör Paneli**
-   - Kullanıcı adı + şifre ile giriş (YENİ)
-   - Makine seçimi
-   - İş başlatma/tamamlama
-   - Malzeme talebi
-   - Mesaj alma/gönderme
-
-3. **Plan Paneli**
-   - Kullanıcı adı + şifre ile giriş (YENİ)
-   - Yeni iş ekleme
-   - Sevkiyat yönetimi
-   - Araç/Şoför ekleme
-   - Mesajlaşma
-
-4. **Depo Paneli**
-   - Kullanıcı adı + şifre ile giriş (YENİ)
-   - Malzeme talepleri (WebSocket)
-   - Palet tarama
-   - Sevkiyat teslimi
-
-5. **Şoför Paneli**
-   - Kullanıcı adı + şifre ile giriş
-   - Sevkiyat listesi
-   - Google Maps yol tarifi
-   - Konum paylaşımı
-   - Teslimat durumu güncelleme
-
-6. **Boya Modülü**
-   - Şifreli giriş (`buse11993`)
-   - Stok takibi
-   - Hareket geçmişi
-
-## Teknik Altyapı
-
-### Backend
-- FastAPI + Motor (async MongoDB)
-- WebSocket (depo bildirimleri)
-- Pydantic modeller
-
-### Frontend
-- React + TailwindCSS
-- Shadcn/UI bileşenleri
-- localStorage oturum yönetimi
-
-### Veritabanı Şemaları
-- `users` (YENİ): username, password, role, display_name, phone, location
-- `machines`, `jobs`, `shifts`, `maintenance_logs`
-- `warehouse_requests`, `pallets`
-- `paints`, `paint_movements`
-- `machine_messages`, `visitors`
-- `vehicles`, `shipments`
-- `defect_logs` (YENİ): machine_id, machine_name, defect_count, date, shift_id
-- `shift_end_reports` (YENİ): shift_id, machine_id, produced_koli, remaining_koli, defect_count
-
-## API Endpoints (Yeni)
-
-### Defo Takibi (26 Ocak 2025)
-- `GET /api/defects` - Defo kayıtları listesi
-- `POST /api/defects` - Defo kaydı oluştur (kg cinsinden)
-- `GET /api/defects/analytics/weekly` - Haftalık defo analitikleri
-- `GET /api/defects/analytics/monthly` - Aylık defo analitikleri
-- `GET /api/defects/analytics/daily-by-week` - Günlük defo (hafta bazında)
-
-### İş Sıralama (26 Ocak 2025)
-- `PUT /api/jobs/{job_id}/reorder` - Tek iş sıralama
-- `PUT /api/jobs/reorder-batch` - Toplu iş sıralama
-
-### Vardiya Sonu Raporu (26 Ocak 2025)
-- `POST /api/shifts/end-with-report` - Vardiya sonu raporu ile bitir
-
-### Kullanıcı Yönetimi
-- `POST /api/users` - Kullanıcı oluştur
-- `GET /api/users` - Kullanıcı listesi
-- `POST /api/users/login` - Giriş (rol kontrolü ile)
-- `DELETE /api/users/{id}` - Kullanıcı sil
-- `PUT /api/users/{id}/location` - Konum güncelle
-- `GET /api/users/drivers/locations` - Şoför konumları
-
-## Bekleyen Özellikler
-
-### P1 (Yüksek Öncelik)
-- Sevkiyat & Şoför Modülü tamamlama (harita entegrasyonu, teslimat durumu)
-- Yönetim Müdahale Hatası doğrulaması
-
-### P2 (Orta Öncelik)
-- Günlük analiz detayı (grafiğe tıklayınca makine bazlı detay)
-- QR/Barkod tarama
-
-### P3 (Düşük Öncelik)
-- WebSocket mesajlaşma (anlık bildirimler)
+### Önemli Dosyalar
+- `/app/backend/firebase-service-account.json` - Firebase servis hesabı (GİZLİ)
+- `/app/frontend/android/app/google-services.json` - Android Firebase config
+- `/app/frontend/public/firebase-messaging-sw.js` - Web push service worker
