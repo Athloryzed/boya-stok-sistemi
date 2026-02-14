@@ -143,10 +143,35 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     if (userData) {
       onMessageListener().then((payload) => {
         if (payload) {
-          toast.success(payload.notification?.body || "Yeni bildirim", {
-            duration: 8000,
-            icon: "🔔"
-          });
+          const data = payload.data || {};
+          
+          // Vardiya bitişi bildirimi - rapor formunu aç
+          if (data.type === "shift_end_report") {
+            toast.info("⏰ Vardiya bitti! Lütfen rapor doldurun.", {
+              duration: 10000,
+              icon: "⏰"
+            });
+            // Aktif işi al ve rapor formunu aç
+            if (currentJob) {
+              setShiftEndData({
+                job_id: currentJob.id,
+                job_name: currentJob.name,
+                machine_id: selectedMachine.id,
+                machine_name: selectedMachine.name,
+                target_koli: currentJob.koli_count
+              });
+              setShiftEndProducedKoli("");
+              setShiftEndDefectKg("");
+              setShiftEndIsCompleted(false);
+              setIsShiftEndDialogOpen(true);
+            }
+          } else {
+            toast.success(payload.notification?.body || "Yeni bildirim", {
+              duration: 8000,
+              icon: "🔔"
+            });
+          }
+          
           // Mesajları ve işleri yenile
           if (selectedMachine) {
             fetchMessages();
@@ -156,7 +181,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, selectedMachine]);
+  }, [userData, selectedMachine, currentJob]);
 
   useEffect(() => {
     if (selectedMachine) {
