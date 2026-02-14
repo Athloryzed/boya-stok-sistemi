@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "480110726560",
+    "project_id": "buse-kagit",
+    "storage_bucket": "buse-kagit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480110726560:android:a5254c27e3110893aae8c5",
+        "android_client_info": {
+          "package_name": "com.busekagit.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCukhhyKj86EgsZ32WTiQ3ijpvRAcIqsnk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
