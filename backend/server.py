@@ -1598,10 +1598,7 @@ async def scan_pallet(pallet: PalletScan):
     await db.pallets.insert_one(doc)
     return pallet
 
-@api_router.get("/pallets", response_model=List[PalletScan])
-async def get_pallets():
-    pallets = await db.pallets.find({}, {"_id": 0}).sort("scanned_at", -1).to_list(100)
-    return pallets
+# Not: get_pallets fonksiyonu aşağıda daha kapsamlı parametrelerle tanımlı
 
 # ==================== BOYA (PAINT) ENDPOINTS ====================
 
