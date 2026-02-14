@@ -661,9 +661,25 @@ async def complete_job(job_id: str, data: dict = Body(None)):
         {"$set": {"status": "idle", "current_job_id": None}}
     )
     
+    # Bildirim mesajı
+    message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+    
+    # Yöneticilere WebSocket bildirimi gönder
+    try:
+        await manager_ws.broadcast_to_managers({
+            "type": "job_completed",
+            "message": message,
+            "job_name": job['name'],
+            "machine_name": job['machine_name'],
+            "completed_koli": completed_koli,
+            "operator_name": job.get('operator_name', '-')
+        })
+        logging.info(f"Job completion notification sent to managers for job: {job['name']}")
+    except Exception as e:
+        logging.error(f"Manager notification error: {e}")
+    
     # WhatsApp bildirimi gönder
     try:
-        message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
         await send_whatsapp_notification(message)
     except Exception as e:
         logging.error(f"WhatsApp notification error: {e}")
