@@ -31,7 +31,7 @@ Bu proje, GitHub Actions kullanarak otomatik Android APK oluşturma özelliğine
 
 ## Önemli Notlar
 
-- APK, canlı backend'e bağlanır: `https://pause-resume-jobs.preview.emergentagent.com`
+- APK, canlı backend'e bağlanır: `https://job-firebase.preview.emergentagent.com`
 - Tüm veriler web uygulaması ile senkronize olur
 - iOS kullanıcıları web uygulamasını kullanmaya devam edebilir
 
