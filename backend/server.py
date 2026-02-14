@@ -1410,6 +1410,17 @@ async def start_shift():
     
     shift = Shift()
     await db.shifts.insert_one(shift.model_dump())
+    
+    # Tüm çalışanlara vardiya başladı bildirimi gönder
+    try:
+        await send_notification_to_all_workers(
+            title="🏭 Vardiya Başladı!",
+            body="Günlük vardiya başlamıştır. İyi çalışmalar!",
+            data={"type": "shift_started", "shift_id": shift.id}
+        )
+    except Exception as e:
+        logging.error(f"Shift start notification error: {e}")
+    
     return shift
 
 @api_router.post("/shifts/end")
@@ -1426,6 +1437,37 @@ async def end_shift():
         }}
     )
     return {"message": "Shift ended"}
+
+# Vardiya bitirme bildirimi - operatörlere rapor doldurmaları için
+@api_router.post("/shifts/notify-end")
+async def notify_shift_end():
+    """Vardiya bitiş bildirimi gönder - operatörler rapor dolduracak"""
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    if not active_shift:
+        raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
+    
+    # Aktif işleri al
+    active_jobs = await db.jobs.find(
+        {"status": {"$in": ["in_progress", "paused"]}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Tüm operatörlere bildirim gönder
+    try:
+        await send_notification_to_operators(
+            machine_id="all",
+            title="⏰ Vardiya Bitti!",
+            body="Lütfen üretim ve defo bilgilerinizi girin.",
+            data={"type": "shift_end_report", "shift_id": active_shift["id"]}
+        )
+    except Exception as e:
+        logging.error(f"Shift end notification error: {e}")
+    
+    return {
+        "message": "Operatörlere bildirim gönderildi",
+        "active_jobs": active_jobs,
+        "shift_id": active_shift["id"]
+    }
 
 @api_router.get("/shifts/current")
 async def get_current_shift():
