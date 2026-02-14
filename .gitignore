@@ -30,10 +30,18 @@ next-env.d.ts
 dist/
 dist
 
-# Environment files (comprehensive coverage)
-
-*token.json*
-*credentials.json*
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+backend/.env
+frontend/.env
+*.env
+*.env.*
+!*.env.example
+!backend/.env.example
+!frontend/.env.example
 
 # Logs and debug files
 npm-debug.log*
@@ -77,114 +85,20 @@ agenthub/agents/youtube/db
 .cache/
 
 # Mobile development
-android-sdk/ frontend/node_modules/.cache/default-development/4.pack
-frontend/node_modules/.cache/default-development/0.pack
-frontend/node_modules/.cache/default-development/4.pack
-frontend/node_modules/.cache/default-development/1.pack
-frontend/node_modules/.cache/default-development/2.pack
-frontend/node_modules/.cache/default-development/3.pack
-frontend/node_modules/.cache/default-development/5.pack
-frontend/node_modules/.cache/default-development/4.pack_
-frontend/node_modules/.cache/default-development/6.pack
-frontend/node_modules/.cache/default-development/8.pack
-frontend/node_modules/.cache/default-development/7.pack
-frontend/node_modules/.cache/default-development/9.pack
-frontend/node_modules/.cache/default-development/10.pack
-frontend/node_modules/.cache/default-development/11.pack
--e 
-frontend/node_modules/.cache/default-development/12.pack
-frontend/node_modules/.cache/default-development/15.pack
--e 
-# Environment files - DO NOT IGNORE for Emergent deployment
-frontend/node_modules/.cache/default-development/13.pack
-frontend/node_modules/.cache/default-development/18.pack
--e 
-# Environment files - SECURITY: Never commit secrets
-.env
-.env.local
-.env.development
-.env.production
-backend/.env
-frontend/.env
+android-sdk/
 
-# Allow example env files
-!*.env.example
-!backend/.env.example
-!frontend/.env.example
-
-# Twilio credentials
+# Firebase and sensitive credentials
+backend/firebase-service-account.json
+firebase-service-account.json
+*token.json*
+*credentials.json*
 *TWILIO*
 *twilio*
-
-# API Keys and Secrets
 *SECRET*
 *TOKEN*
 *CREDENTIALS*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
 
-# Firebase Service Account (sensitive)
-backend/firebase-service-account.json
-firebase-service-account.json
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+# Cache files
+frontend/node_modules/.cache/
+frontend/node_modules/.cache/default-development/10.pack
+frontend/node_modules/.cache/default-development/0.pack
