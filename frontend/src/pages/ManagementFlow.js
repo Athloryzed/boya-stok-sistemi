@@ -176,11 +176,40 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const handleLogin = () => {
     if (password === MANAGEMENT_PASSWORD) {
+      const newManagerId = `manager_${Date.now()}`;
       setAuthenticated(true);
+      setManagerId(newManagerId);
+      
+      // 1 günlük oturum kaydet
+      const session = {
+        expiry: new Date().getTime() + 24 * 60 * 60 * 1000, // 24 saat
+        managerId: newManagerId
+      };
+      localStorage.setItem("management_session", JSON.stringify(session));
+      
+      // Manager'ı backend'e kaydet (bildirim için)
+      registerManager(newManagerId);
+      
       toast.success("Giriş başarılı!");
     } else {
       toast.error("Yanlış şifre!");
     }
+  };
+  
+  const registerManager = async (mgrId) => {
+    try {
+      await axios.post(`${API}/managers/register`, { manager_id: mgrId });
+    } catch (error) {
+      console.error("Manager register error:", error);
+    }
+  };
+
+  // Logout fonksiyonu
+  const handleLogout = () => {
+    localStorage.removeItem("management_session");
+    setAuthenticated(false);
+    setManagerId(null);
+    toast.success("Çıkış yapıldı");
   };
 
   // Kullanıcı yönetimi fonksiyonları
