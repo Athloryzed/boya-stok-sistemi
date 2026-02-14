@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
+import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 
 const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
