@@ -229,10 +229,48 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     wsRef.current = ws;
   }, [authenticated, managerId]);
 
-  // Bildirim izni iste
+  // FCM Token kaydı ve bildirim izni
   useEffect(() => {
-    if (authenticated && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+    const setupFCM = async () => {
+      if (authenticated) {
+        try {
+          const token = await requestNotificationPermission();
+          if (token) {
+            // Token'ı backend'e kaydet
+            await axios.post(`${API}/notifications/register-token`, {
+              token: token,
+              user_type: "manager",
+              user_id: managerId
+            });
+            console.log("FCM token registered");
+          }
+        } catch (error) {
+          console.error("FCM setup error:", error);
+        }
+      }
+    };
+    
+    setupFCM();
+  }, [authenticated, managerId]);
+
+  // Foreground mesajları dinle
+  useEffect(() => {
+    if (authenticated) {
+      const unsubscribe = onMessageListener().then((payload) => {
+        if (payload) {
+          toast.success(payload.notification?.body || "Yeni bildirim", {
+            duration: 10000,
+            icon: "🔔"
+          });
+          fetchData();
+        }
+      });
+      
+      return () => {
+        if (unsubscribe && typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
     }
   }, [authenticated]);
 
