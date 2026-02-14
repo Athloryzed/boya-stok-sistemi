@@ -235,15 +235,22 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     const setupFCM = async () => {
       if (authenticated) {
         try {
-          const token = await requestNotificationPermission();
-          if (token) {
-            // Token'ı backend'e kaydet
-            await axios.post(`${API}/notifications/register-token`, {
-              token: token,
-              user_type: "manager",
-              user_id: managerId
-            });
-            console.log("FCM token registered");
+          if (isNativePlatform()) {
+            // Android için Capacitor Push Notifications
+            await initializePushNotifications(managerId, "manager");
+            console.log("Native push notifications initialized for manager");
+          } else {
+            // Web için Firebase Web SDK
+            const token = await requestNotificationPermission();
+            if (token) {
+              await axios.post(`${API}/notifications/register-token`, {
+                token: token,
+                user_type: "manager",
+                user_id: managerId,
+                platform: "web"
+              });
+              console.log("FCM token registered");
+            }
           }
         } catch (error) {
           console.error("FCM setup error:", error);
