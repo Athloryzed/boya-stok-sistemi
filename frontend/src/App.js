@@ -14,6 +14,17 @@ import { Toaster } from "./components/ui/sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
+// Firebase Service Worker kaydı
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then((registration) => {
+      console.log('Firebase SW registered:', registration.scope);
+    })
+    .catch((error) => {
+      console.log('Firebase SW registration failed:', error);
+    });
+}
+
 // Ziyaretçi takip bileşeni
 function VisitorTracker() {
   const location = useLocation();
