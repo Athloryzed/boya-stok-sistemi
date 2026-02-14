@@ -112,14 +112,22 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     const setupFCM = async () => {
       if (authenticated && userData) {
         try {
-          const token = await requestNotificationPermission();
-          if (token) {
-            await axios.post(`${API}/notifications/register-token`, {
-              token: token,
-              user_type: "plan",
-              user_id: userData.id
-            });
-            console.log("Plan FCM token registered");
+          if (isNativePlatform()) {
+            // Android için Capacitor Push Notifications
+            await initializePushNotifications(userData.id, "plan");
+            console.log("Native push notifications initialized for plan");
+          } else {
+            // Web için Firebase Web SDK
+            const token = await requestNotificationPermission();
+            if (token) {
+              await axios.post(`${API}/notifications/register-token`, {
+                token: token,
+                user_type: "plan",
+                user_id: userData.id,
+                platform: "web"
+              });
+              console.log("Plan FCM token registered");
+            }
           }
         } catch (error) {
           console.error("FCM setup error:", error);
