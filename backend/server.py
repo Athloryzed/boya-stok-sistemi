@@ -2776,6 +2776,46 @@ async def register_manager(data: dict = Body(...)):
     logging.info(f"Manager registered: {manager_id}")
     return {"status": "registered", "manager_id": manager_id}
 
+# FCM Token kaydetme endpoint
+@api_router.post("/notifications/register-token")
+async def register_fcm_token(data: dict = Body(...)):
+    """FCM token'ı kaydet"""
+    token = data.get("token")
+    user_type = data.get("user_type", "manager")  # manager, operator, plan
+    user_id = data.get("user_id", "")
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    
+    await db.fcm_tokens.update_one(
+        {"token": token},
+        {"$set": {
+            "token": token,
+            "user_type": user_type,
+            "user_id": user_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    logging.info(f"FCM token registered for {user_type}: {token[:20]}...")
+    return {"status": "registered"}
+
+# Tüm yöneticilere bildirim gönderme (internal function)
+async def send_notification_to_managers(title: str, body: str, data: dict = None):
+    """Tüm kayıtlı yöneticilere FCM bildirimi gönder"""
+    try:
+        # Yönetici token'larını al
+        tokens_cursor = db.fcm_tokens.find({"user_type": "manager"}, {"token": 1, "_id": 0})
+        tokens = [doc["token"] async for doc in tokens_cursor]
+        
+        if tokens:
+            await send_fcm_notification(tokens, title, body, data)
+            logging.info(f"Notification sent to {len(tokens)} managers")
+        else:
+            logging.warning("No manager FCM tokens found")
+    except Exception as e:
+        logging.error(f"Error sending notification to managers: {e}")
+
 app.include_router(api_router)
 
 # WebSocket endpoint - Yönetici bildirimleri için
