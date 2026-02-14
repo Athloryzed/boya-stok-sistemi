@@ -167,6 +167,90 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // WebSocket bağlantısı - Yönetici bildirimleri için
+  const connectWebSocket = useCallback((mgrId) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    
+    const wsUrl = API.replace('https://', 'wss://').replace('http://', 'ws://');
+    const ws = new WebSocket(`${wsUrl}/ws/manager/${mgrId}`);
+    
+    ws.onopen = () => {
+      console.log("Manager WebSocket connected");
+      // Ping gönder (bağlantıyı canlı tut)
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send("ping");
+        }
+      }, 30000);
+      ws.pingInterval = pingInterval;
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "job_completed") {
+          // Bildirim göster
+          toast.success(data.message, {
+            duration: 10000,
+            icon: "✅",
+            style: { whiteSpace: "pre-line" }
+          });
+          
+          // Tarayıcı bildirimi (izin varsa)
+          if (Notification.permission === "granted") {
+            new Notification("İş Tamamlandı!", {
+              body: `${data.job_name} - ${data.machine_name}\nKoli: ${data.completed_koli}`,
+              icon: "/logo192.png"
+            });
+          }
+          
+          // Verileri yenile
+          fetchData();
+        }
+      } catch (e) {
+        // JSON değilse (pong gibi) yoksay
+      }
+    };
+    
+    ws.onclose = () => {
+      console.log("Manager WebSocket disconnected");
+      if (ws.pingInterval) clearInterval(ws.pingInterval);
+      // Yeniden bağlan
+      if (authenticated && managerId) {
+        reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(mgrId), 3000);
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error("Manager WebSocket error:", error);
+    };
+    
+    wsRef.current = ws;
+  }, [authenticated, managerId]);
+
+  // Bildirim izni iste
+  useEffect(() => {
+    if (authenticated && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [authenticated]);
+
+  // WebSocket bağlantısını yönet
+  useEffect(() => {
+    if (authenticated && managerId) {
+      connectWebSocket(managerId);
+    }
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [authenticated, managerId, connectWebSocket]);
+
   useEffect(() => {
     if (authenticated) {
       fetchData();
