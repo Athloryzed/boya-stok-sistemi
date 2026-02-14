@@ -393,6 +393,22 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setOperatorName(user.display_name || user.username);
       localStorage.setItem("operator_session", JSON.stringify(user));
       toast.success("Giriş başarılı!");
+      
+      // FCM Token kaydı (push bildirimleri için)
+      try {
+        const fcmToken = await requestFCMPermission();
+        if (fcmToken) {
+          await axios.post(`${API}/notifications/register-token`, {
+            token: fcmToken,
+            user_type: "operator",
+            user_id: user.id
+          });
+          console.log("Operator FCM token registered");
+        }
+      } catch (fcmError) {
+        console.error("FCM setup error:", fcmError);
+      }
+      
       setStep(2);
     } catch (error) {
       toast.error(error.response?.data?.detail || "Giriş başarısız");
