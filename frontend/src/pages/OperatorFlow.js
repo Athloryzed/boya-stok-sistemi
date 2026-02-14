@@ -113,6 +113,20 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
           } else {
             setStep(2);
           }
+          
+          // FCM Token kaydı (oturum varsa)
+          try {
+            const fcmToken = await requestFCMPermission();
+            if (fcmToken) {
+              await axios.post(`${API}/notifications/register-token`, {
+                token: fcmToken,
+                user_type: "operator",
+                user_id: session.id
+              });
+            }
+          } catch (fcmError) {
+            console.error("FCM setup error:", fcmError);
+          }
         } catch (e) {
           localStorage.removeItem("operator_session");
         }
@@ -123,6 +137,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     checkSession();
    
   }, []);
+
+  // FCM Foreground mesaj dinleyici
+  useEffect(() => {
+    if (userData) {
+      onMessageListener().then((payload) => {
+        if (payload) {
+          toast.success(payload.notification?.body || "Yeni bildirim", {
+            duration: 8000,
+            icon: "🔔"
+          });
+          // Mesajları ve işleri yenile
+          if (selectedMachine) {
+            fetchMessages();
+            fetchJobs();
+          }
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData, selectedMachine]);
 
   useEffect(() => {
     if (selectedMachine) {
