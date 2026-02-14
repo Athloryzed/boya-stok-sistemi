@@ -1715,11 +1715,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
         {/* İŞ DÜZENLEME DIALOG */}
         <Dialog open={isEditJobOpen} onOpenChange={setIsEditJobOpen}>
-          <DialogContent className="bg-surface border-border">
+          <DialogContent className="bg-surface border-border max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-heading">İş Düzenle</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
               <div>
                 <Label className="text-text-primary">İş Adı *</Label>
                 <Input
