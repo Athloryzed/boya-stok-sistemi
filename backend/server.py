@@ -2132,6 +2132,17 @@ async def send_message(data: dict = Body(...)):
         }
     })
     
+    # FCM Push Bildirimi gönder (operatörlere)
+    try:
+        await send_notification_to_operators(
+            machine_id=machine_id,
+            title=f"📩 Yeni Mesaj - {sender_name}",
+            body=message_text[:100],
+            data={"type": "new_message", "machine_id": machine_id}
+        )
+    except Exception as e:
+        logging.error(f"FCM notification error for message: {e}")
+    
     return message
 
 @api_router.get("/messages/{machine_id}")
