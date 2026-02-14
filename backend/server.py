@@ -2684,6 +2684,40 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
 
 app.include_router(api_router)
 
+# Yönetici kaydı endpoint
+@api_router.post("/managers/register")
+async def register_manager(data: dict = Body(...)):
+    """Yöneticiyi bildirim için kaydet"""
+    manager_id = data.get("manager_id")
+    if not manager_id:
+        raise HTTPException(status_code=400, detail="manager_id required")
+    
+    # Yönetici kaydını veritabanına ekle (opsiyonel, aktif bağlantılar ws üzerinden takip ediliyor)
+    await db.active_managers.update_one(
+        {"manager_id": manager_id},
+        {"$set": {"manager_id": manager_id, "registered_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    logging.info(f"Manager registered: {manager_id}")
+    return {"status": "registered", "manager_id": manager_id}
+
+# WebSocket endpoint - Yönetici bildirimleri için
+@app.websocket("/ws/manager/{manager_id}")
+async def manager_websocket(websocket: WebSocket, manager_id: str):
+    await manager_ws.connect(websocket, manager_id)
+    logging.info(f"Manager WebSocket connected: {manager_id}")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager_ws.disconnect(manager_id)
+        logging.info(f"Manager WebSocket disconnected: {manager_id}")
+    except Exception as e:
+        logging.error(f"Manager WebSocket error: {e}")
+        manager_ws.disconnect(manager_id)
+
 # WebSocket endpoint - Depo bildirimleri için
 @app.websocket("/ws/warehouse")
 async def warehouse_websocket(websocket: WebSocket):
