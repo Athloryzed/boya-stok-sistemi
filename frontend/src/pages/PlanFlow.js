@@ -1542,14 +1542,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Tabs>
 
         <Dialog open={isCloneDialogOpen} onOpenChange={setIsCloneDialogOpen}>
-          <DialogContent className="bg-surface border-border max-w-2xl">
+          <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-heading">İşi Sıraya Ekle</DialogTitle>
               <DialogDescription className="text-text-secondary">
                 İş bilgilerini düzenleyip sıraya ekleyebilirsiniz.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
               <div>
                 <Label className="text-text-primary">İş Adı *</Label>
                 <Input
