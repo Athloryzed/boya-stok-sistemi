@@ -106,6 +106,20 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       if (savedSession) {
         try {
           const session = JSON.parse(savedSession);
+          
+          // Oturum süresini kontrol et (24 saat)
+          const sessionTime = session.login_time || 0;
+          const now = Date.now();
+          const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
+          
+          if (hoursPassed >= 24) {
+            // Oturum süresi dolmuş
+            localStorage.removeItem("operator_session");
+            await fetchMachinesData();
+            setSessionChecked(true);
+            return;
+          }
+          
           setUserData(session);
           setOperatorName(session.display_name || session.username);
           if (session.machine_id) {
@@ -477,9 +491,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         role: "operator"
       });
       const user = response.data;
+      // 24 saatlik oturum için login zamanını kaydet
+      const sessionData = {
+        ...user,
+        login_time: Date.now()
+      };
       setUserData(user);
       setOperatorName(user.display_name || user.username);
-      localStorage.setItem("operator_session", JSON.stringify(user));
+      localStorage.setItem("operator_session", JSON.stringify(sessionData));
       toast.success("Giriş başarılı!");
       
       // FCM Token kaydı (push bildirimleri için)

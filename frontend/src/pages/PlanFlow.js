@@ -95,14 +95,24 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [selectedJobImage, setSelectedJobImage] = useState(null);
 
-  // Oturum kontrolü
+  // Oturum kontrolü - 24 saatlik kalıcı oturum
   useEffect(() => {
     const savedSession = localStorage.getItem("plan_session");
     if (savedSession) {
       try {
         const session = JSON.parse(savedSession);
-        setUserData(session);
-        setAuthenticated(true);
+        // Oturum süresini kontrol et (24 saat)
+        const sessionTime = session.login_time || 0;
+        const now = Date.now();
+        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
+        
+        if (hoursPassed < 24) {
+          setUserData(session);
+          setAuthenticated(true);
+        } else {
+          // Oturum süresi dolmuş
+          localStorage.removeItem("plan_session");
+        }
       } catch (e) {
         localStorage.removeItem("plan_session");
       }
@@ -487,8 +497,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         role: "plan"
       });
       const user = response.data;
+      // 24 saatlik oturum için login zamanını kaydet
+      const sessionData = {
+        ...user,
+        login_time: Date.now()
+      };
       setUserData(user);
-      localStorage.setItem("plan_session", JSON.stringify(user));
+      localStorage.setItem("plan_session", JSON.stringify(sessionData));
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } catch (error) {
@@ -1025,7 +1040,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     ) : (
                       <div className="relative">
                         <img 
-                          src={`${API.replace('/api', '')}${previewImage}`} 
+                          src={previewImage.startsWith('data:') ? previewImage : (previewImage.startsWith('http') ? previewImage : `${API.replace('/api', '')}${previewImage}`)} 
                           alt="Preview" 
                           className="w-full h-32 object-cover rounded-lg border border-border"
                         />
