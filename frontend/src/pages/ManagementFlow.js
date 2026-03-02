@@ -564,7 +564,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         operator_name: job.operator_name
       });
       toast.success("İşe devam edildi!");
-      fetchData();
+      await fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "İşe devam edilemedi");
     }
