@@ -6,9 +6,6 @@
 
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
-.yarn/install-state.gz
 
 # Testing
 /coverage
@@ -16,19 +13,16 @@ node_modules/
 # Next.js
 /.next/
 /out/
-next-env.d.ts
-*.tsbuildinfo
 
 # Production builds
 /build
 dist/
 
-# Logs and debug files
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-dump.rdb
 
 # System files
 .DS_Store
@@ -40,61 +34,13 @@ __pycache__/
 venv/
 .venv/
 
-# Development tools
-chainlit.md
-.chainlit
-.ipynb_checkpoints/
-
-# Deployment
-.vercel
-
-# Archive files
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
-*.pack
-*.deb
-*.dylib
-
 # Build caches
 .cache/
-frontend/node_modules/.cache/
 
 # Mobile development
 android-sdk/
 
-# Sensitive files - DO NOT COMMIT
+# Sensitive files only
 backend/firebase-service-account.json
-firebase-service-account.json
 frontend/node_modules/.cache/default-development/10.pack
-frontend/node_modules/.cache/default-development/7.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
 frontend/node_modules/.cache/default-development/8.pack
--e 
-# Environment files
-*.env
-*.env.*
