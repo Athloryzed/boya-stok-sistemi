@@ -570,7 +570,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         operator_name: operatorName
       });
       toast.success("İşe devam edildi!");
-      fetchJobs();
+      // Hem jobs hem de machines'i güncelle
+      await fetchJobs();
+      await fetchMachinesData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "İşe devam edilemedi");
     } finally {
