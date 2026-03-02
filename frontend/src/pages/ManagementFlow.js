@@ -929,12 +929,20 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       )}
                       {currentJob && (
                         <div className="mb-3 p-3 bg-success/20 border border-success rounded-md">
-                          <div className="flex justify-between items-start">
-                            <div>
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex-1">
                               <p className="text-sm font-semibold text-text-primary">Aktif İş:</p>
                               <p className="text-sm text-text-secondary">{currentJob.name}</p>
                               <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
                             </div>
+                            {currentJob.image_url && (
+                              <img 
+                                src={currentJob.image_url} 
+                                alt={currentJob.name}
+                                className="w-12 h-12 object-cover rounded border border-success"
+                                onClick={(e) => { e.stopPropagation(); window.open(currentJob.image_url, '_blank'); }}
+                              />
+                            )}
                             <Button 
                               size="sm" 
                               variant="outline"

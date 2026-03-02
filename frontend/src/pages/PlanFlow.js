@@ -62,6 +62,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [palletSearch, setPalletSearch] = useState("");
   const [searchedPallets, setSearchedPallets] = useState([]);
   const [selectedShipmentPallets, setSelectedShipmentPallets] = useState([]);
+  const [duplicateJobWarning, setDuplicateJobWarning] = useState(null); // Aynı isimli iş uyarısı
+  const [editPreviewImage, setEditPreviewImage] = useState(null); // Düzenleme formunda resim önizleme
   
   const [formData, setFormData] = useState({
     name: "",
@@ -556,8 +558,10 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       colors: job.colors,
       format: job.format || "",
       notes: job.notes || "",
-      delivery_date: job.delivery_date || ""
+      delivery_date: job.delivery_date || "",
+      image_url: job.image_url || ""
     });
+    setEditPreviewImage(job.image_url || null);
     setIsEditJobOpen(true);
   };
 
@@ -573,11 +577,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         colors: editFormData.colors,
         format: editFormData.format || null,
         notes: editFormData.notes,
-        delivery_date: editFormData.delivery_date
+        delivery_date: editFormData.delivery_date,
+        image_url: editFormData.image_url || null
       });
       toast.success("İş güncellendi!");
       setIsEditJobOpen(false);
       setJobToEdit(null);
+      setEditPreviewImage(null);
       fetchJobs();
       fetchCompletedJobs();
     } catch (error) {
@@ -595,6 +601,54 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     } catch (error) {
       toast.error("İş silinemedi");
     }
+  };
+
+  // İş adı değiştiğinde aynı isimli iş kontrolü
+  const checkDuplicateJob = (name) => {
+    if (!name || name.trim().length < 2) {
+      setDuplicateJobWarning(null);
+      return;
+    }
+    const existingJob = jobs.find(j => 
+      j.name.toLowerCase().trim() === name.toLowerCase().trim() && 
+      j.status !== "completed"
+    );
+    setDuplicateJobWarning(existingJob || null);
+  };
+
+  // Mevcut işi forma yükle
+  const loadExistingJob = (job) => {
+    setFormData({
+      name: job.name,
+      koli_count: job.koli_count.toString(),
+      colors: job.colors,
+      machine_id: job.machine_id,
+      format: job.format || "",
+      notes: job.notes || "",
+      delivery_date: job.delivery_date || "",
+      delivery_address: job.delivery_address || "",
+      delivery_phone: job.delivery_phone || "",
+      image_url: job.image_url || ""
+    });
+    if (job.image_url) {
+      setPreviewImage(job.image_url);
+    }
+    setDuplicateJobWarning(null);
+    // Dialog'u kapat ve düzenleme moduna geç
+    setIsDialogOpen(false);
+    setEditingJob(job);
+    setEditFormData({
+      name: job.name,
+      koli_count: job.koli_count.toString(),
+      colors: job.colors,
+      machine_id: job.machine_id,
+      format: job.format || "",
+      notes: job.notes || "",
+      delivery_date: job.delivery_date || "",
+      image_url: job.image_url || ""
+    });
+    setEditPreviewImage(job.image_url || null);
+    setIsEditJobOpen(true);
   };
 
   const handleAddJob = async () => {
@@ -834,9 +888,28 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   <Input
                     data-testid="job-name-input"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, name: e.target.value});
+                      checkDuplicateJob(e.target.value);
+                    }}
                     className="bg-background border-border text-text-primary"
                   />
+                  {duplicateJobWarning && (
+                    <div 
+                      className="mt-2 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg cursor-pointer hover:bg-yellow-500/30 transition-colors"
+                      onClick={() => loadExistingJob(duplicateJobWarning)}
+                    >
+                      <p className="text-yellow-500 text-sm font-medium">
+                        ⚠️ "{duplicateJobWarning.name}" adında bir iş zaten mevcut!
+                      </p>
+                      <p className="text-yellow-400 text-xs mt-1">
+                        Makine: {duplicateJobWarning.machine_name} | Durum: {duplicateJobWarning.status === "pending" ? "Bekliyor" : duplicateJobWarning.status === "in_progress" ? "Devam Ediyor" : duplicateJobWarning.status}
+                      </p>
+                      <p className="text-yellow-300 text-xs mt-1 underline">
+                        👆 Düzenlemek için tıklayın
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-text-primary">Koli Sayısı *</Label>
@@ -1807,6 +1880,52 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   onChange={(e) => setEditFormData({...editFormData, delivery_date: e.target.value})}
                   className="bg-background border-border text-text-primary"
                 />
+              </div>
+              <div>
+                <Label className="text-text-primary">İş Görseli</Label>
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const formDataUpload = new FormData();
+                        formDataUpload.append("file", file);
+                        try {
+                          const res = await axios.post(`${API}/upload/image`, formDataUpload);
+                          setEditFormData({...editFormData, image_url: res.data.url});
+                          setEditPreviewImage(res.data.url);
+                          toast.success("Görsel yüklendi!");
+                        } catch (err) {
+                          toast.error("Görsel yüklenemedi");
+                        }
+                      }
+                    }}
+                    className="bg-background border-border text-text-primary"
+                  />
+                  {editPreviewImage && (
+                    <div className="relative">
+                      <img 
+                        src={editPreviewImage} 
+                        alt="Önizleme" 
+                        className="w-full h-32 object-cover rounded-lg border border-border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1"
+                        onClick={() => {
+                          setEditFormData({...editFormData, image_url: ""});
+                          setEditPreviewImage(null);
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
               <Button
                 data-testid="submit-edit-button"

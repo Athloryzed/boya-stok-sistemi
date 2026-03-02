@@ -971,21 +971,34 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-start">
-                    <div>
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
                       <h3 className="text-2xl font-heading font-bold text-text-primary">{currentJobOnMachine.name}</h3>
                       <p className="text-text-secondary">Koli: {currentJobOnMachine.koli_count}</p>
                       <p className="text-text-secondary">Renkler: {currentJobOnMachine.colors}</p>
                       {currentJobOnMachine.format && <p className="text-text-secondary">Format: {currentJobOnMachine.format}</p>}
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={() => openPauseDialog(currentJobOnMachine)} disabled={loading} variant="outline" className="border-warning text-warning hover:bg-warning/20">
-                        <Pause className="mr-2 h-4 w-4" /> Durdur
-                      </Button>
-                      <Button onClick={() => handleCompleteJob(currentJobOnMachine)} disabled={loading} className="bg-success text-white hover:bg-success/90">
-                        <CheckCircle className="mr-2 h-4 w-4" /> Tamamla
-                      </Button>
-                    </div>
+                    {currentJobOnMachine.image_url && (
+                      <div 
+                        className="cursor-pointer flex-shrink-0"
+                        onClick={() => window.open(currentJobOnMachine.image_url, '_blank')}
+                      >
+                        <img 
+                          src={currentJobOnMachine.image_url} 
+                          alt={currentJobOnMachine.name}
+                          className="w-24 h-24 object-cover rounded-lg border-2 border-success hover:opacity-80 transition-opacity"
+                        />
+                        <p className="text-xs text-center text-success mt-1">Görseli Aç</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={() => openPauseDialog(currentJobOnMachine)} disabled={loading} variant="outline" className="border-warning text-warning hover:bg-warning/20">
+                      <Pause className="mr-2 h-4 w-4" /> Durdur
+                    </Button>
+                    <Button onClick={() => handleCompleteJob(currentJobOnMachine)} disabled={loading} className="bg-success text-white hover:bg-success/90">
+                      <CheckCircle className="mr-2 h-4 w-4" /> Tamamla
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
