@@ -58,6 +58,27 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [selectedMachine, setSelectedMachine] = useState("");
   const [note, setNote] = useState("");
 
+  // Oturum kontrolü - 24 saatlik kalıcı oturum
+  useEffect(() => {
+    const savedSession = localStorage.getItem("paint_session");
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        const sessionTime = session.login_time || 0;
+        const now = Date.now();
+        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
+        
+        if (hoursPassed < 24) {
+          setAuthenticated(true);
+        } else {
+          localStorage.removeItem("paint_session");
+        }
+      } catch (e) {
+        localStorage.removeItem("paint_session");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (authenticated) {
       fetchData();
@@ -93,6 +114,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
 
   const handleLogin = () => {
     if (password === "buse11993") {
+      // 24 saatlik oturum için login zamanını kaydet
+      localStorage.setItem("paint_session", JSON.stringify({ login_time: Date.now() }));
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } else {
