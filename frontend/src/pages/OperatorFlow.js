@@ -379,10 +379,29 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const fetchJobs = async () => {
+    if (!selectedMachine) return;
     try {
-      const response = await axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`);
-      setJobs(response.data);
+      // Hem makineye ait işleri hem de durdurulmuş tüm işleri getir
+      const [machineJobsRes, pausedJobsRes] = await Promise.all([
+        axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`),
+        axios.get(`${API}/jobs/paused`)
+      ]);
+      
+      // Makine işleri ve bu makinedeki durdurulmuş işleri birleştir
+      const machineJobs = machineJobsRes.data;
+      const pausedJobs = pausedJobsRes.data.filter(j => j.machine_id === selectedMachine.id);
+      
+      // Duplicate'leri önle
+      const allJobs = [...machineJobs];
+      pausedJobs.forEach(pj => {
+        if (!allJobs.find(j => j.id === pj.id)) {
+          allJobs.push(pj);
+        }
+      });
+      
+      setJobs(allJobs);
     } catch (error) {
+      console.error("Jobs fetch error:", error);
       toast.error("İşler yüklenemedi");
     }
   };
