@@ -1385,7 +1385,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                               onClick={() => openImagePreview(job.image_url)}
                             >
                               <img 
-                                src={job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
+                                src={job.image_url.startsWith('data:') ? job.image_url : (job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`)}
                                 alt={job.name}
                                 className="w-32 h-24 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
                               />
