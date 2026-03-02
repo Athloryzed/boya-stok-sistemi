@@ -64,16 +64,8 @@ frontend/node_modules/.cache/
 # Mobile development
 android-sdk/
 
-# Firebase service account (sensitive - use GitHub secrets)
+# Sensitive files - DO NOT COMMIT
 backend/firebase-service-account.json
 firebase-service-account.json
 frontend/node_modules/.cache/default-development/10.pack
 frontend/node_modules/.cache/default-development/7.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
