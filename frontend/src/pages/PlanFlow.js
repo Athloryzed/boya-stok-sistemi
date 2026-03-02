@@ -168,6 +168,25 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated]);
 
+  // Geçen gün sayısını hesapla
+  const calculateDaysElapsed = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Geçen gün rengini belirle
+  const getDaysElapsedColor = (days) => {
+    if (days === null) return "text-text-secondary";
+    if (days <= 2) return "text-green-500";
+    if (days <= 5) return "text-yellow-500";
+    if (days <= 10) return "text-orange-500";
+    return "text-red-500";
+  };
+
   useEffect(() => {
     if (authenticated) {
       fetchMachines();
@@ -1478,7 +1497,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
+                          <div className="flex items-center gap-3 mb-3 flex-wrap">
                             <h3 className="text-xl font-heading font-bold text-text-primary">
                               {job.name}
                             </h3>
@@ -1496,6 +1515,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             >
                               {job.status === "in_progress" ? "Devam Ediyor" : job.status === "paused" ? "Duraklatıldı" : "Bekliyor"}
                             </span>
+                            {/* Geçen Gün Sayısı */}
+                            {job.queued_at && (
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(job.queued_at))}`}>
+                                📅 {calculateDaysElapsed(job.queued_at)} gün
+                              </span>
+                            )}
                           </div>
                           {/* İş Resmi Thumbnail */}
                           {job.image_url && (

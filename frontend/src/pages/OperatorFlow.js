@@ -15,6 +15,25 @@ import { requestNotificationPermission, showNotification, registerServiceWorker 
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 
+// Geçen gün sayısını hesapla
+const calculateDaysElapsed = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Geçen gün rengini belirle
+const getDaysElapsedColor = (days) => {
+  if (days === null) return "text-text-secondary";
+  if (days <= 2) return "text-green-500";
+  if (days <= 5) return "text-yellow-500";
+  if (days <= 10) return "text-orange-500";
+  return "text-red-500";
+};
+
 const OperatorFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -1103,9 +1122,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                               <span className="text-xs text-text-secondary mt-1">#{index + 1}</span>
                             </div>
                             <div>
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="text-xl font-heading font-bold text-text-primary">{job.name}</h3>
                                 {job.format && <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">{job.format}</span>}
+                                {job.queued_at && (
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(job.queued_at))}`}>
+                                    📅 {calculateDaysElapsed(job.queued_at)}g
+                                  </span>
+                                )}
                                 {job.remaining_koli > 0 && job.remaining_koli < job.koli_count && (
                                   <span className="px-2 py-1 bg-warning/20 text-warning text-xs font-bold rounded">DEVAM</span>
                                 )}

@@ -26,6 +26,25 @@ const PAINT_COLORS = {
 const LOW_STOCK_THRESHOLD = 5;
 const MANAGEMENT_PASSWORD = "buse11993";
 
+// Geçen gün sayısını hesapla
+const calculateDaysElapsed = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Geçen gün rengini belirle
+const getDaysElapsedColor = (days) => {
+  if (days === null) return "text-text-secondary";
+  if (days <= 2) return "text-green-500";
+  if (days <= 5) return "text-yellow-500";
+  if (days <= 10) return "text-orange-500";
+  return "text-red-500";
+};
+
 const ManagementFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
@@ -931,7 +950,19 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         <div className="mb-3 p-3 bg-success/20 border border-success rounded-md">
                           <div className="flex justify-between items-start gap-2">
                             <div className="flex-1">
-                              <p className="text-sm font-semibold text-text-primary">Aktif İş:</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-semibold text-text-primary">Aktif İş:</p>
+                                {currentJob.format && (
+                                  <span className="px-1 py-0.5 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                                    {currentJob.format}
+                                  </span>
+                                )}
+                                {currentJob.queued_at && (
+                                  <span className={`text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(currentJob.queued_at))}`}>
+                                    📅 {calculateDaysElapsed(currentJob.queued_at)}g
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-text-secondary">{currentJob.name}</p>
                               <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
                             </div>
@@ -939,7 +970,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               <img 
                                 src={currentJob.image_url} 
                                 alt={currentJob.name}
-                                className="w-12 h-12 object-cover rounded border border-success"
+                                className="w-12 h-12 object-cover rounded border border-success cursor-pointer"
                                 onClick={(e) => { e.stopPropagation(); window.open(currentJob.image_url, '_blank'); }}
                               />
                             )}
@@ -960,7 +991,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                           <p className="text-sm font-semibold text-warning mb-2">Durdurulmuş:</p>
                           {jobs.filter(j => j.machine_id === machine.id && j.status === "paused").map(pj => (
                             <div key={pj.id} className="flex justify-between items-center text-xs mb-1">
-                              <span className="text-text-secondary">{pj.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-text-secondary">{pj.name}</span>
+                                {pj.format && <span className="text-secondary text-xs">({pj.format})</span>}
+                                {pj.queued_at && (
+                                  <span className={`text-xs ${getDaysElapsedColor(calculateDaysElapsed(pj.queued_at))}`}>
+                                    {calculateDaysElapsed(pj.queued_at)}g
+                                  </span>
+                                )}
+                              </div>
                               <Button 
                                 size="sm" 
                                 variant="ghost"
@@ -975,7 +1014,22 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         </div>
                       )}
                       {upcomingJobs.length > 0 && (
-                        <p className="text-sm font-semibold text-text-primary">Bekleyen İşler: {upcomingJobs.length}</p>
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary mb-2">Bekleyen İşler: {upcomingJobs.length}</p>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {upcomingJobs.slice(0, 5).map(uj => (
+                              <div key={uj.id} className="flex items-center gap-2 text-xs text-text-secondary">
+                                <span>{uj.name}</span>
+                                {uj.format && <span className="text-secondary">({uj.format})</span>}
+                                {uj.queued_at && (
+                                  <span className={`${getDaysElapsedColor(calculateDaysElapsed(uj.queued_at))}`}>
+                                    {calculateDaysElapsed(uj.queued_at)}g
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </CardContent>
                   </Card>

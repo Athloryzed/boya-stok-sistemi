@@ -273,6 +273,7 @@ class Job(BaseModel):
     remaining_koli: int = 0  # Kalan koli (vardiya bitişinde)
     order: int = 0  # Sıra numarası (düşük = öncelikli)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    queued_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())  # Sıraya eklenme tarihi
     # Durdurma bilgileri
     paused_at: Optional[str] = None
     pause_reason: Optional[str] = None
