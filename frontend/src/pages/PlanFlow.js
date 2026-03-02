@@ -615,6 +615,37 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       return;
     }
 
+    // Aynı isimli iş kontrolü
+    const existingJob = jobs.find(j => 
+      j.name.toLowerCase().trim() === formData.name.toLowerCase().trim() && 
+      j.status !== "completed"
+    );
+    
+    if (existingJob) {
+      const confirmAdd = window.confirm(
+        `"${formData.name}" adında bir iş zaten mevcut (${existingJob.machine_name} - ${existingJob.status === "pending" ? "Bekliyor" : existingJob.status === "in_progress" ? "Devam Ediyor" : existingJob.status}).\n\nYine de yeni iş eklemek istiyor musunuz?`
+      );
+      if (!confirmAdd) {
+        // Kullanıcı mevcut işi düzenlemek isteyebilir
+        const editExisting = window.confirm("Mevcut işi düzenlemek ister misiniz?");
+        if (editExisting) {
+          setIsDialogOpen(false);
+          setEditingJob(existingJob);
+          setEditFormData({
+            name: existingJob.name,
+            koli_count: existingJob.koli_count.toString(),
+            colors: existingJob.colors,
+            machine_id: existingJob.machine_id,
+            format: existingJob.format || "",
+            notes: existingJob.notes || "",
+            delivery_date: existingJob.delivery_date || ""
+          });
+          setIsEditJobOpen(true);
+        }
+        return;
+      }
+    }
+
     try {
       await axios.post(`${API}/jobs`, {
         ...formData,
