@@ -1,4 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# See https://help.github.com/articles/ignoring-files/
 
 # IDE and editors
 .idea/
@@ -6,15 +6,9 @@
 
 # Dependencies
 node_modules/
-/node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
 
 # Testing
 /coverage
@@ -28,20 +22,6 @@ next-env.d.ts
 # Production builds
 /build
 dist/
-dist
-
-# Environment files
-.env
-.env.local
-.env.development
-.env.production
-backend/.env
-frontend/.env
-*.env
-*.env.*
-!*.env.example
-!backend/.env.example
-!frontend/.env.example
 
 # Logs and debug files
 npm-debug.log*
@@ -56,7 +36,7 @@ dump.rdb
 
 # Python
 __pycache__/
-*pyc*
+*.pyc
 venv/
 .venv/
 
@@ -64,15 +44,11 @@ venv/
 chainlit.md
 .chainlit
 .ipynb_checkpoints/
-.ac
 
 # Deployment
 .vercel
 
-# Data and databases
-agenthub/agents/youtube/db
-
-# Archive files and large assets
+# Archive files
 **/*.zip
 **/*.tar.gz
 **/*.tar
@@ -83,60 +59,13 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
+frontend/node_modules/.cache/
 
 # Mobile development
 android-sdk/
 
-# Firebase and sensitive credentials
+# Firebase service account (sensitive - use GitHub secrets)
 backend/firebase-service-account.json
 firebase-service-account.json
-*token.json*
-*credentials.json*
-*TWILIO*
-*twilio*
-*SECRET*
-*TOKEN*
-*CREDENTIALS*
-
-# Cache files
-frontend/node_modules/.cache/
 frontend/node_modules/.cache/default-development/10.pack
-frontend/node_modules/.cache/default-development/0.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/1.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/2.pack
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/3.pack
-frontend/node_modules/.cache/default-development/4.pack
-frontend/node_modules/.cache/default-development/6.pack
 frontend/node_modules/.cache/default-development/7.pack
--e 
-# Environment files
-*.env
-*.env.*
