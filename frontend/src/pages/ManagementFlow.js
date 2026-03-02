@@ -488,7 +488,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     const activeJobs = jobs.filter(j => j.status === "in_progress");
     if (activeJobs.length > 0) {
       // Seçenek dialog'unu aç: Operatörlere bildir veya kendim doldur
-      // Önce rapor formunu hazırla
+      // Önce rapor formunu hazırla - tüm makineleri göster, aktif işi olanları işaretle
       const reports = machines.map(m => {
         const activeJob = activeJobs.find(j => j.machine_id === m.id);
         return {
@@ -500,7 +500,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           produced_koli: "",
           defect_kg: ""
         };
-      }).filter(r => r.job_id); // Sadece aktif işi olan makineler
+      });
       setShiftEndReports(reports);
       setIsShiftEndChoiceDialogOpen(true);
     } else {
