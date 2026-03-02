@@ -8,8 +8,9 @@ Bir kağıt fabrikası için tam kapsamlı yönetim sistemi. Yöneticiler, opera
 2. **Automatic APK Updates:** Web güncellemeleri APK içinde otomatik yansımalı
 3. **Firebase Push Notifications:** Uygulama kapalıyken bile çalışan bildirimler
 4. **Persistent Manager Login:** Yöneticiler için 1 günlük oturum süresi
-5. **Job Image Previews:** Plan ekranında iş görsellerinin önizlemesi
+5. **Job Image Previews:** Plan ekranında iş görsellerinin önizlemesi (Base64 - MongoDB'de kalıcı)
 6. **Advanced Shift-End Workflow:** Gelişmiş vardiya sonu rapor akışı
+7. **Duplicate Job Warning:** Aynı isimli iş eklenirken uyarı
 
 ## Technical Architecture
 - **Backend:** FastAPI, Motor (MongoDB async), WebSockets
@@ -17,6 +18,7 @@ Bir kağıt fabrikası için tam kapsamlı yönetim sistemi. Yöneticiler, opera
 - **Database:** MongoDB
 - **3rd Party:** Twilio (SMS), Firebase Cloud Messaging (Push Notifications)
 - **CI/CD:** GitHub Actions (APK build)
+- **Image Storage:** Base64 in MongoDB (persistent)
 
 ## User Roles
 1. **Yönetim (Management):** Tam yetki, vardiya başlatma/bitirme
@@ -24,19 +26,21 @@ Bir kağıt fabrikası için tam kapsamlı yönetim sistemi. Yöneticiler, opera
 3. **Plan (Planning):** İş oluşturma, takip
 
 ## What's Implemented ✅
-- [x] GitHub Actions CI/CD for APK (2026-02-14)
-- [x] Production APK Configuration (2026-02-14)
-- [x] Persistent Manager Session (1-day JWT) (2026-02-14)
-- [x] Firebase Push Notifications (2026-02-14)
-- [x] Advanced Shift-End Workflow (2026-02-14)
-- [x] Job Image Thumbnails on Plan Screen (2026-02-14)
-- [x] Git Secrets Cleanup (firebase-service-account.json removed from history) (2026-02-15)
+- [x] GitHub Actions CI/CD for APK
+- [x] Production APK Configuration
+- [x] Persistent Manager Session (1-day JWT)
+- [x] Firebase Push Notifications (Capacitor for Android)
+- [x] Advanced Shift-End Workflow
+- [x] Job Image Thumbnails (Base64 - persistent)
+- [x] Git Secrets Cleanup
+- [x] Scrollable dialogs for mobile
+- [x] Job pause/resume fix (UI update)
+- [x] Duplicate job name warning
+- [x] Shift end report - all machines shown (2026-03-02)
 
 ## Pending Issues 🔴
-1. **P0:** End-to-end testing for Firebase notifications
-2. **P1:** "White Screen" bug verification on iPhone
-3. **P2:** Management Intervention Bug (managers blocked from editing operator-started jobs)
-4. **P2:** Nested component lint error in ManagementFlow.js
+1. **P1:** Site access issues (user-side, cache/network)
+2. **P2:** Management Intervention Bug
 
 ## Upcoming Tasks 🟡
 - [ ] Full E2E Testing with testing_agent
@@ -44,31 +48,22 @@ Bir kağıt fabrikası için tam kapsamlı yönetim sistemi. Yöneticiler, opera
 
 ## Future Tasks (Backlog) 🔵
 - [ ] Shipment & Driver Module
-- [ ] Daily Analytics Drill-Down (per-machine breakdown)
+- [ ] Daily Analytics Drill-Down
 - [ ] QR/Barcode Scanning
 
 ## Key Files
-- `/app/backend/server.py` - Main backend with FCM logic
+- `/app/backend/server.py` - Main backend with FCM, image upload (Base64)
 - `/app/frontend/src/pages/ManagementFlow.js` - Manager UI
-- `/app/frontend/src/pages/OperatorFlow.js` - Operator UI with shift-end reports
-- `/app/frontend/src/pages/PlanFlow.js` - Planning UI with image thumbnails
-- `/app/.github/workflows/build-android.yml` - APK build workflow
+- `/app/frontend/src/pages/OperatorFlow.js` - Operator UI
+- `/app/frontend/src/pages/PlanFlow.js` - Planning UI
+- `/app/frontend/src/pushNotifications.js` - Capacitor push notifications
 
 ## Database Schema
-- `jobs`: { status, pause_reason, ... }
+- `jobs`: { status, pause_reason, image_url (Base64), ... }
 - `users`: { fcm_tokens: [string], ... }
-- `shifts`: { start_time, end_time, ... }
-
-## API Endpoints
-- `POST /api/fcm-token` - Register FCM token
-- `POST /api/shifts/start` - Start shift (sends notification)
-- `POST /api/shifts/end/notify-operators` - Notify operators for shift end
+- `images`: { id, data (Base64 data URL), ... }
 
 ## Test Credentials
 - Management: `yonetim` / `buse11993`
 - Operator: `ali` / `134679`
-
-## GitHub Secrets Required
-- `FIREBASE_SERVICE_ACCOUNT_KEY` - Firebase Admin SDK credentials
-- `GOOGLE_SERVICES_JSON` - Android Firebase config (optional, has fallback)
-- `BACKEND_URL` - Production backend URL (optional, defaults to busemgmt.emergent.host)
+- Plan: `emrecan` / `testtest12`
