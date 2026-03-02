@@ -609,7 +609,7 @@ async def cleanup_duplicate_machines():
 # Dosya Yükleme Endpoint'i
 @api_router.post("/upload/image")
 async def upload_image(file: UploadFile = File(...)):
-    """Görsel yükle ve URL döndür"""
+    """Görsel yükle ve Base64 olarak MongoDB'ye kaydet"""
     try:
         # Dosya uzantısı kontrolü
         allowed_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
@@ -617,21 +617,46 @@ async def upload_image(file: UploadFile = File(...)):
         if file_ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, jpeg, png, gif, webp)")
         
-        # Benzersiz dosya adı oluştur
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
-        file_path = UPLOADS_DIR / unique_filename
-        
-        # Dosyayı kaydet
+        # Dosya boyutu kontrolü (max 5MB)
         content = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Dosya boyutu 5MB'dan küçük olmalı")
         
-        # URL döndür
+        # Base64'e çevir
+        import base64
+        base64_data = base64.b64encode(content).decode('utf-8')
+        
+        # MIME type belirle
+        mime_types = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".webp": "image/webp"
+        }
+        mime_type = mime_types.get(file_ext, "image/jpeg")
+        
+        # Data URL formatında döndür (direkt img src'de kullanılabilir)
+        data_url = f"data:{mime_type};base64,{base64_data}"
+        
+        # MongoDB'ye kaydet (opsiyonel - gerekirse referans için)
+        image_id = str(uuid.uuid4())
+        await db.images.insert_one({
+            "id": image_id,
+            "filename": file.filename,
+            "mime_type": mime_type,
+            "data": data_url,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
         return {
             "success": True,
-            "filename": unique_filename,
-            "url": f"/uploads/{unique_filename}"
+            "filename": file.filename,
+            "url": data_url,
+            "image_id": image_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
