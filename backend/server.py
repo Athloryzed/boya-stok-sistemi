@@ -1752,13 +1752,7 @@ async def complete_warehouse_request(request_id: str):
     )
     return {"message": "Request completed"}
 
-@api_router.post("/pallets", response_model=PalletScan)
-async def scan_pallet(pallet: PalletScan):
-    doc = pallet.model_dump()
-    await db.pallets.insert_one(doc)
-    return pallet
-
-# Not: get_pallets fonksiyonu aşağıda daha kapsamlı parametrelerle tanımlı
+# scan_pallet fonksiyonu aşağıdaki create_pallet ile birleştirildi
 
 # ==================== BOYA (PAINT) ENDPOINTS ====================
 
@@ -2485,20 +2479,37 @@ async def delete_operator_session(device_id: str):
 
 # ==================== PALET YÖNETİMİ ====================
 
-@api_router.post("/pallets", response_model=Pallet)
+@api_router.post("/pallets")
 async def create_pallet(data: dict = Body(...)):
-    """Yeni palet oluştur/tara"""
-    pallet = Pallet(
-        code=data.get("code"),
-        job_id=data.get("job_id"),
-        job_name=data.get("job_name"),
-        machine_id=data.get("machine_id"),
-        machine_name=data.get("machine_name"),
-        koli_count=data.get("koli_count", 0),
-        operator_name=data.get("operator_name", "")
-    )
-    await db.pallets.insert_one(pallet.model_dump())
-    return pallet
+    """Yeni palet oluştur/tara - hem PalletScan hem Pallet formatını destekler"""
+    # PalletScan formatı (WarehouseFlow - pallet_code kullanır)
+    pallet_code = data.get("pallet_code") or data.get("code", "")
+    
+    if data.get("machine_id"):
+        # Tam Pallet formatı (machine bilgisi var)
+        pallet = Pallet(
+            code=pallet_code,
+            job_id=data.get("job_id", ""),
+            job_name=data.get("job_name", ""),
+            machine_id=data.get("machine_id", ""),
+            machine_name=data.get("machine_name", ""),
+            koli_count=data.get("koli_count", 0),
+            operator_name=data.get("operator_name", "")
+        )
+        doc = pallet.model_dump()
+        await db.pallets.insert_one(doc)
+        return {k: v for k, v in doc.items() if k != "_id"}
+    else:
+        # PalletScan formatı (basit tarama)
+        scan = PalletScan(
+            pallet_code=pallet_code,
+            job_id=data.get("job_id", "unknown"),
+            job_name=data.get("job_name", ""),
+            operator_name=data.get("operator_name", "")
+        )
+        doc = scan.model_dump()
+        await db.pallets.insert_one(doc)
+        return {k: v for k, v in doc.items() if k != "_id"}
 
 @api_router.get("/pallets")
 async def get_pallets(job_id: Optional[str] = None, status: Optional[str] = None):
@@ -2975,7 +2986,7 @@ async def send_notification_to_all_workers(title: str, body: str, data: dict = N
 app.include_router(api_router)
 
 # WebSocket endpoint - Yönetici bildirimleri için
-@app.websocket("/ws/manager/{manager_id}")
+@app.websocket("/api/ws/manager/{manager_id}")
 async def manager_websocket(websocket: WebSocket, manager_id: str):
     await manager_ws.connect(websocket, manager_id)
     logging.info(f"Manager WebSocket connected: {manager_id}")
@@ -2992,7 +3003,7 @@ async def manager_websocket(websocket: WebSocket, manager_id: str):
         manager_ws.disconnect(manager_id)
 
 # WebSocket endpoint - Depo bildirimleri için
-@app.websocket("/ws/warehouse")
+@app.websocket("/api/ws/warehouse")
 async def warehouse_websocket(websocket: WebSocket):
     await manager.connect(websocket)
     try:
@@ -3008,7 +3019,7 @@ async def warehouse_websocket(websocket: WebSocket):
         manager.disconnect(websocket)
 
 # WebSocket endpoint - Operatör bildirimleri için
-@app.websocket("/ws/operator/{machine_id}")
+@app.websocket("/api/ws/operator/{machine_id}")
 async def operator_websocket(websocket: WebSocket, machine_id: str):
     await manager.connect(websocket)
     logging.info(f"Operator WebSocket connected for machine: {machine_id}")

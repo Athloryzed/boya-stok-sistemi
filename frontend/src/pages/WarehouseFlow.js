@@ -85,7 +85,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     // WebSocket URL'ini environment variable'dan türet
     const apiUrl = new URL(API);
     const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${apiUrl.host}/ws/warehouse`;
+    const wsUrl = `${wsProtocol}//${apiUrl.host}/api/ws/warehouse`;
     
     console.log("Connecting to WebSocket:", wsUrl);
     

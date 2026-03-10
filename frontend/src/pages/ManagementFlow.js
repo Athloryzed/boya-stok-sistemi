@@ -992,14 +992,34 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 onClick={(e) => { e.stopPropagation(); window.open(currentJob.image_url, '_blank'); }}
                               />
                             )}
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={(e) => { e.stopPropagation(); openPauseDialog(currentJob); }}
-                              className="border-warning text-warning hover:bg-warning/20 text-xs"
-                            >
-                              <Pause className="h-3 w-3 mr-1" /> Durdur
-                            </Button>
+                            <div className="flex flex-col gap-1">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                data-testid={`complete-job-${currentJob.id}`}
+                                onClick={(e) => { e.stopPropagation(); handleCompleteJob(currentJob); }}
+                                className="bg-success text-white hover:bg-success/90 text-xs"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" /> Tamamla
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                data-testid={`edit-job-${currentJob.id}`}
+                                onClick={(e) => { e.stopPropagation(); openEditJob(currentJob); }}
+                                className="border-blue-500 text-blue-500 hover:bg-blue-500/20 text-xs"
+                              >
+                                <Edit className="h-3 w-3 mr-1" /> Düzenle
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); openPauseDialog(currentJob); }}
+                                className="border-warning text-warning hover:bg-warning/20 text-xs"
+                              >
+                                <Pause className="h-3 w-3 mr-1" /> Durdur
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       )}

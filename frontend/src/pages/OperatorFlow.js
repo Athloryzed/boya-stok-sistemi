@@ -288,7 +288,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = API.replace('https://', '').replace('http://', '').replace('/api', '');
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/operator/${selectedMachine.id}`;
+    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/operator/${selectedMachine.id}`;
     
     let ws;
     try {
