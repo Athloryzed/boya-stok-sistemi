@@ -137,7 +137,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      // İlk yükleme - sadece kritik veriler (hızlı yükleme)
+      // Sadece kritik veriler - hızlı ve sık güncelle
       const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
@@ -153,9 +153,6 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setMachines(uniqueMachines);
       setJobs(jobsRes.data);
       setShiftStatus(shiftStatusRes.data);
-      
-      // İkincil veriler - arka planda yükle (UI bloklamaz)
-      fetchSecondaryData();
     } catch (error) {
       toast.error("Veri alınamadı");
     }
@@ -335,8 +332,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   useEffect(() => {
     if (authenticated) {
       fetchData();
-      const interval = setInterval(fetchData, 30000); // 30 saniyede bir güncelle (performans için)
-      return () => clearInterval(interval);
+      fetchSecondaryData(); // İlk yüklemede ikincil verileri de al
+      const primaryInterval = setInterval(fetchData, 30000); // 30 saniyede bir kritik veriler
+      const secondaryInterval = setInterval(fetchSecondaryData, 120000); // 2 dakikada bir ikincil veriler
+      return () => {
+        clearInterval(primaryInterval);
+        clearInterval(secondaryInterval);
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset]);
