@@ -85,7 +85,6 @@ jobs:
           }
           GSEOF
           echo "google-services.json created successfully"
-          cat google-services.json
 
       - name: Create Firebase Service Account (for backend notifications)
         working-directory: frontend
@@ -95,6 +94,21 @@ jobs:
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > ../backend/firebase-service-account.json
           fi
 
+      - name: Generate Release Keystore
+        working-directory: frontend/android/app
+        run: |
+          keytool -genkeypair \
+            -v \
+            -storetype JKS \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass busekagit2024 \
+            -keypass busekagit2024 \
+            -alias busekagit \
+            -keystore release-keystore.jks \
+            -dname "CN=Buse Kagit, OU=Development, O=Buse Kagit, L=Istanbul, ST=Istanbul, C=TR"
+
       - name: Make Gradle executable
         working-directory: frontend/android
         run: chmod +x ./gradlew
@@ -103,6 +117,14 @@ jobs:
         working-directory: frontend/android
         run: ./gradlew assembleDebug
 
+      - name: Build Signed Release APK
+        working-directory: frontend/android
+        env:
+          KEYSTORE_PASSWORD: busekagit2024
+          KEY_ALIAS: busekagit
+          KEY_PASSWORD: busekagit2024
+        run: ./gradlew assembleRelease
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -110,13 +132,9 @@ jobs:
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Build Release APK (unsigned)
-        working-directory: frontend/android
-        run: ./gradlew assembleRelease
-
-      - name: Upload Release APK
+      - name: Upload Signed Release APK
         uses: actions/upload-artifact@v4
         with:
           name: buse-kagit-release-apk
-          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
