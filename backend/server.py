@@ -700,6 +700,20 @@ async def clone_job(job_id: str, updates: dict = Body(...)):
     return new_job
 
 
+# Batch reorder - MUST be before /jobs/{job_id} to avoid wildcard conflict
+@api_router.put("/jobs/reorder-batch")
+async def reorder_jobs_batch(data: dict = Body(...)):
+    """Birden fazla işin sırasını değiştir"""
+    job_orders = data.get("jobs", [])
+    for item in job_orders:
+        await db.jobs.update_one(
+            {"id": item["job_id"]},
+            {"$set": {"order": item["order"]}}
+        )
+    return {"success": True}
+
+
+
 
 @api_router.put("/jobs/{job_id}", response_model=Job)
 async def update_job(job_id: str, updates: dict = Body(...)):
@@ -901,18 +915,6 @@ async def reorder_job(job_id: str, data: dict = Body(...)):
         {"id": job_id},
         {"$set": {"order": new_order}}
     )
-    return {"success": True}
-
-@api_router.put("/jobs/reorder-batch")
-async def reorder_jobs_batch(data: dict = Body(...)):
-    """Birden fazla işin sırasını değiştir"""
-    job_orders = data.get("jobs", [])  # [{"job_id": "xxx", "order": 1}, ...]
-    
-    for item in job_orders:
-        await db.jobs.update_one(
-            {"id": item["job_id"]},
-            {"$set": {"order": item["order"]}}
-        )
     return {"success": True}
 
 # ==================== YENİ VARDİYA SONU AKIŞI ====================
