@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="24" fill="#09090B"/>
+  <rect x="8" y="8" width="176" height="176" rx="20" fill="#18181B" stroke="#FFBF00" stroke-width="3"/>
+  <text x="96" y="85" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#FFBF00" text-anchor="middle">BK</text>
+  <rect x="36" y="100" width="120" height="4" rx="2" fill="#FFBF00" opacity="0.5"/>
+  <text x="96" y="130" font-family="Arial,sans-serif" font-size="16" font-weight="600" fill="#FAFAFA" text-anchor="middle">KAGIT</text>
+  <rect x="56" y="145" width="80" height="3" rx="1.5" fill="#FFBF00" opacity="0.3"/>
+</svg>

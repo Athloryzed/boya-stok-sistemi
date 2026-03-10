@@ -854,7 +854,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="messages" data-testid="messages-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs py-2">
                   Mesaj
                   {unreadMessagesCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px] badge-bounce">
                       {unreadMessagesCount}
                     </span>
                   )}
@@ -925,13 +925,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           {/* MAKİNELER TAB */}
           <TabsContent value="machines">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {machines.map((machine) => {
+              {machines.map((machine, index) => {
                 const currentJob = jobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
                 const upcomingJobs = jobs.filter(j => j.machine_id === machine.id && j.status === "pending");
                 return (
                   <Card key={machine.id}
-                    className={`bg-surface border-2 cursor-pointer transition-all hover:shadow-lg ${
-                      machine.maintenance ? "border-warning" : machine.status === "working" ? "border-success" : "border-border"
+                    className={`bg-surface border-2 cursor-pointer machine-card-hover animate-fade-up stagger-${index + 1} ${
+                      machine.maintenance ? "border-warning" : machine.status === "working" ? "border-success machine-working" : "border-border"
                     }`}
                     data-testid={`machine-status-${machine.name}`}
                     onClick={() => openMachineDetail(machine)}

@@ -58,9 +58,15 @@ function App() {
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
+    // Enable smooth transition
+    document.documentElement.classList.add('theme-transitioning');
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
-    document.documentElement.className = newTheme;
+    document.documentElement.className = newTheme + ' theme-transitioning';
+    // Remove transition class after animation
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transitioning');
+    }, 350);
   };
 
   useEffect(() => {

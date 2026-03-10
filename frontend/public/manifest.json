@@ -1,17 +1,17 @@
 {
-  "short_name": "Buse Kağıt",
-  "name": "Buse Kağıt Üretim Yönetim Sistemi",
-  "description": "Flekso kağıt fabrikası üretim yönetim ve takip sistemi",
+  "short_name": "Buse Kagit",
+  "name": "Buse Kagit Uretim Yonetim Sistemi",
+  "description": "Flekso kagit fabrikasi uretim yonetim ve takip sistemi",
   "icons": [
     {
       "src": "/logo192.png",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
       "src": "/logo512.png",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
@@ -23,12 +23,5 @@
   "orientation": "any",
   "scope": "/",
   "lang": "tr-TR",
-  "categories": ["business", "productivity"],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "type": "image/png",
-      "sizes": "540x720"
-    }
-  ]
+  "categories": ["business", "productivity"]
 }

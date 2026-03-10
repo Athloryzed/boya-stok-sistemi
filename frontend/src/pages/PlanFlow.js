@@ -1092,18 +1092,18 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         <div className="mb-8">
           <h2 className="text-xl md:text-2xl font-heading font-bold text-text-primary mb-4">Makine Durumları</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-            {machines.map((machine) => {
+            {machines.map((machine, index) => {
               const currentJob = allJobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
               const pendingCount = allJobs.filter(j => j.machine_id === machine.id && j.status === "pending").length;
               
               return (
                 <Card
                   key={machine.id}
-                  className={`bg-surface border cursor-pointer machine-card-hover ${
+                  className={`bg-surface border cursor-pointer machine-card-hover animate-fade-up stagger-${index + 1} ${
                     machine.maintenance
                       ? "border-warning"
                       : currentJob
-                      ? "border-success"
+                      ? "border-success machine-working"
                       : "border-border"
                   }`}
                   onClick={() => {

@@ -42,21 +42,17 @@
         -->
         <title>Buse Kağıt | Üretim Yönetim Sistemi</title>
         
-        <!-- Service Worker - Disabled for iOS compatibility -->
+        <!-- Service Worker - PWA -->
         <script>
-            // Eski Service Worker'ları ve cache'leri temizle
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for (let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
-            }
-            if ('caches' in window) {
-                caches.keys().then(function(names) {
-                    for (let name of names) {
-                        caches.delete(name);
-                    }
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/service-worker.js')
+                        .then(function(reg) {
+                            console.log('SW registered:', reg.scope);
+                        })
+                        .catch(function(err) {
+                            console.log('SW registration failed:', err);
+                        });
                 });
             }
         </script>

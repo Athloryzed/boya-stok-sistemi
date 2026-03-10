@@ -940,9 +940,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               <p className="text-text-secondary mt-2 text-lg">Makine seç</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {machines.map((machine) => (
+              {machines.map((machine, index) => (
                 <Card key={machine.id}
-                  className={`cursor-pointer transition-all ${machine.maintenance ? "opacity-50 border-warning" : "hover:border-secondary border-border"} bg-surface`}
+                  className={`cursor-pointer machine-card-hover animate-fade-up stagger-${index + 1} ${machine.maintenance ? "opacity-50 border-warning" : machine.status === "working" ? "border-success machine-working" : "border-border hover:border-secondary"} bg-surface`}
                   onClick={() => handleMachineSelect(machine)} data-testid={`machine-select-${machine.name}`}>
                   <CardContent className="p-6 text-center">
                     <h3 className="text-lg font-heading font-bold text-text-primary">{machine.name}</h3>
