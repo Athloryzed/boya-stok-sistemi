@@ -320,7 +320,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   useEffect(() => {
     if (authenticated) {
       fetchData();
-      const interval = setInterval(fetchData, 5000);
+      const interval = setInterval(fetchData, 30000); // 30 saniyede bir güncelle (performans için)
       return () => clearInterval(interval);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -965,6 +965,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               </div>
                               <p className="text-sm text-text-secondary">{currentJob.name}</p>
                               <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                              {currentJob.notes && (
+                                <p className="text-xs text-info mt-1">📝 {currentJob.notes}</p>
+                              )}
                             </div>
                             {currentJob.image_url && (
                               <img 

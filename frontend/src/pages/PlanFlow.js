@@ -199,12 +199,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       fetchShipments();
       fetchPallets();
       
-      // Mesajları ve işleri periyodik olarak kontrol et
+      // Mesajları ve işleri periyodik olarak kontrol et (30 saniye - performans için)
       const interval = setInterval(() => {
         fetchIncomingMessages();
         fetchShipments();
         fetchAllJobs(); // Makine durumlarını güncelle
-      }, 10000);
+      }, 30000);
       return () => clearInterval(interval);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

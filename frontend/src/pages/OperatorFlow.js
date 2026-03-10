@@ -231,11 +231,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       fetchJobs();
       fetchMessages();
       
-      // Mesajları her 3 saniyede bir kontrol et
+      // Mesajları her 15 saniyede bir kontrol et (performans için)
       const interval = setInterval(() => {
         fetchMessages();
         fetchUnreadCount();
-      }, 3000);
+      }, 15000);
       
       return () => clearInterval(interval);
     }
@@ -1030,6 +1030,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       </div>
                     )}
                   </div>
+                  {currentJobOnMachine.notes && (
+                    <div className="mt-3 p-2 bg-info/10 border border-info/30 rounded-lg">
+                      <p className="text-sm text-info"><span className="font-semibold">Not:</span> {currentJobOnMachine.notes}</p>
+                    </div>
+                  )}
                   <div className="flex gap-2 mt-4">
                     <Button onClick={() => openPauseDialog(currentJobOnMachine)} disabled={loading} variant="outline" className="border-warning text-warning hover:bg-warning/20">
                       <Pause className="mr-2 h-4 w-4" /> Durdur
