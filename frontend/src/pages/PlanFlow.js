@@ -414,7 +414,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const fetchMachines = async () => {
+  const fetchMachines = async (retryCount = 0) => {
     try {
       const response = await axios.get(`${API}/machines`);
       const uniqueMachines = response.data.reduce((acc, machine) => {
@@ -425,11 +425,15 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       }, []);
       setMachines(uniqueMachines);
     } catch (error) {
-      toast.error("Makineler yüklenemedi");
+      if (retryCount < 3) {
+        setTimeout(() => fetchMachines(retryCount + 1), 2000 * (retryCount + 1));
+      } else {
+        toast.error("Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.");
+      }
     }
   };
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (retryCount = 0) => {
     try {
       const params = new URLSearchParams();
       if (selectedMachine && selectedMachine !== "all") {
@@ -443,7 +447,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       const response = await axios.get(`${API}/jobs?${params.toString()}`);
       setJobs(response.data);
     } catch (error) {
-      toast.error("İşler yüklenemedi");
+      if (retryCount < 3) {
+        setTimeout(() => fetchJobs(retryCount + 1), 2000 * (retryCount + 1));
+      } else {
+        toast.error("İşler yüklenemedi. Lütfen sayfayı yenileyin.");
+      }
     }
   };
 

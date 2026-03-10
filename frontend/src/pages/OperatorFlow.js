@@ -392,7 +392,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const fetchMachinesData = async () => {
+  const fetchMachinesData = async (retryCount = 0) => {
     try {
       const response = await axios.get(`${API}/machines`);
       const uniqueMachines = response.data.reduce((acc, machine) => {
@@ -402,7 +402,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setMachines(uniqueMachines);
       return uniqueMachines;
     } catch (error) {
-      toast.error("Makineler yüklenemedi");
+      if (retryCount < 3) {
+        await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
+        return fetchMachinesData(retryCount + 1);
+      }
+      toast.error("Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.");
       return [];
     }
   };
@@ -411,20 +415,17 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     return fetchMachinesData();
   };
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (retryCount = 0) => {
     if (!selectedMachine) return;
     try {
-      // Hem makineye ait işleri hem de durdurulmuş tüm işleri getir
       const [machineJobsRes, pausedJobsRes] = await Promise.all([
         axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`),
         axios.get(`${API}/jobs/paused`)
       ]);
       
-      // Makine işleri ve bu makinedeki durdurulmuş işleri birleştir
       const machineJobs = machineJobsRes.data;
       const pausedJobs = pausedJobsRes.data.filter(j => j.machine_id === selectedMachine.id);
       
-      // Duplicate'leri önle
       const allJobs = [...machineJobs];
       pausedJobs.forEach(pj => {
         if (!allJobs.find(j => j.id === pj.id)) {
@@ -435,7 +436,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setJobs(allJobs);
     } catch (error) {
       console.error("Jobs fetch error:", error);
-      toast.error("İşler yüklenemedi");
+      if (retryCount < 3) {
+        setTimeout(() => fetchJobs(retryCount + 1), 2000 * (retryCount + 1));
+      } else {
+        toast.error("Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.");
+      }
     }
   };
 

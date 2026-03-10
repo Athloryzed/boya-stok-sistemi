@@ -135,9 +135,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
   });
 
-  const fetchData = async () => {
+  const fetchData = async (retryCount = 0) => {
     try {
-      // Sadece kritik veriler - hızlı ve sık güncelle
       const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
@@ -154,7 +153,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setJobs(jobsRes.data);
       setShiftStatus(shiftStatusRes.data);
     } catch (error) {
-      toast.error("Veri alınamadı");
+      if (retryCount < 3) {
+        setTimeout(() => fetchData(retryCount + 1), 2000 * (retryCount + 1));
+      } else {
+        toast.error("Sunucuya bağlanılamadı. Sayfa yenileniyor...");
+        setTimeout(() => window.location.reload(), 3000);
+      }
     }
   };
   
