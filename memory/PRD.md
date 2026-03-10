@@ -13,17 +13,19 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 7. **Duplicate Job Warning:** Ayni isimli is eklenirken uyari
 
 ## Technical Architecture
-- **Backend:** FastAPI, Motor (MongoDB async), WebSockets
+- **Backend:** FastAPI, Motor (MongoDB async), WebSockets (/api/ws/)
 - **Frontend:** React, TailwindCSS, Shadcn/UI, Capacitor
 - **Database:** MongoDB
 - **3rd Party:** Twilio (SMS), Firebase Cloud Messaging (Push Notifications)
 - **CI/CD:** GitHub Actions (APK build)
 - **Image Storage:** Base64 in MongoDB (persistent)
+- **PWA:** Service Worker with stale-while-revalidate caching
 
 ## User Roles
 1. **Yonetim (Management):** Tam yetki, vardiya baslatma/bitirme
 2. **Operator (Operator):** Is baslatma/bitirme, rapor gonderme
 3. **Plan (Planning):** Is olusturma, takip
+4. **Depo (Warehouse):** Palet tarama, sevkiyat
 
 ## What's Implemented
 - [x] GitHub Actions CI/CD for APK
@@ -36,23 +38,30 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] Scrollable dialogs for mobile
 - [x] Job pause/resume fix (UI update)
 - [x] Duplicate job name warning
-- [x] Shift end report - all machines shown (2026-03-02)
-- [x] Performance optimizations - separated primary/secondary polling (2026-03-10)
-- [x] WebSocket path fix (/api/ws/ prefix for Kubernetes routing) (2026-03-10)
-- [x] Consolidated duplicate pallets endpoint (2026-03-10)
-- [x] Management intervention buttons (Complete/Edit/Pause on machine cards) (2026-03-10)
-- [x] Job age display, notes, format on machine cards (2026-03-10)
+- [x] Shift end report - all machines shown
+- [x] Performance optimizations - separated primary/secondary polling
+- [x] WebSocket path fix (/api/ws/ prefix for Kubernetes routing)
+- [x] Consolidated duplicate pallets endpoint
+- [x] Management intervention buttons (Complete/Edit/Pause on machine cards)
+- [x] Job age display, notes, format on machine cards
 
-## Fixed Issues (2026-03-10)
-- [x] P0: Core job management regression (start/complete/edit) - Backend was working, frontend routing confirmed OK
-- [x] P0: Warehouse pallet endpoint - Duplicate POST /pallets endpoints consolidated
-- [x] P1: WebSocket 403 errors - Paths fixed from /ws/ to /api/ws/ prefix
-- [x] P2: Management intervention - Added Complete/Edit buttons directly on machine cards
-- [x] P1: Performance - Reduced ManagementFlow polling from 20 API calls/30s to 4 calls/30s + 16 calls/120s
+### Fixed Issues (2026-03-10)
+- [x] P0: Core job management regression (start/complete/edit)
+- [x] P0: Warehouse pallet endpoint - duplicate endpoints consolidated
+- [x] P1: WebSocket 403 errors - paths fixed from /ws/ to /api/ws/
+- [x] P2: Management intervention - Added Complete/Edit buttons on machine cards
+- [x] P1: Performance - Reduced polling from 20 calls/30s to 4 calls/30s + 16 calls/120s
+- [x] P0: Dialog centering bug - CSS animation conflicting with transform centering
+- [x] PWA support with Service Worker
+- [x] UI animations (staggered cards, button effects, theme transitions)
+- [x] Cross-platform responsive optimization (Samsung S24, iPad, iPhone, macOS)
+- [x] Dialog scrollability (max-h-[90vh] overflow-y-auto)
+- [x] Touch targets minimum 44px on mobile
+- [x] Tab horizontal scrolling on mobile
+- [x] Warehouse login verified (depo1/depo123)
 
 ## Pending Issues
-1. **P2:** ManagementFlow has large monolithic components that should be broken down
-2. **P3:** React hooks dependency warnings in OperatorFlow, PlanFlow
+None critical.
 
 ## Upcoming Tasks
 - [ ] Shipment & Driver Module (P2)
@@ -61,28 +70,21 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 ## Future Tasks (Backlog)
 - [ ] QR/Barcode Scanning (P3)
 - [ ] Frontend component refactoring (break down monolithic *Flow.js files)
+- [ ] React hooks dependency warnings cleanup
 
 ## Key Files
-- `/app/backend/server.py` - Main backend with FCM, image upload (Base64), WebSocket (/api/ws/)
-- `/app/frontend/src/pages/ManagementFlow.js` - Manager UI with machine cards, analytics tabs
+- `/app/backend/server.py` - Main backend
+- `/app/frontend/src/App.css` - Global animations and responsive CSS
+- `/app/frontend/src/components/ui/dialog.jsx` - Dialog component (fixed centering)
+- `/app/frontend/src/pages/ManagementFlow.js` - Manager UI
 - `/app/frontend/src/pages/OperatorFlow.js` - Operator UI
 - `/app/frontend/src/pages/PlanFlow.js` - Planning UI
-- `/app/frontend/src/pages/WarehouseFlow.js` - Warehouse/Depo UI
-- `/app/frontend/src/pushNotifications.js` - Capacitor push notifications
-
-## Database Schema
-- `jobs`: { status, pause_reason, image_url (Base64), created_at, queued_at, notes, format, ... }
-- `users`: { fcm_tokens: [string], login_time, platform, ... }
-- `pallets`: { id, pallet_code/code, job_id, job_name, operator_name, scanned_at, ... }
+- `/app/frontend/src/pages/WarehouseFlow.js` - Warehouse UI
+- `/app/frontend/public/service-worker.js` - PWA service worker
+- `/app/frontend/public/manifest.json` - PWA manifest
 
 ## Test Credentials
 - Management: password `buse11993` (at /management)
 - Operator: `ali` / `134679` (at /operator)
 - Plan: `emrecan` / `testtest12` (at /plan)
-- Warehouse: `depo1` (at /warehouse, password unknown)
-
-## Key API Endpoints
-- GET /api/jobs, GET /api/machines, GET /api/shifts/current, GET /api/shifts/status
-- PUT /api/jobs/{id}/start, PUT /api/jobs/{id}/complete, PUT /api/jobs/{id}
-- POST /api/pallets (accepts both PalletScan and Pallet formats)
-- WebSocket: /api/ws/manager/{id}, /api/ws/operator/{machine_id}, /api/ws/warehouse
+- Warehouse: `depo1` / `depo123` (at /warehouse)
