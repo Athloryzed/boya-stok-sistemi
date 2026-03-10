@@ -137,10 +137,33 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [shiftRes, machinesRes, jobsRes, weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, shiftStatusRes] = await Promise.all([
+      // İlk yükleme - sadece kritik veriler (hızlı yükleme)
+      const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
+        axios.get(`${API}/shifts/status`)
+      ]);
+      
+      setCurrentShift(shiftRes.data);
+      const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
+        if (!acc.find(m => m.id === machine.id)) acc.push(machine);
+        return acc;
+      }, []);
+      setMachines(uniqueMachines);
+      setJobs(jobsRes.data);
+      setShiftStatus(shiftStatusRes.data);
+      
+      // İkincil veriler - arka planda yükle (UI bloklamaz)
+      fetchSecondaryData();
+    } catch (error) {
+      toast.error("Veri alınamadı");
+    }
+  };
+  
+  const fetchSecondaryData = async () => {
+    try {
+      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes] = await Promise.all([
         axios.get(`${API}/analytics/weekly`),
         axios.get(`${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`),
         axios.get(`${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`),
@@ -156,16 +179,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/defects/analytics/weekly`),
         axios.get(`${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`),
         axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`),
-        axios.get(`${API}/shifts/pending-reports`),
-        axios.get(`${API}/shifts/status`)
+        axios.get(`${API}/shifts/pending-reports`)
       ]);
-      setCurrentShift(shiftRes.data);
-      const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
-        if (!acc.find(m => m.id === machine.id)) acc.push(machine);
-        return acc;
-      }, []);
-      setMachines(uniqueMachines);
-      setJobs(jobsRes.data);
+      
       setWeeklyAnalytics(weeklyRes.data);
       setMonthlyAnalytics(monthlyRes.data);
       setDailyAnalytics(dailyRes.data);
@@ -182,9 +198,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setDefectMonthlyAnalytics(defectMonthlyRes.data);
       setDefectDailyAnalytics(defectDailyRes.data);
       setPendingReports(pendingRes.data);
-      setShiftStatus(shiftStatusRes.data);
     } catch (error) {
-      console.error("Data fetch error:", error);
+      console.error("Secondary data fetch error:", error);
     }
   };
 
@@ -1019,15 +1034,21 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       {upcomingJobs.length > 0 && (
                         <div>
                           <p className="text-sm font-semibold text-text-primary mb-2">Bekleyen İşler: {upcomingJobs.length}</p>
-                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
                             {upcomingJobs.slice(0, 5).map(uj => (
-                              <div key={uj.id} className="flex items-center gap-2 text-xs text-text-secondary">
-                                <span>{uj.name}</span>
-                                {uj.format && <span className="text-secondary">({uj.format})</span>}
-                                {uj.queued_at && (
-                                  <span className={`${getDaysElapsedColor(calculateDaysElapsed(uj.queued_at))}`}>
-                                    {calculateDaysElapsed(uj.queued_at)}g
-                                  </span>
+                              <div key={uj.id} className="p-2 bg-background/50 rounded border border-border/50">
+                                <div className="flex items-center gap-2 text-xs text-text-secondary flex-wrap">
+                                  <span className="font-medium text-text-primary">{uj.name}</span>
+                                  {uj.format && <span className="text-secondary px-1 bg-secondary/10 rounded">({uj.format})</span>}
+                                  <span className="text-text-secondary">📦 {uj.koli_count}</span>
+                                  {uj.queued_at && (
+                                    <span className={`${getDaysElapsedColor(calculateDaysElapsed(uj.queued_at))}`}>
+                                      📅 {calculateDaysElapsed(uj.queued_at)}g
+                                    </span>
+                                  )}
+                                </div>
+                                {uj.notes && (
+                                  <p className="text-xs text-info mt-1">📝 {uj.notes}</p>
                                 )}
                               </div>
                             ))}

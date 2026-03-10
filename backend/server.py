@@ -4,6 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Set
@@ -749,6 +750,7 @@ async def complete_job(job_id: str, data: dict = Body(None)):
     
     completed_koli = data.get("completed_koli", job["koli_count"]) if data else job["koli_count"]
     
+    # Önce veritabanını güncelle - bu kritik işlem
     await db.jobs.update_one(
         {"id": job_id},
         {"$set": {
@@ -763,62 +765,44 @@ async def complete_job(job_id: str, data: dict = Body(None)):
         {"$set": {"status": "idle", "current_job_id": None}}
     )
     
-    # Bildirim mesajı
-    notification_title = "✅ İş Tamamlandı!"
-    notification_body = f"📋 {job['name']}\n🏭 {job['machine_name']}\n📦 {completed_koli} koli\n👷 {job.get('operator_name', '-')}"
-    message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+    # Hızlı response dön - bildirimleri arka planda gönder
+    # Background task olarak bildirim gönder
+    asyncio.create_task(send_completion_notifications(job, job_id, completed_koli))
     
-    # FCM Push Bildirimi gönder (yöneticilere)
+    return {"success": True, "message": "İş tamamlandı"}
+
+async def send_completion_notifications(job: dict, job_id: str, completed_koli: int):
+    """Bildirimler arka planda gönderilir - UI'ı bloklamaz"""
     try:
-        await send_notification_to_managers(
-            title=notification_title,
-            body=notification_body,
-            data={
-                "type": "job_completed",
-                "job_id": job_id,
-                "job_name": job['name'],
-                "machine_name": job['machine_name']
-            }
+        notification_title = "✅ İş Tamamlandı!"
+        notification_body = f"📋 {job['name']}\n🏭 {job['machine_name']}\n📦 {completed_koli} koli"
+        message = f"✅ İş Tamamlandı!\n\n📋 İş: {job['name']}\n🏭 Makine: {job['machine_name']}\n📦 Koli: {completed_koli}\n👷 Operatör: {job.get('operator_name', '-')}\n⏰ Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+        
+        # FCM bildirimleri paralel gönder
+        await asyncio.gather(
+            send_notification_to_managers(
+                title=notification_title,
+                body=notification_body,
+                data={"type": "job_completed", "job_id": job_id}
+            ),
+            send_notification_to_plan_users(
+                title=notification_title,
+                body=notification_body,
+                data={"type": "job_completed", "job_id": job_id}
+            ),
+            return_exceptions=True
         )
-    except Exception as e:
-        logging.error(f"FCM notification error: {e}")
-    
-    # Plan kullanıcılarına da FCM bildirimi gönder
-    try:
-        await send_notification_to_plan_users(
-            title=notification_title,
-            body=notification_body,
-            data={
-                "type": "job_completed",
-                "job_id": job_id,
-                "job_name": job['name'],
-                "machine_name": job['machine_name']
-            }
-        )
-    except Exception as e:
-        logging.error(f"FCM notification error for plan users: {e}")
-    
-    # Yöneticilere WebSocket bildirimi gönder
-    try:
+        
+        # WebSocket bildirimi
         await manager_ws.broadcast_to_managers({
             "type": "job_completed",
             "message": message,
             "job_name": job['name'],
             "machine_name": job['machine_name'],
-            "completed_koli": completed_koli,
-            "operator_name": job.get('operator_name', '-')
+            "completed_koli": completed_koli
         })
-        logging.info(f"Job completion notification sent to managers for job: {job['name']}")
     except Exception as e:
-        logging.error(f"Manager notification error: {e}")
-    
-    # WhatsApp bildirimi gönder
-    try:
-        await send_whatsapp_notification(message)
-    except Exception as e:
-        logging.error(f"WhatsApp notification error: {e}")
-    
-    return {"message": "Job completed"}
+        logging.error(f"Background notification error: {e}")
 
 # İş Durdurma
 @api_router.put("/jobs/{job_id}/pause")
