@@ -195,14 +195,15 @@ button:hover svg, [role="button"]:hover svg {
 .stagger-8 { animation-delay: 0.4s; }
 
 /* ===== DIALOG / MODAL ANIMATIONS ===== */
-@keyframes dialogSlideUp {
+/* Note: Shadcn dialogs use translate(-50%,-50%) for centering.
+   We must NOT override transform on DialogContent. 
+   Use opacity-only animation instead. */
+@keyframes dialogFadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
@@ -211,15 +212,9 @@ button:hover svg, [role="button"]:hover svg {
   to { opacity: 1; }
 }
 
-[data-state="open"][role="dialog"],
-[data-state="open"] > [role="dialog"],
-div[class*="DialogContent"],
-div[class*="SheetContent"] {
-  animation: dialogSlideUp 0.3s var(--ease-spring) both;
-}
-
-[data-state="open"][data-overlay],
-div[class*="DialogOverlay"] {
+/* Only animate overlay, not the dialog content (which has critical transform for centering) */
+div[class*="DialogOverlay"],
+[data-state="open"][data-overlay] {
   animation: overlayFadeIn 0.2s ease both;
 }
 
@@ -439,6 +434,11 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ===== MOBILE OPTIMIZATIONS ===== */
+
+/* Samsung Galaxy S24/S24+/S24 Ultra (360-412px width) */
+/* iPhone 14/15/16 (390px width) */
+/* iPad Mini/iPad (768px), iPad Pro (1024px) */
+
 @media (max-width: 768px) {
   button, .btn-scale, [role="button"] {
     min-height: 44px;
@@ -462,16 +462,83 @@ input:focus, select:focus, textarea:focus {
     transform: translateY(-3px);
   }
 
-  /* No hover animations on touch */
-  @media (hover: none) {
-    button:hover, [role="button"]:hover {
-      transform: none;
-      box-shadow: none;
-    }
-    .machine-card-hover:hover {
-      transform: none;
-      box-shadow: none;
-    }
+  /* Tabs scroll horizontally on mobile */
+  [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+  }
+  
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Dialog full width on mobile */
+  [role="dialog"] {
+    max-width: calc(100vw - 1.5rem) !important;
+    max-width: calc(100dvw - 1.5rem) !important;
+  }
+
+  /* Improve spacing for touch */
+  .gap-1 { gap: 0.375rem; }
+  
+  /* Ensure cards are single column on small phones */
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}
+
+/* Small phones (< 380px - iPhone SE, older devices) */
+@media (max-width: 380px) {
+  [role="dialog"] {
+    max-width: calc(100vw - 1rem) !important;
+    padding: 0.75rem !important;
+  }
+  
+  button, .btn-scale, [role="button"] {
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablet optimizations (iPad, iPad Air) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  [role="dialog"] {
+    max-width: min(600px, 80vw) !important;
+  }
+  
+  /* 2-column grid on tablets */
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* iPad Pro / Large tablets */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  [role="dialog"] {
+    max-width: min(700px, 70vw) !important;
+  }
+}
+
+/* No hover animations on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  button:hover, [role="button"]:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .machine-card-hover:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: inherit;
+  }
+  
+  /* Active state for touch */
+  button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+  .machine-card-hover:active {
+    transform: scale(0.98);
+    opacity: 0.95;
   }
 }
 
