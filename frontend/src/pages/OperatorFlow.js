@@ -39,6 +39,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [step, setStep] = useState(1);
   const [operatorName, setOperatorName] = useState("");
   const [operatorPassword, setOperatorPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [machines, setMachines] = useState([]);
@@ -117,6 +118,21 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       toast.error("Bildirim izni reddedildi");
     }
   };
+
+  // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
+  useEffect(() => {
+    const remembered = localStorage.getItem("operator_remember");
+    if (remembered) {
+      try {
+        const creds = JSON.parse(remembered);
+        setOperatorName(creds.username || "");
+        setOperatorPassword(creds.password || "");
+        setRememberMe(true);
+      } catch (e) {
+        localStorage.removeItem("operator_remember");
+      }
+    }
+  }, []);
 
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
@@ -523,6 +539,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setUserData(user);
       setOperatorName(user.display_name || user.username);
       localStorage.setItem("operator_session", JSON.stringify(sessionData));
+      
+      // Hatırla Beni kaydet/temizle
+      if (rememberMe) {
+        localStorage.setItem("operator_remember", JSON.stringify({ username: operatorName, password: operatorPassword }));
+      } else {
+        localStorage.removeItem("operator_remember");
+      }
+      
       toast.success("Giriş başarılı!");
       
       // FCM Token kaydı (push bildirimleri için)
@@ -927,7 +951,12 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                     onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
                     placeholder="Şifreniz..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
                 </div>
-                <Button data-testid="name-submit-button" onClick={handleNameSubmit} className="w-full mt-6 bg-secondary text-white hover:bg-secondary/90 h-14 text-lg font-heading">
+                <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="operator-remember-me">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-5 h-5 rounded border-border accent-secondary cursor-pointer" />
+                  <span className="text-text-secondary text-sm">Hatırla Beni</span>
+                </label>
+                <Button data-testid="name-submit-button" onClick={handleNameSubmit} className="w-full mt-4 bg-secondary text-white hover:bg-secondary/90 h-14 text-lg font-heading">
                   Giriş Yap
                 </Button>
               </CardContent>

@@ -3,6 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon } from "lucide-react";
 
+// Dalgalanan Türk Bayrağı bileşeni
+const WavingFlag = () => (
+  <div className="relative w-16 h-11 sm:w-20 sm:h-14" data-testid="turkish-flag">
+    <svg viewBox="0 0 360 240" className="w-full h-full" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>
+      <defs>
+        <linearGradient id="flagWave" x1="0%" y1="0%" x2="100%" y2="0%">
+          <animate attributeName="x1" values="0%;5%;0%" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="x2" values="100%;95%;100%" dur="3s" repeatCount="indefinite" />
+        </linearGradient>
+      </defs>
+      <rect width="360" height="240" fill="#E30A17" rx="4">
+        <animate attributeName="rx" values="4;6;4" dur="2s" repeatCount="indefinite" />
+      </rect>
+      {/* Ay */}
+      <circle cx="152" cy="120" r="60" fill="white" />
+      <circle cx="168" cy="120" r="48" fill="#E30A17" />
+      {/* Yıldız */}
+      <polygon points="228,120 213,130 218,148 203,136 188,148 193,130 178,120 196,120 203,102 210,120" fill="white" />
+    </svg>
+    {/* Dalgalanma efekti overlay */}
+    <div className="absolute inset-0 pointer-events-none" style={{
+      background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 30%, transparent 50%, rgba(0,0,0,0.06) 70%, transparent 100%)",
+      animation: "flagWave 2.5s ease-in-out infinite"
+    }} />
+  </div>
+);
+
 const modules = [
   { name: "Yonetim Paneli", path: "/management", icon: Factory, color: "#FFBF00", desc: "Fabrika yonetimi" },
   { name: "Plan", path: "/plan", icon: ClipboardList, color: "#60A5FA", desc: "Is planlama" },
@@ -68,12 +95,34 @@ const Home = ({ theme, toggleTheme }) => {
 
   return (
     <div className={`min-h-screen relative overflow-hidden transition-colors duration-700 bg-gradient-to-b ${skyGradient}`}>
-      {/* Theme toggle */}
-      <button onClick={toggleTheme}
-        className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all"
-        data-testid="theme-toggle">
-        {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      {/* Sol üst: Atatürk görseli */}
+      <motion.div
+        className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        data-testid="ataturk-image"
+      >
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg backdrop-blur-sm bg-white/20">
+          <img src="/ataturk.jpg" alt="Atatürk" className="w-full h-full object-cover" />
+        </div>
+      </motion.div>
+
+      {/* Sağ üst: Türk Bayrağı + Tema butonu */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50 flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <WavingFlag />
+        </motion.div>
+        <button onClick={toggleTheme}
+          className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all"
+          data-testid="theme-toggle">
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      </div>
 
       {/* Sun / Moon */}
       <motion.div

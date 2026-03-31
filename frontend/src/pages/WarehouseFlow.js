@@ -322,6 +322,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               <div>
                 <Label className="text-text-primary">Kullanıcı Adı</Label>
                 <Input
+                  data-testid="warehouse-username-input"
                   placeholder="Kullanıcı adı..."
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -331,6 +332,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               <div>
                 <Label className="text-text-primary">Şifre</Label>
                 <Input
+                  data-testid="warehouse-password-input"
                   type="password"
                   placeholder="Şifre..."
                   value={password}
@@ -340,6 +342,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                 />
               </div>
               <Button
+                data-testid="warehouse-login-button"
                 onClick={handleLogin}
                 className="w-full bg-warning text-black hover:bg-warning/90 h-14 text-lg font-heading"
               >

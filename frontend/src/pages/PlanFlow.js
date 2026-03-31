@@ -21,6 +21,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -94,6 +95,21 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [selectedJobImage, setSelectedJobImage] = useState(null);
+
+  // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
+  useEffect(() => {
+    const remembered = localStorage.getItem("plan_remember");
+    if (remembered) {
+      try {
+        const creds = JSON.parse(remembered);
+        setUsername(creds.username || "");
+        setPassword(creds.password || "");
+        setRememberMe(true);
+      } catch (e) {
+        localStorage.removeItem("plan_remember");
+      }
+    }
+  }, []);
 
   // Oturum kontrolü - 24 saatlik kalıcı oturum
   useEffect(() => {
@@ -531,6 +547,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       };
       setUserData(user);
       localStorage.setItem("plan_session", JSON.stringify(sessionData));
+      
+      // Hatırla Beni kaydet/temizle
+      if (rememberMe) {
+        localStorage.setItem("plan_remember", JSON.stringify({ username, password }));
+      } else {
+        localStorage.removeItem("plan_remember");
+      }
+      
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } catch (error) {
@@ -857,6 +881,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   className="mt-1 bg-background border-border text-text-primary text-lg h-14"
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="plan-remember-me">
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-5 h-5 rounded border-border accent-green-600 cursor-pointer" />
+                <span className="text-text-secondary text-sm">Hatırla Beni</span>
+              </label>
               <Button
                 data-testid="plan-login-button"
                 onClick={handleLogin}

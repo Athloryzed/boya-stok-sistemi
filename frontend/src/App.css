@@ -587,3 +587,11 @@ body {
   transition-duration: 0.3s !important;
   transition-timing-function: var(--ease-smooth) !important;
 }
+
+/* Dalgalanan Bayrak Animasyonu */
+@keyframes flagWave {
+  0%, 100% { transform: translateX(0) skewY(0deg); }
+  25% { transform: translateX(3px) skewY(0.5deg); }
+  50% { transform: translateX(-2px) skewY(-0.3deg); }
+  75% { transform: translateX(2px) skewY(0.4deg); }
+}
