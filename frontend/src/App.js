@@ -96,7 +96,7 @@ function App() {
             <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
           </Routes>
         </BrowserRouter>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
       </div>
     </ErrorBoundary>
   );

@@ -571,28 +571,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleStartJob = async (job) => {
-    setLoading(true);
+    // Optimistic update
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "in_progress", operator_name: operatorName, started_at: new Date().toISOString() } : j));
     try {
       await axios.put(`${API}/jobs/${job.id}/start`, { operator_name: operatorName });
       toast.success("İş başlatıldı!");
-      fetchJobs();
     } catch (error) {
       toast.error("İş başlatılamadı");
-    } finally {
-      setLoading(false);
+      fetchJobs();
     }
   };
 
   const handleCompleteJob = async (job) => {
-    setLoading(true);
+    // Optimistic update
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "completed", completed_at: new Date().toISOString() } : j));
     try {
       await axios.put(`${API}/jobs/${job.id}/complete`);
       toast.success("İş tamamlandı!");
-      fetchJobs();
     } catch (error) {
       toast.error("İş tamamlanamadı");
-    } finally {
-      setLoading(false);
+      fetchJobs();
     }
   };
 

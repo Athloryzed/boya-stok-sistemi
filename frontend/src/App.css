@@ -264,7 +264,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 [data-sonner-toast] {
-  animation: toastSlideIn 0.35s var(--ease-spring) both !important;
+  animation: toastSlideIn 0.3s var(--ease-spring) both !important;
+  touch-action: pan-x !important;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-sonner-toast]:active {
+  cursor: grabbing;
 }
 
 /* ===== BADGE / STATUS PULSE ===== */

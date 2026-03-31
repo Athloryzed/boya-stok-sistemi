@@ -688,22 +688,28 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleStartJobFromManagement = async (job) => {
+    // Optimistic update - UI'yi hemen güncelle
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "in_progress", operator_name: "Yönetim", started_at: new Date().toISOString() } : j));
+    setMachines(prev => prev.map(m => m.id === job.machine_id ? { ...m, status: "working", current_job_id: job.id } : m));
     try {
       await axios.put(`${API}/jobs/${job.id}/start`, { operator_name: "Yönetim" });
       toast.success("İş başlatıldı!");
-      fetchData();
     } catch (error) {
       toast.error("İş başlatılamadı");
+      fetchData(); // Hata durumunda verileri geri yükle
     }
   };
 
   const handleCompleteJob = async (job) => {
+    // Optimistic update
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "completed", completed_at: new Date().toISOString() } : j));
+    setMachines(prev => prev.map(m => m.id === job.machine_id ? { ...m, status: "idle", current_job_id: null } : m));
     try {
       await axios.put(`${API}/jobs/${job.id}/complete`, {});
       toast.success("İş tamamlandı!");
-      fetchData();
     } catch (error) {
       toast.error("İş tamamlanamadı");
+      fetchData();
     }
   };
 
