@@ -519,9 +519,35 @@ class WarehouseShipmentLog(BaseModel):
     operator_name: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
+# Audit Log Modeli
+class AuditLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user: str
+    action: str  # "create", "update", "delete", "start", "complete", "pause", "resume"
+    entity_type: str  # "job", "user", "machine", "pallet", "shift", "paint"
+    entity_name: str = ""
+    details: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+async def log_audit(user: str, action: str, entity_type: str, entity_name: str = "", details: str = ""):
+    """Kullanici hareket logu kaydet"""
+    try:
+        log = AuditLog(user=user, action=action, entity_type=entity_type, entity_name=entity_name, details=details)
+        await db.audit_logs.insert_one(log.model_dump())
+    except Exception as e:
+        logger.error(f"Audit log error: {e}")
+
 @api_router.get("/")
 async def root():
     return {"message": "Buse Kağıt API"}
+
+@api_router.get("/audit-logs")
+async def get_audit_logs(limit: int = 100, skip: int = 0):
+    """Kullanici hareket loglarini getir (en yeniden eskiye)"""
+    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.audit_logs.count_documents({})
+    return {"logs": logs, "total": total}
 
 @api_router.post("/machines/init")
 async def init_machines():
@@ -577,6 +603,8 @@ async def get_maintenance_logs():
 async def create_job(job: Job):
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
+    
+    await log_audit("Plan", "create", "job", job.name, f"Makine: {job.machine_name}, Koli: {job.koli_count}")
     
     # FCM Push Bildirimi gönder (ilgili makinedeki operatörlere)
     try:
@@ -723,14 +751,18 @@ async def update_job(job_id: str, updates: dict = Body(...)):
     
     await db.jobs.update_one({"id": job_id}, {"$set": updates})
     
+    await log_audit("Yonetim", "update", "job", job.get("name", ""), f"Guncellenen: {', '.join(updates.keys())}")
+    
     updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     return Job(**updated_job)
 
 @api_router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str):
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Job not found")
+    await log_audit("Yonetim", "delete", "job", job.get("name", "") if job else job_id)
     return {"message": "Job deleted"}
 
 @api_router.put("/jobs/{job_id}/start")
@@ -753,6 +785,8 @@ async def start_job(job_id: str, data: dict = Body(...)):
         {"id": job["machine_id"]},
         {"$set": {"status": "working", "current_job_id": job_id}}
     )
+    
+    await log_audit(operator_name or "Operator", "start", "job", job.get("name", ""), f"Makine: {job.get('machine_name', '')}")
     
     return {"message": "Job started"}
 
@@ -778,6 +812,8 @@ async def complete_job(job_id: str, data: dict = Body(None)):
         {"id": job["machine_id"]},
         {"$set": {"status": "idle", "current_job_id": None}}
     )
+    
+    await log_audit(job.get("operator_name", "Operator"), "complete", "job", job.get("name", ""), f"Koli: {completed_koli}")
     
     # Hızlı response dön - bildirimleri arka planda gönder
     # Background task olarak bildirim gönder
@@ -860,6 +896,8 @@ async def pause_job(job_id: str, data: dict = Body(...)):
     })
     
     return {"message": "İş durduruldu", "job_id": job_id}
+    await log_audit(job.get("operator_name", "Operator"), "pause", "job", job.get("name", ""), f"Sebep: {pause_reason}")
+
 
 # Durdurulan İşe Devam Et
 @api_router.put("/jobs/{job_id}/resume")
@@ -896,6 +934,8 @@ async def resume_job(job_id: str, data: dict = Body(...)):
         {"$set": {"status": "working", "current_job_id": job_id}}
     )
     
+    await log_audit(operator_name or "Operator", "resume", "job", job.get("name", ""), f"Makine: {job.get('machine_name', '')}")
+
     return {"message": "İşe devam edildi", "job_id": job_id}
 
 # Durdurulan İşleri Listele
@@ -1433,6 +1473,8 @@ async def start_shift():
     except Exception as e:
         logging.error(f"Shift start notification error: {e}")
     
+    await log_audit("Yonetim", "create", "shift", shift.id, "Vardiya baslatildi")
+
     return shift
 
 @api_router.post("/shifts/end")
@@ -2028,6 +2070,8 @@ async def create_user(data: dict = Body(...)):
         phone=phone
     )
     await db.users.insert_one(user.model_dump())
+    await log_audit("Yonetim", "create", "user", username, f"Rol: {role}")
+
     
     # Şifreyi döndürmeden önce kaldır
     user_dict = user.model_dump()
@@ -2501,6 +2545,8 @@ async def create_pallet(data: dict = Body(...)):
         doc = pallet.model_dump()
         await db.pallets.insert_one(doc)
         return {k: v for k, v in doc.items() if k != "_id"}
+        await log_audit(data.get("operator_name", "Depo"), "create", "pallet", pallet_code, f"Is: {data.get('job_name', '')}")
+
     else:
         # PalletScan formatı (basit tarama)
         scan = PalletScan(
@@ -2512,6 +2558,8 @@ async def create_pallet(data: dict = Body(...)):
         doc = scan.model_dump()
         await db.pallets.insert_one(doc)
         return {k: v for k, v in doc.items() if k != "_id"}
+        await log_audit(data.get("operator_name", "Depo"), "create", "pallet", pallet_code, f"Tarama - Is: {data.get('job_name', '')}")
+
 
 @api_router.get("/pallets")
 async def get_pallets(job_id: Optional[str] = None, status: Optional[str] = None):

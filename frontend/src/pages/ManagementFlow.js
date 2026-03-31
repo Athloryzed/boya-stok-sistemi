@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -125,6 +125,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [pendingReports, setPendingReports] = useState([]);
   const [shiftStatus, setShiftStatus] = useState(null);
   
+  // Audit Loglar
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLogTotal, setAuditLogTotal] = useState(0);
+  const [auditLogPage, setAuditLogPage] = useState(0);
+  
   // İş Durdurma
   const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
   const [jobToPause, setJobToPause] = useState(null);
@@ -164,7 +169,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   
   const fetchSecondaryData = async () => {
     try {
-      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes] = await Promise.all([
+      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, auditRes] = await Promise.all([
         axios.get(`${API}/analytics/weekly`),
         axios.get(`${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`),
         axios.get(`${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`),
@@ -180,7 +185,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/defects/analytics/weekly`),
         axios.get(`${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`),
         axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`),
-        axios.get(`${API}/shifts/pending-reports`)
+        axios.get(`${API}/shifts/pending-reports`),
+        axios.get(`${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`)
       ]);
       
       setWeeklyAnalytics(weeklyRes.data);
@@ -199,6 +205,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setDefectMonthlyAnalytics(defectMonthlyRes.data);
       setDefectDailyAnalytics(defectDailyRes.data);
       setPendingReports(pendingRes.data);
+      setAuditLogs(auditRes.data.logs || []);
+      setAuditLogTotal(auditRes.data.total || 0);
     } catch (error) {
       console.error("Secondary data fetch error:", error);
     }
@@ -880,6 +888,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     </span>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="audit-logs" data-testid="audit-logs-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Loglar
+                </TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -922,6 +933,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     {pendingReports.length}
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="audit-logs" data-testid="audit-logs-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
+                <FileText className="h-4 w-4 mr-1" /> Loglar
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1790,6 +1804,84 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* AUDIT LOGLAR */}
+          <TabsContent value="audit-logs" data-testid="audit-logs-content">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <CardTitle className="text-text-primary flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Kullanici Hareket Loglari
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {auditLogs.length === 0 ? (
+                  <p className="text-text-secondary text-center py-8">Henuz log kaydı yok</p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-text-secondary">
+                            <th className="text-left py-2 px-2">Tarih</th>
+                            <th className="text-left py-2 px-2">Kullanici</th>
+                            <th className="text-left py-2 px-2">Islem</th>
+                            <th className="text-left py-2 px-2">Tur</th>
+                            <th className="text-left py-2 px-2">Ad</th>
+                            <th className="text-left py-2 px-2">Detay</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {auditLogs.map((log) => (
+                            <tr key={log.id} className="border-b border-border/50 hover:bg-surface-highlight/50">
+                              <td className="py-2 px-2 text-text-secondary text-xs whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}
+                              </td>
+                              <td className="py-2 px-2 text-text-primary font-medium">{log.user}</td>
+                              <td className="py-2 px-2">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  log.action === "create" ? "bg-green-500/20 text-green-400" :
+                                  log.action === "update" ? "bg-blue-500/20 text-blue-400" :
+                                  log.action === "delete" ? "bg-red-500/20 text-red-400" :
+                                  log.action === "start" ? "bg-emerald-500/20 text-emerald-400" :
+                                  log.action === "complete" ? "bg-purple-500/20 text-purple-400" :
+                                  log.action === "pause" ? "bg-yellow-500/20 text-yellow-400" :
+                                  log.action === "resume" ? "bg-cyan-500/20 text-cyan-400" :
+                                  "bg-gray-500/20 text-gray-400"
+                                }`}>
+                                  {log.action === "create" ? "Ekledi" :
+                                   log.action === "update" ? "Duzenledi" :
+                                   log.action === "delete" ? "Sildi" :
+                                   log.action === "start" ? "Baslatti" :
+                                   log.action === "complete" ? "Tamamladi" :
+                                   log.action === "pause" ? "Durdurdu" :
+                                   log.action === "resume" ? "Devam Etti" : log.action}
+                                </span>
+                              </td>
+                              <td className="py-2 px-2 text-text-secondary capitalize">{log.entity_type}</td>
+                              <td className="py-2 px-2 text-text-primary">{log.entity_name}</td>
+                              <td className="py-2 px-2 text-text-secondary text-xs">{log.details}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {auditLogTotal > 100 && (
+                      <div className="flex justify-center gap-2 pt-4">
+                        <Button size="sm" variant="outline" disabled={auditLogPage === 0}
+                          onClick={() => setAuditLogPage(p => Math.max(0, p - 1))}
+                          className="border-border text-text-primary">Onceki</Button>
+                        <span className="text-text-secondary text-sm py-1">{auditLogPage + 1} / {Math.ceil(auditLogTotal / 100)}</span>
+                        <Button size="sm" variant="outline" disabled={(auditLogPage + 1) * 100 >= auditLogTotal}
+                          onClick={() => setAuditLogPage(p => p + 1)}
+                          className="border-border text-text-primary">Sonraki</Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
 
         {/* BAKIM DIALOG */}

@@ -36,14 +36,22 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
-  // Oturum kontrolü
+  // Oturum kontrolü - 24 saatlik kalıcı oturum
   useEffect(() => {
     const savedSession = localStorage.getItem("depo_session");
     if (savedSession) {
       try {
         const session = JSON.parse(savedSession);
-        setUserData(session);
-        setAuthenticated(true);
+        const sessionTime = session.login_time || 0;
+        const now = Date.now();
+        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
+        
+        if (hoursPassed < 24 && session.username) {
+          setUserData(session);
+          setAuthenticated(true);
+        } else {
+          localStorage.removeItem("depo_session");
+        }
       } catch (e) {
         localStorage.removeItem("depo_session");
       }
@@ -63,7 +71,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       });
       const user = response.data;
       setUserData(user);
-      localStorage.setItem("depo_session", JSON.stringify(user));
+      localStorage.setItem("depo_session", JSON.stringify({ ...user, login_time: Date.now() }));
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
     } catch (error) {

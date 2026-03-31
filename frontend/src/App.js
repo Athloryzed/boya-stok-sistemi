@@ -9,6 +9,7 @@ import ManagementFlow from "./pages/ManagementFlow";
 import WarehouseFlow from "./pages/WarehouseFlow";
 import PaintFlow from "./pages/PaintFlow";
 import DriverFlow from "./pages/DriverFlow";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -81,21 +82,23 @@ function App() {
   }, []);
 
   return (
-    <div className={`App ${theme}`}>
-      <BrowserRouter>
-        <VisitorTracker />
-        <Routes>
-          <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/operator" element={<OperatorFlow theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/plan" element={<PlanFlow theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/management" element={<ManagementFlow theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/warehouse" element={<WarehouseFlow theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/paint" element={<PaintFlow theme={theme} toggleTheme={toggleTheme} />} />
-          <Route path="/driver" element={<DriverFlow theme={theme} toggleTheme={toggleTheme} />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster position="top-right" richColors />
-    </div>
+    <ErrorBoundary>
+      <div className={`App ${theme}`}>
+        <BrowserRouter>
+          <VisitorTracker />
+          <Routes>
+            <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
+            <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="top-right" richColors />
+      </div>
+    </ErrorBoundary>
   );
 }
 
