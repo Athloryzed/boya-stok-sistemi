@@ -5,10 +5,11 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 
 ## Technical Architecture
 - **Backend:** FastAPI, Motor (MongoDB async), WebSockets (/api/ws/)
-- **Frontend:** React, TailwindCSS, Shadcn/UI, Capacitor
+- **Frontend:** React, TailwindCSS, Shadcn/UI, Capacitor, Framer Motion
 - **Database:** MongoDB
 - **3rd Party:** Twilio (SMS), Firebase Cloud Messaging (Push Notifications)
 - **PWA:** Service Worker with stale-while-revalidate caching
+- **Custom Domain:** bksistem.space
 
 ## What's Implemented
 - [x] GitHub Actions CI/CD for APK (signed release)
@@ -28,6 +29,14 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] UI animations (staggered cards, button effects, theme transitions)
 - [x] Operator job reorder fix (route ordering)
 - [x] Performance optimization (separated primary/secondary polling)
+- [x] Optimistic UI updates (instant feedback for job start/complete)
+- [x] Swipe-to-dismiss toast notifications (Sonner with closeButton)
+- [x] Spring Theme for Home page (dynamic sky, sun/moon, petals, butterflies, grass)
+- [x] Ataturk portrait on Home page (top-left corner)
+- [x] Waving Turkish flag on Home page (top-right corner, SVG animation)
+- [x] "Hatirla Beni" (Remember Me) for Operator login
+- [x] "Hatirla Beni" (Remember Me) for Plan login
+- [x] Warehouse login data-testid attributes
 
 ## Audit Log Coverage
 - Job: create, update, delete, start, complete, pause, resume
@@ -36,7 +45,7 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - Pallet: create/scan
 
 ## Pending/Known Issues
-- VPN required for some networks (Emergent infra/DNS level - cannot fix from app code)
+- VPN required for some networks (resolved via custom domain bksistem.space)
 
 ## Upcoming Tasks
 - [ ] Shipment & Driver Module (P2)
@@ -44,7 +53,7 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 
 ## Future Tasks (Backlog)
 - [ ] QR/Barcode Scanning (P3)
-- [ ] Frontend component refactoring
+- [ ] Frontend component refactoring (server.py 3000+ lines, Flow components monolithic)
 
 ## Test Credentials
 - Management: password `buse11993` (at /management)
