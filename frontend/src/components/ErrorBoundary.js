@@ -19,6 +19,24 @@ class ErrorBoundary extends React.Component {
     window.location.reload();
   };
 
+  handleClearCacheAndReload = async () => {
+    try {
+      // Service Worker önbelleğini temizle
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      // Service Worker'ı kaldır
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+      }
+    } catch (e) {
+      console.error('Cache temizleme hatasi:', e);
+    }
+    window.location.reload(true);
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -31,13 +49,22 @@ class ErrorBoundary extends React.Component {
             </div>
             <h2 className="text-xl font-bold text-text-primary mb-2">Bir hata olustu</h2>
             <p className="text-text-secondary mb-6">Sayfa beklenmedik bir hatayla karsilasti.</p>
-            <button
-              onClick={this.handleReload}
-              data-testid="error-reload-btn"
-              className="px-6 py-3 bg-primary text-black font-semibold rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Sayfayi Yenile
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={this.handleReload}
+                data-testid="error-reload-btn"
+                className="w-full px-6 py-3 bg-primary text-black font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Sayfayi Yenile
+              </button>
+              <button
+                onClick={this.handleClearCacheAndReload}
+                data-testid="error-clear-cache-btn"
+                className="w-full px-6 py-3 bg-surface border border-border text-text-primary font-semibold rounded-lg hover:bg-surface-highlight transition-colors text-sm"
+              >
+                Onbellegi Temizle ve Yeniden Yukle
+              </button>
+            </div>
           </div>
         </div>
       );
