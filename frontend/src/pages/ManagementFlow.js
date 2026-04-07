@@ -720,11 +720,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const handleExportReport = async (period) => {
     try {
-      const response = await axios.get(`${API}/analytics/export?period=${period}`, { responseType: 'blob' });
+      let url_params = `period=${period}`;
+      if (period === "weekly") {
+        url_params += `&week_offset=${dailyWeekOffset}`;
+      }
+      const response = await axios.get(`${API}/analytics/export?${url_params}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `uretim_raporu_${period}.xlsx`);
+      link.setAttribute('download', `buse_kagit_rapor_${period}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1296,6 +1300,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
                   <CardTitle className="text-xl md:text-2xl font-heading">Günlük Üretim</CardTitle>
                   <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => handleExportReport("weekly")} className="bg-secondary text-white hover:bg-secondary/90" data-testid="weekly-report-btn">
+                      <Download className="mr-1 h-4 w-4" /> Haftalik Rapor
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => setDailyWeekOffset(dailyWeekOffset - 1)}>←</Button>
                     <span className="text-xs md:text-sm font-semibold text-text-primary whitespace-nowrap px-2">
                       {dailyAnalytics?.week_start} - {dailyAnalytics?.week_end}
