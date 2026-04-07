@@ -644,7 +644,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         format: editFormData.format || null,
         notes: editFormData.notes,
         delivery_date: editFormData.delivery_date,
-        image_url: editFormData.image_url || null
+        image_url: editFormData.image_url || null,
+        updated_by: userData?.display_name || userData?.username || "Plan"
       });
       toast.success("İş güncellendi!");
       setIsEditJobOpen(false);
@@ -660,7 +661,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const handleDeleteJob = async (jobId) => {
     if (!window.confirm("Bu işi silmek istediğinizden emin misiniz?")) return;
     try {
-      await axios.delete(`${API}/jobs/${jobId}`);
+      await axios.delete(`${API}/jobs/${jobId}?deleted_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`);
       toast.success("İş silindi!");
       fetchJobs();
       fetchCompletedJobs();
@@ -767,7 +768,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
 
     try {
-      await axios.post(`${API}/jobs`, {
+      await axios.post(`${API}/jobs?created_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`, {
         ...formData,
         koli_count: parseInt(formData.koli_count),
         machine_name: machine.name,
@@ -823,7 +824,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         ...cloneFormData,
         koli_count: parseInt(cloneFormData.koli_count),
         machine_name: machine.name,
-        format: formatOptions.length > 0 ? cloneFormData.format : null
+        format: formatOptions.length > 0 ? cloneFormData.format : null,
+        created_by: userData?.display_name || userData?.username || "Plan"
       });
       toast.success("İş sıraya eklendi!");
       setIsCloneDialogOpen(false);
@@ -1700,7 +1702,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             onClick={async () => {
                               if (window.confirm("Bu işi silmek istediğinizden emin misiniz?")) {
                                 try {
-                                  await axios.delete(`${API}/jobs/${job.id}`);
+                                  await axios.delete(`${API}/jobs/${job.id}?deleted_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`);
                                   toast.success("İş silindi!");
                                   fetchCompletedJobs();
                                 } catch (error) {

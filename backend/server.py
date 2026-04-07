@@ -601,11 +601,11 @@ async def get_maintenance_logs():
     return logs
 
 @api_router.post("/jobs", response_model=Job)
-async def create_job(job: Job):
+async def create_job(job: Job, created_by: str = None):
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
     
-    await log_audit("Plan", "create", "job", job.name, f"Makine: {job.machine_name}, Koli: {job.koli_count}")
+    await log_audit(created_by or "Plan", "create", "job", job.name, f"Makine: {job.machine_name}, Koli: {job.koli_count}")
     
     # FCM Push Bildirimi gönder (ilgili makinedeki operatörlere)
     try:
@@ -726,6 +726,10 @@ async def clone_job(job_id: str, updates: dict = Body(...)):
     
     doc = new_job.model_dump()
     await db.jobs.insert_one(doc)
+    
+    cloned_by = updates.get("created_by", "Plan")
+    await log_audit(cloned_by, "create", "job", new_job.name, f"Kopyalandi - Makine: {new_job.machine_name}")
+    
     return new_job
 
 
@@ -750,20 +754,21 @@ async def update_job(job_id: str, updates: dict = Body(...)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
+    updated_by = updates.pop("updated_by", None) or "Yonetim"
     await db.jobs.update_one({"id": job_id}, {"$set": updates})
     
-    await log_audit("Yonetim", "update", "job", job.get("name", ""), f"Guncellenen: {', '.join(updates.keys())}")
+    await log_audit(updated_by, "update", "job", job.get("name", ""), f"Guncellenen: {', '.join(updates.keys())}")
     
     updated_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     return Job(**updated_job)
 
 @api_router.delete("/jobs/{job_id}")
-async def delete_job(job_id: str):
+async def delete_job(job_id: str, deleted_by: str = None):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Job not found")
-    await log_audit("Yonetim", "delete", "job", job.get("name", "") if job else job_id)
+    await log_audit(deleted_by or "Yonetim", "delete", "job", job.get("name", "") if job else job_id)
     return {"message": "Job deleted"}
 
 @api_router.put("/jobs/{job_id}/start")
@@ -1456,7 +1461,7 @@ async def get_shift_reports(shift_id: Optional[str] = None, limit: int = 50):
     return reports
 
 @api_router.post("/shifts/start")
-async def start_shift():
+async def start_shift(started_by: str = None):
     active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
     if active_shift:
         raise HTTPException(status_code=400, detail="There is already an active shift")
@@ -1467,14 +1472,14 @@ async def start_shift():
     # Tüm çalışanlara vardiya başladı bildirimi gönder
     try:
         await send_notification_to_all_workers(
-            title="🏭 Vardiya Başladı!",
-            body="Günlük vardiya başlamıştır. İyi çalışmalar!",
+            title="Vardiya Basladi!",
+            body="Gunluk vardiya baslamistir. Iyi calismalar!",
             data={"type": "shift_started", "shift_id": shift.id}
         )
     except Exception as e:
         logging.error(f"Shift start notification error: {e}")
     
-    await log_audit("Yonetim", "create", "shift", shift.id, "Vardiya baslatildi")
+    await log_audit(started_by or "Yonetim", "create", "shift", shift.id, "Vardiya baslatildi")
 
     return shift
 
@@ -2421,7 +2426,8 @@ async def create_user(data: dict = Body(...)):
         phone=phone
     )
     await db.users.insert_one(user.model_dump())
-    await log_audit("Yonetim", "create", "user", username, f"Rol: {role}")
+    created_by_name = data.get("created_by", "Yonetim")
+    await log_audit(created_by_name, "create", "user", username, f"Rol: {role}")
 
     
     # Şifreyi döndürmeden önce kaldır

@@ -682,7 +682,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         koli_count: parseInt(editFormData.koli_count),
         colors: editFormData.colors,
         operator_name: editFormData.operator_name,
-        notes: editFormData.notes
+        notes: editFormData.notes,
+        updated_by: "Yonetim"
       });
       toast.success("İş güncellendi!");
       setIsEditJobOpen(false);
@@ -695,7 +696,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const handleDeleteJob = async (jobId) => {
     if (!window.confirm("Bu işi silmek istediğinizden emin misiniz?")) return;
     try {
-      await axios.delete(`${API}/jobs/${jobId}`);
+      await axios.delete(`${API}/jobs/${jobId}?deleted_by=Yonetim`);
       toast.success("İş silindi!");
       fetchData();
     } catch (error) {
