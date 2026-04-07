@@ -13,7 +13,7 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 
@@ -135,6 +135,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [jobToPause, setJobToPause] = useState(null);
   const [pauseReason, setPauseReason] = useState("");
   const [pauseProducedKoli, setPauseProducedKoli] = useState("");
+
+  // Günlük Detay Drill-Down
+  const [isDailyDetailOpen, setIsDailyDetailOpen] = useState(false);
+  const [dailyDetailData, setDailyDetailData] = useState(null);
+  const [dailyDetailLoading, setDailyDetailLoading] = useState(false);
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
@@ -770,6 +775,24 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     return Object.entries(data).map(([name, value]) => ({ name, [label]: value }));
   };
 
+  // Günlük Detay Drill-Down
+  const handleDailyBarClick = async (data) => {
+    if (!data?.full_date) return;
+    setDailyDetailLoading(true);
+    setIsDailyDetailOpen(true);
+    try {
+      const res = await axios.get(`${API}/analytics/daily-detail?date=${data.full_date}`);
+      setDailyDetailData(res.data);
+    } catch {
+      toast.error("Günlük detay alınamadı");
+      setIsDailyDetailOpen(false);
+    } finally {
+      setDailyDetailLoading(false);
+    }
+  };
+
+  const DRILL_COLORS = ["#FFBF00", "#60A5FA", "#34D399", "#F97316", "#A78BFA", "#FB7185", "#38BDF8", "#FBBF24"];
+
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -1281,8 +1304,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  <p className="text-text-secondary text-xs mb-2">Detay için güne tıklayın</p>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={dailyAnalytics?.daily_stats || []}>
+                    <BarChart data={dailyAnalytics?.daily_stats || []} style={{ cursor: "pointer" }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
                       <XAxis dataKey="day_name" stroke="#A1A1AA" tick={{ fontSize: 11 }} />
                       <YAxis stroke="#A1A1AA" tick={{ fontSize: 10 }} />
@@ -1299,13 +1323,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 {data.machines && Object.entries(data.machines).map(([machine, koli]) => (
                                   <p key={machine} className="text-text-secondary text-sm">{machine}: {koli}</p>
                                 ))}
+                                <p className="text-text-secondary text-xs mt-1 italic">Detay için tıklayın</p>
                               </div>
                             );
                           }
                           return null;
                         }}
                       />
-                      <Bar dataKey="total_koli" fill="#FFBF00" name="Toplam Koli" />
+                      <Bar dataKey="total_koli" fill="#FFBF00" name="Toplam Koli" onClick={(data) => handleDailyBarClick(data)} style={{ cursor: "pointer" }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -1889,6 +1914,143 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </TabsContent>
 
         </Tabs>
+
+        {/* GÜNLÜK DETAY DRILL-DOWN DIALOG */}
+        <Dialog open={isDailyDetailOpen} onOpenChange={setIsDailyDetailOpen}>
+          <DialogContent className="bg-surface border-border max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-heading flex items-center gap-2" data-testid="daily-detail-title">
+                <FileText className="h-6 w-6 text-primary" />
+                {dailyDetailData?.date ? new Date(dailyDetailData.date + "T00:00:00").toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Günlük Detay"}
+              </DialogTitle>
+            </DialogHeader>
+            {dailyDetailLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+              </div>
+            ) : dailyDetailData ? (
+              <div className="space-y-5" data-testid="daily-detail-content">
+                {/* Özet Kartları */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-primary">{dailyDetailData.summary.total_koli}</p>
+                    <p className="text-xs text-text-secondary">Toplam Koli</p>
+                  </div>
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-green-400">{dailyDetailData.summary.completed_jobs}</p>
+                    <p className="text-xs text-text-secondary">Tamamlanan</p>
+                  </div>
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-blue-400">{dailyDetailData.summary.started_jobs}</p>
+                    <p className="text-xs text-text-secondary">Baslayan</p>
+                  </div>
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-orange-400">{dailyDetailData.summary.active_operators}</p>
+                    <p className="text-xs text-text-secondary">Operator</p>
+                  </div>
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-yellow-400">{dailyDetailData.summary.partial_koli}</p>
+                    <p className="text-xs text-text-secondary">Kismi Uretim</p>
+                  </div>
+                  <div className="bg-background rounded-xl p-3 border border-border text-center">
+                    <p className="text-2xl font-black text-red-400">{dailyDetailData.summary.total_defect_kg}</p>
+                    <p className="text-xs text-text-secondary">Defo (kg)</p>
+                  </div>
+                </div>
+
+                {/* Makine Dağılımı */}
+                {dailyDetailData.machine_chart?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-heading text-text-primary mb-2">Makine Bazinda Uretim</h3>
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <ResponsiveContainer width="100%" height={180}>
+                        <PieChart>
+                          <Pie data={dailyDetailData.machine_chart} dataKey="koli" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, koli }) => `${name}: ${koli}`} labelLine={false}>
+                            {dailyDetailData.machine_chart.map((_, idx) => (
+                              <Cell key={idx} fill={DRILL_COLORS[idx % DRILL_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Operatör Performansı */}
+                {dailyDetailData.operator_chart?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-heading text-text-primary mb-2">Operator Performansi</h3>
+                    <ResponsiveContainer width="100%" height={Math.max(120, dailyDetailData.operator_chart.length * 40)}>
+                      <BarChart data={dailyDetailData.operator_chart} layout="vertical" margin={{ left: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
+                        <XAxis type="number" stroke="#A1A1AA" tick={{ fontSize: 10 }} />
+                        <YAxis type="category" dataKey="name" stroke="#A1A1AA" tick={{ fontSize: 11 }} width={55} />
+                        <Tooltip contentStyle={{ backgroundColor: "#18181B", border: "1px solid #27272A", fontSize: 12 }} formatter={(val, name) => [val, name === "koli" ? "Koli" : "Is"]} />
+                        <Bar dataKey="koli" fill="#34D399" name="Koli" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Defo Detayı */}
+                {dailyDetailData.summary.total_defect_kg > 0 && Object.keys(dailyDetailData.defect_by_machine).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-heading text-text-primary mb-2">Defo Dagilimi (kg)</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {Object.entries(dailyDetailData.defect_by_machine).map(([machine, kg]) => (
+                        <div key={machine} className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                          <p className="text-sm font-bold text-red-400">{kg} kg</p>
+                          <p className="text-xs text-text-secondary">{machine}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* İş Detayları Tablosu */}
+                {dailyDetailData.job_details?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-heading text-text-primary mb-2">Tamamlanan Isler ({dailyDetailData.job_details.length})</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm" data-testid="daily-detail-jobs-table">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left p-2 text-text-secondary font-medium">Is</th>
+                            <th className="text-left p-2 text-text-secondary font-medium">Makine</th>
+                            <th className="text-left p-2 text-text-secondary font-medium">Operator</th>
+                            <th className="text-right p-2 text-text-secondary font-medium">Koli</th>
+                            <th className="text-right p-2 text-text-secondary font-medium">Sure</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailyDetailData.job_details.map((job, idx) => (
+                            <tr key={job.id || idx} className="border-b border-border/50 hover:bg-surface-highlight/50">
+                              <td className="p-2 text-text-primary">{job.name}</td>
+                              <td className="p-2 text-text-secondary">{job.machine_name}</td>
+                              <td className="p-2 text-text-secondary">{job.operator_name}</td>
+                              <td className="p-2 text-right text-primary font-semibold">{job.koli_count}</td>
+                              <td className="p-2 text-right text-text-secondary">
+                                {job.duration_min ? `${Math.floor(job.duration_min / 60)}s ${job.duration_min % 60}dk` : "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Boş gün mesajı */}
+                {dailyDetailData.summary.total_koli === 0 && dailyDetailData.summary.completed_jobs === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-text-secondary">Bu gun icin uretim verisi bulunamadi.</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         {/* BAKIM DIALOG */}
         <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>

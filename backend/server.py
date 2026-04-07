@@ -1637,6 +1637,144 @@ async def get_daily_analytics():
     
     return {"daily_stats": list(reversed(daily_stats))}
 
+
+@api_router.get("/analytics/daily-detail")
+async def get_daily_detail_analytics(date: str):
+    """Belirli bir günün detaylı üretim analitiği"""
+    from datetime import timedelta
+    
+    try:
+        target_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return {"error": "Geçersiz tarih formatı. YYYY-MM-DD kullanın."}
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+    
+    # Tamamlanan işler
+    completed_jobs = await db.jobs.find(
+        {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # O gün başlatılan işler
+    started_jobs = await db.jobs.find(
+        {"started_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Vardiya raporları
+    shift_reports = await db.shift_end_reports.find(
+        {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Defo kayıtları
+    defects = await db.defect_logs.find(
+        {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Makine bazında üretim
+    machine_breakdown = {}
+    operator_breakdown = {}
+    job_details = []
+    
+    for job in completed_jobs:
+        machine = job.get("machine_name", "Bilinmiyor")
+        operator = job.get("operator_name", "Bilinmiyor")
+        koli = job.get("completed_koli", job.get("koli_count", 0))
+        
+        # Makine dağılımı
+        if machine not in machine_breakdown:
+            machine_breakdown[machine] = 0
+        machine_breakdown[machine] += koli
+        
+        # Operatör dağılımı
+        if operator not in operator_breakdown:
+            operator_breakdown[operator] = {"jobs_count": 0, "total_koli": 0}
+        operator_breakdown[operator]["jobs_count"] += 1
+        operator_breakdown[operator]["total_koli"] += koli
+        
+        # Süre hesaplama
+        duration_min = None
+        if job.get("started_at") and job.get("completed_at"):
+            try:
+                start = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                end = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                duration_min = round((end - start).total_seconds() / 60)
+            except Exception:
+                pass
+        
+        job_details.append({
+            "id": job.get("id"),
+            "name": job.get("name", ""),
+            "machine_name": machine,
+            "operator_name": operator,
+            "koli_count": koli,
+            "started_at": job.get("started_at"),
+            "completed_at": job.get("completed_at"),
+            "duration_min": duration_min,
+            "colors": job.get("colors", "")
+        })
+    
+    # Kısmi üretim (vardiya raporlarından)
+    partial_koli = 0
+    if shift_reports:
+        job_ids = [r["job_id"] for r in shift_reports if r.get("job_id") and r.get("produced_koli", 0) > 0]
+        if job_ids:
+            jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
+            jobs_dict = {j["id"]: j for j in jobs_list}
+            for report in shift_reports:
+                produced = report.get("produced_koli", 0)
+                if produced > 0:
+                    job_id = report.get("job_id")
+                    if job_id:
+                        job = jobs_dict.get(job_id)
+                        if job and job.get("status") == "completed":
+                            continue
+                    machine = report.get("machine_name", "")
+                    if machine:
+                        if machine not in machine_breakdown:
+                            machine_breakdown[machine] = 0
+                        machine_breakdown[machine] += produced
+                        partial_koli += produced
+    
+    # Defo özeti
+    total_defect_kg = 0.0
+    defect_by_machine = {}
+    for defect in defects:
+        kg = defect.get("defect_kg", 0)
+        total_defect_kg += kg
+        machine = defect.get("machine_name", "Bilinmiyor")
+        if machine not in defect_by_machine:
+            defect_by_machine[machine] = 0.0
+        defect_by_machine[machine] += kg
+    
+    total_koli = sum(machine_breakdown.values())
+    
+    # Makine chart verisi
+    machine_chart = [{"name": k, "koli": v} for k, v in sorted(machine_breakdown.items(), key=lambda x: x[1], reverse=True)]
+    
+    # Operatör chart verisi
+    operator_chart = [{"name": k, "koli": v["total_koli"], "jobs": v["jobs_count"]} for k, v in sorted(operator_breakdown.items(), key=lambda x: x[1]["total_koli"], reverse=True)]
+    
+    return {
+        "date": date,
+        "summary": {
+            "total_koli": total_koli,
+            "completed_jobs": len(completed_jobs),
+            "started_jobs": len(started_jobs),
+            "partial_koli": partial_koli,
+            "active_operators": len(operator_breakdown),
+            "total_defect_kg": round(total_defect_kg, 2)
+        },
+        "machine_chart": machine_chart,
+        "operator_chart": operator_chart,
+        "job_details": sorted(job_details, key=lambda x: x.get("completed_at", ""), reverse=True),
+        "defect_by_machine": {k: round(v, 2) for k, v in defect_by_machine.items()}
+    }
+
 @api_router.get("/analytics/monthly")
 async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int] = None):
     from datetime import timedelta
