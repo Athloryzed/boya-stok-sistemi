@@ -3405,6 +3405,231 @@ Kurallar:
         raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
 
 
+class AIManagementChatRequest(BaseModel):
+    message: str
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+@api_router.get("/ai/management-overview")
+async def get_ai_management_overview():
+    """Tüm fabrika verilerini analiz edip yönetim önerisi üretir"""
+    from datetime import timedelta
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="AI servisi yapılandırılmamış")
+    
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    # Tüm makineler
+    all_machines = await db.machines.find({}, {"_id": 0}).to_list(50)
+    
+    # Tüm aktif/bekleyen işler
+    active_jobs = await db.jobs.find(
+        {"status": {"$in": ["pending", "in_progress"]}}, {"_id": 0}
+    ).to_list(200)
+    
+    # Son 7 gün tamamlanan
+    completed_7d = await db.jobs.find(
+        {"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0}
+    ).to_list(500)
+    
+    # Bugün tamamlanan
+    completed_today = [j for j in completed_7d if j.get("completed_at", "") >= today_start]
+    
+    # Defolar
+    defects_7d = await db.defect_logs.find(
+        {"created_at": {"$gte": week_ago}}, {"_id": 0}
+    ).to_list(200)
+    
+    # Makine durumları
+    idle_machines = [m for m in all_machines if m.get("status") == "idle"]
+    working_machines = [m for m in all_machines if m.get("status") == "working"]
+    maintenance_machines = [m for m in all_machines if m.get("status") == "maintenance"]
+    
+    # Makine bazında verimlilik
+    machine_stats = {}
+    for job in completed_7d:
+        mn = job.get("machine_name", "")
+        if mn not in machine_stats:
+            machine_stats[mn] = {"jobs": 0, "koli": 0, "durations": []}
+        machine_stats[mn]["jobs"] += 1
+        machine_stats[mn]["koli"] += job.get("completed_koli", job.get("koli_count", 0))
+        if job.get("started_at") and job.get("completed_at"):
+            try:
+                s = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                e = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                machine_stats[mn]["durations"].append((e - s).total_seconds() / 3600)
+            except Exception:
+                pass
+    
+    # Operatör performansı
+    op_stats = {}
+    for job in completed_7d:
+        op = job.get("operator_name", "")
+        if not op:
+            continue
+        if op not in op_stats:
+            op_stats[op] = {"jobs": 0, "koli": 0}
+        op_stats[op]["jobs"] += 1
+        op_stats[op]["koli"] += job.get("completed_koli", job.get("koli_count", 0))
+    
+    total_defect_kg = sum(d.get("defect_kg", 0) for d in defects_7d)
+    total_koli_7d = sum(j.get("completed_koli", j.get("koli_count", 0)) for j in completed_7d)
+    total_koli_today = sum(j.get("completed_koli", j.get("koli_count", 0)) for j in completed_today)
+    
+    # Context
+    machine_lines = []
+    for m in all_machines:
+        jobs_on_machine = [j for j in active_jobs if j.get("machine_id") == m.get("id")]
+        stats = machine_stats.get(m["name"], {})
+        avg_h = round(sum(stats.get("durations", [])) / len(stats["durations"]), 1) if stats.get("durations") else None
+        machine_lines.append(f"- {m['name']}: Durum={m.get('status','?')}, Bekleyen iş={len(jobs_on_machine)}, 7g üretim={stats.get('koli',0)} koli, Ort. süre={avg_h}s")
+    
+    op_lines = [f"- {op}: {s['jobs']} iş, {s['koli']} koli" for op, s in sorted(op_stats.items(), key=lambda x: x[1]['koli'], reverse=True)[:10]]
+    
+    defect_by_machine = {}
+    for d in defects_7d:
+        mn = d.get("machine_name", "")
+        defect_by_machine[mn] = defect_by_machine.get(mn, 0) + d.get("defect_kg", 0)
+    defect_lines = [f"- {mn}: {round(kg,1)} kg" for mn, kg in sorted(defect_by_machine.items(), key=lambda x: x[1], reverse=True)]
+    
+    context = f"""FABRIKA GENEL DURUMU
+Tarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}
+
+Makineler ({len(all_machines)} toplam):
+- Çalışan: {len(working_machines)}, Boşta: {len(idle_machines)}, Bakımda: {len(maintenance_machines)}
+{chr(10).join(machine_lines)}
+
+Üretim (Son 7 Gün):
+- Tamamlanan: {len(completed_7d)} iş, {total_koli_7d} koli
+- Bugün: {len(completed_today)} iş, {total_koli_today} koli
+- Toplam bekleyen: {len(active_jobs)} iş
+
+Operatör Performansı (Son 7 Gün, Top 10):
+{chr(10).join(op_lines) if op_lines else 'Veri yok'}
+
+Defo Durumu (Son 7 Gün): {round(total_defect_kg, 1)} kg
+{chr(10).join(defect_lines) if defect_lines else 'Defo kaydı yok'}"""
+    
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"mgmt_overview_{uuid.uuid4().hex[:8]}",
+            system_message="""Sen bir fabrika yönetim danışmanısın. Verilen fabrika verilerini analiz et ve yönetime kısa, net öneriler sun.
+Türkçe yanıt ver. Emoji kullanma.
+Şu başlıklar altında önerilerde bulun:
+1. GENEL DURUM (1-2 cümle fabrika özeti)
+2. DARBOGAZLAR (varsa sorunlu makine/operatör)
+3. VERIMLILIK ONERILERI (iş dağılımı, kapasite kullanımı)
+4. UYARILAR (bakım, defo, geciken işler)
+Her maddeyi kısa tut. Maksimum 8 madde."""
+        ).with_model("openai", "gpt-5.2")
+        
+        response = await chat.send_message(UserMessage(text=f"Fabrika durumunu analiz et:\n{context}"))
+        
+        return {
+            "overview": response,
+            "stats": {
+                "total_machines": len(all_machines),
+                "working": len(working_machines),
+                "idle": len(idle_machines),
+                "maintenance": len(maintenance_machines),
+                "pending_jobs": len(active_jobs),
+                "completed_today": len(completed_today),
+                "koli_today": total_koli_today,
+                "completed_7d": len(completed_7d),
+                "koli_7d": total_koli_7d,
+                "defect_kg_7d": round(total_defect_kg, 2),
+                "active_operators": len(op_stats)
+            }
+        }
+    except Exception as e:
+        logger.error(f"AI management overview error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
+
+
+@api_router.post("/ai/management-chat")
+async def ai_management_chat(req: AIManagementChatRequest):
+    """Yönetici ile AI arasında fabrika geneli sohbet"""
+    from datetime import timedelta
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="AI servisi yapılandırılmamış")
+    
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    
+    all_machines = await db.machines.find({}, {"_id": 0}).to_list(50)
+    active_jobs = await db.jobs.find({"status": {"$in": ["pending", "in_progress"]}}, {"_id": 0}).to_list(200)
+    completed_7d = await db.jobs.find({"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0}).to_list(500)
+    defects_7d = await db.defect_logs.find({"created_at": {"$gte": week_ago}}, {"_id": 0}).to_list(200)
+    
+    machines_text = "\n".join([f"- {m['name']}: {m.get('status','?')}" for m in all_machines])
+    jobs_text = "\n".join([f"- {j['name']}: {j.get('machine_name','?')}, {j.get('koli_count',0)} koli, {j['status']}" for j in active_jobs[:20]])
+    completed_text = "\n".join([f"- {j['name']}: {j.get('machine_name','?')}, {j.get('completed_koli', j.get('koli_count',0))} koli, Operator: {j.get('operator_name','?')}" for j in completed_7d[:15]])
+    
+    op_stats = {}
+    for j in completed_7d:
+        op = j.get("operator_name", "")
+        if op:
+            if op not in op_stats:
+                op_stats[op] = {"jobs": 0, "koli": 0}
+            op_stats[op]["jobs"] += 1
+            op_stats[op]["koli"] += j.get("completed_koli", j.get("koli_count", 0))
+    op_text = "\n".join([f"- {op}: {s['jobs']} iş, {s['koli']} koli" for op, s in sorted(op_stats.items(), key=lambda x: x[1]['koli'], reverse=True)])
+    
+    system_msg = f"""Sen Buse Kağıt fabrikasında yönetim danışmanı AI'sın.
+
+Makineler:
+{machines_text}
+
+Aktif/Bekleyen İşler:
+{jobs_text or 'Yok'}
+
+Son 7 Gün Tamamlanan (son 15):
+{completed_text or 'Yok'}
+
+Operatör İstatistikleri (Son 7 Gün):
+{op_text or 'Veri yok'}
+
+Toplam Defo: {round(sum(d.get('defect_kg',0) for d in defects_7d), 1)} kg
+
+Kurallar:
+- Türkçe yanıt ver
+- Kısa ve net cevaplar ver (maks 4-5 cümle)
+- Sadece fabrika, üretim, makine, operatör, iş konularında cevap ver
+- Emoji kullanma"""
+    
+    chat_history = await db.ai_chat_history.find(
+        {"session_id": req.session_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(20)
+    
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=req.session_id,
+            system_message=system_msg
+        ).with_model("openai", "gpt-5.2")
+        
+        for hist in chat_history:
+            if hist.get("role") == "user":
+                await chat.send_message(UserMessage(text=hist["content"]))
+        
+        response = await chat.send_message(UserMessage(text=req.message))
+        
+        now = datetime.now(timezone.utc).isoformat()
+        await db.ai_chat_history.insert_many([
+            {"session_id": req.session_id, "role": "user", "content": req.message, "created_at": now},
+            {"session_id": req.session_id, "role": "assistant", "content": response, "created_at": now}
+        ])
+        
+        return {"response": response, "session_id": req.session_id}
+    except Exception as e:
+        logger.error(f"AI management chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
+
+
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):
     """Hafta bazında günlük üretim analitiği - Vardiya sonu raporları dahil"""

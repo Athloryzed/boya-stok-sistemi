@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -140,6 +140,17 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [isDailyDetailOpen, setIsDailyDetailOpen] = useState(false);
   const [dailyDetailData, setDailyDetailData] = useState(null);
   const [dailyDetailLoading, setDailyDetailLoading] = useState(false);
+
+  // AI Yönetim Asistanı
+  const [isMgmtAIOpen, setIsMgmtAIOpen] = useState(false);
+  const [mgmtAITab, setMgmtAITab] = useState("overview");
+  const [mgmtAIOverview, setMgmtAIOverview] = useState(null);
+  const [mgmtAILoading, setMgmtAILoading] = useState(false);
+  const [mgmtAIMessages, setMgmtAIMessages] = useState([]);
+  const [mgmtAIInput, setMgmtAIInput] = useState("");
+  const [mgmtAIChatLoading, setMgmtAIChatLoading] = useState(false);
+  const [mgmtAISessionId] = useState(() => `mgmt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const mgmtAIChatEndRef = useRef(null);
 
   const [editFormData, setEditFormData] = useState({
     name: "", koli_count: "", colors: "", operator_name: "", notes: ""
@@ -796,6 +807,39 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const DRILL_COLORS = ["#FFBF00", "#60A5FA", "#34D399", "#F97316", "#A78BFA", "#FB7185", "#38BDF8", "#FBBF24"];
+
+  // AI Yönetim fonksiyonları
+  const fetchMgmtAIOverview = async () => {
+    setMgmtAILoading(true);
+    try {
+      const res = await axios.get(`${API}/ai/management-overview`);
+      setMgmtAIOverview(res.data);
+    } catch {
+      toast.error("AI analizi alınamadı");
+    } finally {
+      setMgmtAILoading(false);
+    }
+  };
+
+  const sendMgmtAIMessage = async () => {
+    if (!mgmtAIInput.trim() || mgmtAIChatLoading) return;
+    const userMsg = mgmtAIInput.trim();
+    setMgmtAIInput("");
+    setMgmtAIMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setMgmtAIChatLoading(true);
+    try {
+      const res = await axios.post(`${API}/ai/management-chat`, { message: userMsg, session_id: mgmtAISessionId });
+      setMgmtAIMessages(prev => [...prev, { role: "assistant", content: res.data.response }]);
+    } catch {
+      setMgmtAIMessages(prev => [...prev, { role: "assistant", content: "Bir hata olustu, tekrar deneyin." }]);
+    } finally {
+      setMgmtAIChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    mgmtAIChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mgmtAIMessages]);
 
   if (!authenticated) {
     return (
@@ -1921,6 +1965,185 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </TabsContent>
 
         </Tabs>
+
+        {/* AI Yönetim Asistanı - Floating Button & Panel */}
+        {authenticated && (
+          <>
+            {!isMgmtAIOpen && (
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { setIsMgmtAIOpen(true); if (!mgmtAIOverview) fetchMgmtAIOverview(); }}
+                className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 text-white shadow-lg flex items-center justify-center"
+                data-testid="mgmt-ai-btn"
+              >
+                <Bot className="h-6 w-6" />
+              </motion.button>
+            )}
+
+            <AnimatePresence>
+              {isMgmtAIOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 100, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 100, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="fixed bottom-4 right-4 left-4 md:left-auto md:w-[450px] z-50 bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                  style={{ maxHeight: "75vh" }}
+                  data-testid="mgmt-ai-panel"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-500/20 to-cyan-600/20 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-emerald-400" />
+                      <span className="font-heading font-bold text-text-primary">Yonetim AI</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">GPT-5.2</span>
+                    </div>
+                    <button onClick={() => setIsMgmtAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
+                      <X className="h-5 w-5 text-text-secondary" />
+                    </button>
+                  </div>
+
+                  {/* Tab Switch */}
+                  <div className="flex border-b border-border">
+                    <button
+                      onClick={() => { setMgmtAITab("overview"); if (!mgmtAIOverview) fetchMgmtAIOverview(); }}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${mgmtAITab === "overview" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-text-secondary hover:text-text-primary"}`}
+                      data-testid="mgmt-ai-tab-overview"
+                    >
+                      Fabrika Analizi
+                    </button>
+                    <button
+                      onClick={() => setMgmtAITab("chat")}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${mgmtAITab === "chat" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-text-secondary hover:text-text-primary"}`}
+                      data-testid="mgmt-ai-tab-chat"
+                    >
+                      Sohbet
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Fabrika Analizi */}
+                    {mgmtAITab === "overview" && (
+                      <div className="p-4 space-y-3">
+                        {mgmtAILoading ? (
+                          <div className="flex flex-col items-center justify-center py-8 gap-3">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-400 border-t-transparent" />
+                            <p className="text-text-secondary text-sm">Fabrika verilerini analiz ediyor...</p>
+                          </div>
+                        ) : mgmtAIOverview ? (
+                          <>
+                            {/* İstatistik Kartları */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-emerald-400">{mgmtAIOverview.stats.working}/{mgmtAIOverview.stats.total_machines}</p>
+                                <p className="text-xs text-text-secondary">Calisan</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-primary">{mgmtAIOverview.stats.koli_today}</p>
+                                <p className="text-xs text-text-secondary">Bugun Koli</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-blue-400">{mgmtAIOverview.stats.pending_jobs}</p>
+                                <p className="text-xs text-text-secondary">Bekleyen</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-green-400">{mgmtAIOverview.stats.completed_7d}</p>
+                                <p className="text-xs text-text-secondary">7g Tamamlanan</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-orange-400">{mgmtAIOverview.stats.active_operators}</p>
+                                <p className="text-xs text-text-secondary">Operator</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-red-400">{mgmtAIOverview.stats.defect_kg_7d}</p>
+                                <p className="text-xs text-text-secondary">Defo(kg)</p>
+                              </div>
+                            </div>
+                            {/* AI Analizi */}
+                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3" data-testid="mgmt-ai-overview-content">
+                              <p className="text-sm text-text-primary whitespace-pre-line leading-relaxed">{mgmtAIOverview.overview}</p>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={fetchMgmtAIOverview} className="w-full text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" data-testid="mgmt-ai-refresh-btn">
+                              <Sparkles className="mr-2 h-4 w-4" /> Yenile
+                            </Button>
+                          </>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Bot className="h-8 w-8 text-text-secondary mx-auto mb-2" />
+                            <p className="text-text-secondary text-sm">Analiz yukleniyor...</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sohbet */}
+                    {mgmtAITab === "chat" && (
+                      <div className="flex flex-col" style={{ minHeight: "280px" }}>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: "45vh" }}>
+                          {mgmtAIMessages.length === 0 && (
+                            <div className="text-center py-6">
+                              <Bot className="h-10 w-10 text-text-secondary mx-auto mb-3 opacity-50" />
+                              <p className="text-text-secondary text-sm">Fabrika hakkinda soru sorun.</p>
+                              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                                {["En verimli operator kim?", "Hangi makine bosta?", "Bu hafta kac koli urettik?"].map((q) => (
+                                  <button key={q} onClick={() => setMgmtAIInput(q)} className="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                                    {q}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {mgmtAIMessages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                                msg.role === "user"
+                                  ? "bg-emerald-500 text-white rounded-br-sm"
+                                  : "bg-surface-highlight text-text-primary rounded-bl-sm border border-border"
+                              }`}>
+                                {msg.content}
+                              </div>
+                            </div>
+                          ))}
+                          {mgmtAIChatLoading && (
+                            <div className="flex justify-start">
+                              <div className="bg-surface-highlight rounded-2xl rounded-bl-sm px-4 py-2 border border-border">
+                                <div className="flex gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0s" }} />
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0.15s" }} />
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: "0.3s" }} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div ref={mgmtAIChatEndRef} />
+                        </div>
+                        <div className="p-3 border-t border-border">
+                          <div className="flex gap-2">
+                            <Input
+                              value={mgmtAIInput}
+                              onChange={(e) => setMgmtAIInput(e.target.value)}
+                              onKeyPress={(e) => e.key === "Enter" && sendMgmtAIMessage()}
+                              placeholder="Sorunuzu yazin..."
+                              className="bg-background border-border text-text-primary text-sm"
+                              data-testid="mgmt-ai-chat-input"
+                            />
+                            <Button size="sm" onClick={sendMgmtAIMessage} disabled={!mgmtAIInput.trim() || mgmtAIChatLoading} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3" data-testid="mgmt-ai-chat-send">
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
 
         {/* GÜNLÜK DETAY DRILL-DOWN DIALOG */}
         <Dialog open={isDailyDetailOpen} onOpenChange={setIsDailyDetailOpen}>

@@ -14,28 +14,22 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 
 ## What's Implemented
 - [x] Role-based panels (Management, Operator, Plan, Warehouse, Paint)
-- [x] GitHub Actions CI/CD for APK (signed release)
-- [x] Firebase Push Notifications (Capacitor for Android)
-- [x] 24h Persistent Sessions (ALL panels)
-- [x] Error Boundary (recovery UI + cache clear button)
-- [x] Retry mechanism (3 retries with exponential backoff)
-- [x] Audit Log System (Management "Loglar" tab)
-- [x] Optimistic UI updates
-- [x] Swipe-to-dismiss toast notifications
-- [x] Spring Theme for Home page (dynamic sky, petals, butterflies)
-- [x] Ataturk portrait + Waving Turkish flag on Home page
+- [x] 24h Persistent Sessions, Error Boundary, Retry mechanism
+- [x] Audit Log System, Optimistic UI, Swipe-to-dismiss toasts
+- [x] Spring Theme, Ataturk portrait, Turkish flag on Home page
 - [x] "Hatirla Beni" (Remember Me) for Operator and Plan login
-- [x] Daily Analytics Drill-Down (click day bars for detailed breakdown)
-- [x] Haftalik Excel Raporu (4-sheet: Ozet, Makine, Operator, Defo)
-- [x] **AI Operator Assistant** - GPT-5.2 powered floating panel with Suggestions + Chat tabs
+- [x] Daily Analytics Drill-Down
+- [x] Haftalik Excel Raporu (4-sheet)
+- [x] **AI Operator Assistant** - GPT-5.2 suggestions + chat (blue/purple)
+- [x] **AI Management Assistant** - GPT-5.2 factory analysis + chat (green/teal)
 
 ## Key API Endpoints
-- `GET /api/ai/operator-suggestion?machine_id=X&operator_name=Y` - AI production suggestions
+- `GET /api/ai/operator-suggestion` - AI production suggestions per machine
 - `POST /api/ai/operator-chat` - Conversational AI for operators
-- `GET /api/analytics/daily-detail?date=YYYY-MM-DD` - Daily drill-down
-- `GET /api/analytics/export?period=weekly&week_offset=N` - Excel report (4 sheets)
-- `GET /api/audit-logs` - Audit log entries
-- `PUT /api/jobs/reorder-batch` - Must be above /jobs/{job_id} in router
+- `GET /api/ai/management-overview` - Factory-wide AI analysis
+- `POST /api/ai/management-chat` - Conversational AI for managers
+- `GET /api/analytics/daily-detail` - Daily drill-down
+- `GET /api/analytics/export` - Excel report (4 sheets)
 
 ## DB Collections
 - jobs, machines, users, audit_logs, shift_end_reports, defect_logs
