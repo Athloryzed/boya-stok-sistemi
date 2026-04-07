@@ -20,6 +20,7 @@ import base64
 from twilio.rest import Client as TwilioClient
 import firebase_admin
 from firebase_admin import credentials, messaging
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 # Logging'i erken yapılandır
 logging.basicConfig(
@@ -3198,6 +3199,211 @@ async def get_warehouse_shipment_logs(limit: int = 100):
     """Depo sevkiyat kayıtlarını listele"""
     logs = await db.warehouse_shipment_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return logs
+
+# ===== AI OPERATÖR ASİSTANI =====
+
+class AIChatRequest(BaseModel):
+    message: str
+    machine_id: str
+    operator_name: str
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+@api_router.get("/ai/operator-suggestion")
+async def get_ai_operator_suggestion(machine_id: str, operator_name: str):
+    """Makine ve iş verilerine dayalı AI öneri üretir"""
+    from datetime import timedelta
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="AI servisi yapılandırılmamış")
+    
+    # Makine bilgisi
+    machine = await db.machines.find_one({"id": machine_id}, {"_id": 0})
+    if not machine:
+        raise HTTPException(status_code=404, detail="Makine bulunamadı")
+    
+    # Makinedeki bekleyen işler
+    pending_jobs = await db.jobs.find(
+        {"machine_id": machine_id, "status": {"$in": ["pending", "in_progress"]}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Son 7 günün tamamlanan işleri (makine bazında)
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    recent_completed = await db.jobs.find(
+        {"machine_id": machine_id, "status": "completed", "completed_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Son defolar
+    recent_defects = await db.defect_logs.find(
+        {"machine_id": machine_id, "created_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Son vardiya raporları
+    recent_shifts = await db.shift_end_reports.find(
+        {"machine_id": machine_id, "created_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Verimlilik hesaplama
+    avg_duration = None
+    avg_koli_per_hour = None
+    if recent_completed:
+        durations = []
+        for job in recent_completed:
+            if job.get("started_at") and job.get("completed_at"):
+                try:
+                    s = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+                    e = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
+                    dur_h = (e - s).total_seconds() / 3600
+                    if dur_h > 0:
+                        durations.append(dur_h)
+                except Exception:
+                    pass
+        if durations:
+            avg_duration = round(sum(durations) / len(durations), 1)
+            total_koli = sum(j.get("completed_koli", j.get("koli_count", 0)) for j in recent_completed)
+            total_hours = sum(durations)
+            avg_koli_per_hour = round(total_koli / total_hours) if total_hours > 0 else 0
+    
+    total_defect_kg = sum(d.get("defect_kg", 0) for d in recent_defects)
+    
+    # AI context oluştur
+    jobs_info = []
+    for j in pending_jobs:
+        jobs_info.append(f"- {j['name']}: {j.get('koli_count', 0)} koli, Renkler: {j.get('colors', 'Belirtilmemiş')}, Format: {j.get('format', 'Belirtilmemiş')}, Durum: {j['status']}, Öncelik: {j.get('priority', 'normal')}")
+    
+    context = f"""Makine: {machine['name']}
+Operatör: {operator_name}
+Bekleyen/Aktif İşler ({len(pending_jobs)} adet):
+{chr(10).join(jobs_info) if jobs_info else 'Bekleyen iş yok'}
+
+Son 7 Gün İstatistikleri:
+- Tamamlanan iş: {len(recent_completed)}
+- Ortalama iş süresi: {avg_duration} saat
+- Ortalama üretim hızı: {avg_koli_per_hour} koli/saat
+- Toplam defo: {total_defect_kg} kg ({len(recent_defects)} kayıt)
+- Vardiya raporu: {len(recent_shifts)} adet"""
+    
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"suggestion_{machine_id}_{uuid.uuid4().hex[:8]}",
+            system_message="""Sen bir fabrika üretim danışmanısın. Kısa ve net öneriler ver.
+Türkçe yanıt ver. Emoji kullanma. 
+Şu konularda öneri ver:
+1. İş sıralama (renk geçişi, öncelik, format uyumu)
+2. Verimlilik (hız, kalite, defo azaltma)
+3. Uyarılar (bakım ihtiyacı, anormal defo oranı vb.)
+Her öneriyi tek cümle ile yaz. Madde işareti kullan. Maksimum 5 öneri ver."""
+        ).with_model("openai", "gpt-5.2")
+        
+        msg = UserMessage(text=f"Bu makinenin mevcut durumu:\n{context}\n\nBu verilere göre operatöre önerilerin neler?")
+        response = await chat.send_message(msg)
+        
+        return {
+            "suggestions": response,
+            "machine_name": machine["name"],
+            "stats": {
+                "pending_jobs": len(pending_jobs),
+                "completed_7d": len(recent_completed),
+                "avg_duration_h": avg_duration,
+                "avg_koli_per_hour": avg_koli_per_hour,
+                "defect_kg_7d": round(total_defect_kg, 2)
+            }
+        }
+    except Exception as e:
+        logger.error(f"AI suggestion error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
+
+
+@api_router.post("/ai/operator-chat")
+async def ai_operator_chat(req: AIChatRequest):
+    """Operatör ile AI arasında sohbet"""
+    from datetime import timedelta
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="AI servisi yapılandırılmamış")
+    
+    # Makine ve iş verilerini çek
+    machine = await db.machines.find_one({"id": req.machine_id}, {"_id": 0})
+    machine_name = machine["name"] if machine else "Bilinmiyor"
+    
+    pending_jobs = await db.jobs.find(
+        {"machine_id": req.machine_id, "status": {"$in": ["pending", "in_progress"]}},
+        {"_id": 0}
+    ).to_list(50)
+    
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    recent_completed = await db.jobs.find(
+        {"machine_id": req.machine_id, "status": "completed", "completed_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).to_list(30)
+    
+    recent_defects = await db.defect_logs.find(
+        {"machine_id": req.machine_id, "created_at": {"$gte": week_ago}},
+        {"_id": 0}
+    ).to_list(20)
+    
+    jobs_text = "\n".join([f"- {j['name']}: {j.get('koli_count',0)} koli, {j.get('colors','')}, Durum: {j['status']}" for j in pending_jobs]) or "Yok"
+    completed_text = "\n".join([f"- {j['name']}: {j.get('completed_koli', j.get('koli_count',0))} koli" for j in recent_completed[:10]]) or "Yok"
+    defect_text = "\n".join([f"- {d.get('defect_kg',0)} kg ({d.get('notes','')})" for d in recent_defects[:5]]) or "Yok"
+    
+    # Sohbet geçmişini DB'den çek
+    chat_history = await db.ai_chat_history.find(
+        {"session_id": req.session_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(20)
+    
+    system_msg = f"""Sen Buse Kağıt fabrikasında çalışan bir AI üretim asistanısın.
+Makine: {machine_name}
+Operatör: {req.operator_name}
+
+Mevcut işler:
+{jobs_text}
+
+Son 7 günde tamamlanan (son 10):
+{completed_text}
+
+Son defolar:
+{defect_text}
+
+Kurallar:
+- Türkçe yanıt ver
+- Kısa ve pratik cevaplar ver (maks 3-4 cümle)
+- Sadece üretim, makine, iş ve fabrikayla ilgili sorulara cevap ver
+- Emoji kullanma"""
+    
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=req.session_id,
+            system_message=system_msg
+        ).with_model("openai", "gpt-5.2")
+        
+        # Geçmiş mesajları ekle
+        for hist in chat_history:
+            if hist.get("role") == "user":
+                await chat.send_message(UserMessage(text=hist["content"]))
+        
+        # Yeni mesajı gönder
+        response = await chat.send_message(UserMessage(text=req.message))
+        
+        # Mesajları DB'ye kaydet
+        now = datetime.now(timezone.utc).isoformat()
+        await db.ai_chat_history.insert_many([
+            {"session_id": req.session_id, "role": "user", "content": req.message, "created_at": now},
+            {"session_id": req.session_id, "role": "assistant", "content": response, "created_at": now}
+        ])
+        
+        return {"response": response, "session_id": req.session_id}
+    except Exception as e:
+        logger.error(f"AI chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
+
 
 @api_router.get("/analytics/daily-by-week")
 async def get_daily_analytics_by_week(week_offset: int = 0):

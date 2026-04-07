@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -83,10 +83,62 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [pauseReason, setPauseReason] = useState("");
   const [pauseProducedKoli, setPauseProducedKoli] = useState("");
 
+  // AI Asistan state'leri
+  const [isAIOpen, setIsAIOpen] = useState(false);
+  const [aiTab, setAiTab] = useState("suggestions");
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiSugLoading, setAiSugLoading] = useState(false);
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiChatLoading, setAiChatLoading] = useState(false);
+  const [aiSessionId] = useState(() => `ai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const aiChatEndRef = useRef(null);
+
   const openImagePreview = (imageUrl) => {
     setSelectedJobImage(imageUrl);
     setIsImagePreviewOpen(true);
   };
+
+  // AI öneri getir
+  const fetchAISuggestions = async () => {
+    if (!selectedMachine?.id || !operatorName) return;
+    setAiSugLoading(true);
+    try {
+      const res = await axios.get(`${API}/ai/operator-suggestion?machine_id=${selectedMachine.id}&operator_name=${operatorName}`);
+      setAiSuggestions(res.data);
+    } catch {
+      toast.error("AI önerisi alınamadı");
+    } finally {
+      setAiSugLoading(false);
+    }
+  };
+
+  // AI sohbet gönder
+  const sendAIMessage = async () => {
+    if (!aiInput.trim() || !selectedMachine?.id || aiChatLoading) return;
+    const userMsg = aiInput.trim();
+    setAiInput("");
+    setAiMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setAiChatLoading(true);
+    try {
+      const res = await axios.post(`${API}/ai/operator-chat`, {
+        message: userMsg,
+        machine_id: selectedMachine.id,
+        operator_name: operatorName,
+        session_id: aiSessionId
+      });
+      setAiMessages(prev => [...prev, { role: "assistant", content: res.data.response }]);
+    } catch {
+      setAiMessages(prev => [...prev, { role: "assistant", content: "Bir hata olustu, tekrar deneyin." }]);
+    } finally {
+      setAiChatLoading(false);
+    }
+  };
+
+  // AI sohbet scroll
+  useEffect(() => {
+    aiChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [aiMessages]);
 
   // Bildirim izni state - Safari/iOS uyumluluğu için güvenli kontrol
   const getNotificationPermission = () => {
@@ -1300,6 +1352,176 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
         {/* İş Durdurma Dialog */}
+        {/* AI Asistan - Floating Button & Panel */}
+        {step === 3 && selectedMachine && (
+          <>
+            {/* Floating AI Butonu */}
+            {!isAIOpen && (
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { setIsAIOpen(true); if (!aiSuggestions) fetchAISuggestions(); }}
+                className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg flex items-center justify-center"
+                data-testid="ai-assistant-btn"
+              >
+                <Sparkles className="h-6 w-6" />
+              </motion.button>
+            )}
+
+            {/* AI Panel */}
+            <AnimatePresence>
+              {isAIOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 100, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 100, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="fixed bottom-4 right-4 left-4 md:left-auto md:w-[420px] z-50 bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                  style={{ maxHeight: "70vh" }}
+                  data-testid="ai-assistant-panel"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500/20 to-purple-600/20 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-blue-400" />
+                      <span className="font-heading font-bold text-text-primary">AI Asistan</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">GPT-5.2</span>
+                    </div>
+                    <button onClick={() => setIsAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
+                      <X className="h-5 w-5 text-text-secondary" />
+                    </button>
+                  </div>
+
+                  {/* Tab Switch */}
+                  <div className="flex border-b border-border">
+                    <button
+                      onClick={() => { setAiTab("suggestions"); if (!aiSuggestions) fetchAISuggestions(); }}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${aiTab === "suggestions" ? "text-blue-400 border-b-2 border-blue-400" : "text-text-secondary hover:text-text-primary"}`}
+                      data-testid="ai-tab-suggestions"
+                    >
+                      Oneriler
+                    </button>
+                    <button
+                      onClick={() => setAiTab("chat")}
+                      className={`flex-1 py-2.5 text-sm font-medium transition-colors ${aiTab === "chat" ? "text-blue-400 border-b-2 border-blue-400" : "text-text-secondary hover:text-text-primary"}`}
+                      data-testid="ai-tab-chat"
+                    >
+                      Sohbet
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Oneriler Sekmesi */}
+                    {aiTab === "suggestions" && (
+                      <div className="p-4 space-y-3">
+                        {aiSugLoading ? (
+                          <div className="flex flex-col items-center justify-center py-8 gap-3">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-400 border-t-transparent" />
+                            <p className="text-text-secondary text-sm">AI analiz ediyor...</p>
+                          </div>
+                        ) : aiSuggestions ? (
+                          <>
+                            {/* Istatistikler */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-blue-400">{aiSuggestions.stats.pending_jobs}</p>
+                                <p className="text-xs text-text-secondary">Bekleyen</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-green-400">{aiSuggestions.stats.avg_koli_per_hour || "-"}</p>
+                                <p className="text-xs text-text-secondary">Koli/Saat</p>
+                              </div>
+                              <div className="bg-background rounded-lg p-2 text-center border border-border">
+                                <p className="text-lg font-bold text-red-400">{aiSuggestions.stats.defect_kg_7d}</p>
+                                <p className="text-xs text-text-secondary">Defo(kg)</p>
+                              </div>
+                            </div>
+                            {/* AI Onerisi */}
+                            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3" data-testid="ai-suggestions-content">
+                              <p className="text-sm text-text-primary whitespace-pre-line leading-relaxed">{aiSuggestions.suggestions}</p>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={fetchAISuggestions} className="w-full text-blue-400 border-blue-500/30 hover:bg-blue-500/10" data-testid="ai-refresh-btn">
+                              <Sparkles className="mr-2 h-4 w-4" /> Yenile
+                            </Button>
+                          </>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Sparkles className="h-8 w-8 text-text-secondary mx-auto mb-2" />
+                            <p className="text-text-secondary text-sm">Oneriler yukleniyor...</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sohbet Sekmesi */}
+                    {aiTab === "chat" && (
+                      <div className="flex flex-col" style={{ minHeight: "250px" }}>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: "40vh" }}>
+                          {aiMessages.length === 0 && (
+                            <div className="text-center py-6">
+                              <Bot className="h-10 w-10 text-text-secondary mx-auto mb-3 opacity-50" />
+                              <p className="text-text-secondary text-sm">Makine ve islerle ilgili soru sorun.</p>
+                              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                                {["Bu isi ne kadar surede bitirebilirim?", "Defo orani nasil?", "Siradaki is ne?"].map((q) => (
+                                  <button key={q} onClick={() => { setAiInput(q); }} className="text-xs px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
+                                    {q}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {aiMessages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                                msg.role === "user"
+                                  ? "bg-blue-500 text-white rounded-br-sm"
+                                  : "bg-surface-highlight text-text-primary rounded-bl-sm border border-border"
+                              }`}>
+                                {msg.content}
+                              </div>
+                            </div>
+                          ))}
+                          {aiChatLoading && (
+                            <div className="flex justify-start">
+                              <div className="bg-surface-highlight rounded-2xl rounded-bl-sm px-4 py-2 border border-border">
+                                <div className="flex gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0s" }} />
+                                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0.15s" }} />
+                                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: "0.3s" }} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div ref={aiChatEndRef} />
+                        </div>
+                        {/* Chat Input */}
+                        <div className="p-3 border-t border-border">
+                          <div className="flex gap-2">
+                            <Input
+                              value={aiInput}
+                              onChange={(e) => setAiInput(e.target.value)}
+                              onKeyPress={(e) => e.key === "Enter" && sendAIMessage()}
+                              placeholder="Sorunuzu yazin..."
+                              className="bg-background border-border text-text-primary text-sm"
+                              data-testid="ai-chat-input"
+                            />
+                            <Button size="sm" onClick={sendAIMessage} disabled={!aiInput.trim() || aiChatLoading} className="bg-blue-500 hover:bg-blue-600 text-white px-3" data-testid="ai-chat-send">
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+
         <Dialog open={isPauseDialogOpen} onOpenChange={setIsPauseDialogOpen}>
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
