@@ -15,25 +15,36 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 ## What's Implemented
 - [x] Role-based panels (Management, Operator, Plan, Warehouse, Paint)
 - [x] 24h Persistent Sessions, Error Boundary, Retry mechanism
-- [x] Audit Log System, Optimistic UI, Swipe-to-dismiss toasts
-- [x] Spring Theme, Ataturk portrait, Turkish flag on Home page
-- [x] "Hatirla Beni" (Remember Me) for Operator and Plan login
+- [x] Audit Log System with real user names
+- [x] Optimistic UI, Swipe-to-dismiss toasts
+- [x] Spring Theme, Ataturk portrait, Turkish flag
+- [x] "Hatirla Beni" for Operator and Plan login
 - [x] Daily Analytics Drill-Down
 - [x] Haftalik Excel Raporu (4-sheet)
-- [x] **AI Operator Assistant** - GPT-5.2 suggestions + chat (blue/purple)
-- [x] **AI Management Assistant** - GPT-5.2 factory analysis + chat (green/teal)
+- [x] AI Operator Assistant (GPT-5.2)
+- [x] AI Management Assistant (GPT-5.2)
+- [x] **AI Paint Forecast** - Boya tuketim tahmini ve stok uyarisi
+- [x] **Live Dashboard (TV)** - Sifresiz canli uretim panosu (/dashboard)
 
 ## Key API Endpoints
-- `GET /api/ai/operator-suggestion` - AI production suggestions per machine
-- `POST /api/ai/operator-chat` - Conversational AI for operators
-- `GET /api/ai/management-overview` - Factory-wide AI analysis
-- `POST /api/ai/management-chat` - Conversational AI for managers
+- `GET /api/dashboard/live` - Live production dashboard (no auth)
+- `GET /api/ai/paint-forecast` - AI paint consumption forecast
+- `GET /api/ai/operator-suggestion` - AI operator suggestions
+- `POST /api/ai/operator-chat` - Operator AI chat
+- `GET /api/ai/management-overview` - Factory AI analysis
+- `POST /api/ai/management-chat` - Management AI chat
 - `GET /api/analytics/daily-detail` - Daily drill-down
 - `GET /api/analytics/export` - Excel report (4 sheets)
 
-## DB Collections
-- jobs, machines, users, audit_logs, shift_end_reports, defect_logs
-- ai_chat_history (session_id, role, content, created_at)
+## Routes
+- `/` - Home (Spring Theme)
+- `/management` - Yonetim paneli
+- `/operator` - Operator paneli
+- `/plan` - Planlama paneli
+- `/warehouse` - Depo paneli
+- `/paint` - Boya paneli
+- `/driver` - Surucu paneli
+- `/dashboard` - Canli Uretim Panosu (TV, sifresiz)
 
 ## Upcoming Tasks
 - [ ] Shipment & Driver Module (P2)
@@ -41,9 +52,14 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 ## Future Tasks (Backlog)
 - [ ] QR/Barcode Scanning (P3)
 - [ ] Frontend component refactoring (P3)
+- [ ] Renk gecis optimizasyonu (P3)
+- [ ] Makine bakim planlayici (P3)
+- [ ] Musteri siparis takip paneli (P3)
 
 ## Test Credentials
 - Management: password `buse11993` (at /management)
 - Operator: `ali` / `134679` (at /operator)
 - Plan: `emrecan` / `testtest12` (at /plan)
 - Warehouse: `depo1` / `depo123` (at /warehouse)
+- Paint: password `buse11993` (at /paint)
+- Dashboard: no auth (at /dashboard)
