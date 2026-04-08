@@ -9,6 +9,7 @@ import ManagementFlow from "./pages/ManagementFlow";
 import WarehouseFlow from "./pages/WarehouseFlow";
 import PaintFlow from "./pages/PaintFlow";
 import DriverFlow from "./pages/DriverFlow";
+import LiveDashboard from "./pages/LiveDashboard";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
@@ -94,6 +95,7 @@ function App() {
             <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/dashboard" element={<LiveDashboard />} />
           </Routes>
         </BrowserRouter>
         <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />

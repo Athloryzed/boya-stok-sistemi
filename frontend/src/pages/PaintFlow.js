@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package, AlertTriangle, Sparkles, Bot, X } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -57,6 +57,11 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [amount, setAmount] = useState("");
   const [selectedMachine, setSelectedMachine] = useState("");
   const [note, setNote] = useState("");
+
+  // AI Boya Tahmin
+  const [isPaintAIOpen, setIsPaintAIOpen] = useState(false);
+  const [paintForecast, setPaintForecast] = useState(null);
+  const [paintAILoading, setPaintAILoading] = useState(false);
 
   // Oturum kontrolü - 24 saatlik kalıcı oturum
   useEffect(() => {
@@ -120,6 +125,18 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       toast.success("Giriş başarılı!");
     } else {
       toast.error("Yanlış şifre!");
+    }
+  };
+
+  const fetchPaintForecast = async () => {
+    setPaintAILoading(true);
+    try {
+      const res = await axios.get(`${API}/ai/paint-forecast`);
+      setPaintForecast(res.data);
+    } catch {
+      toast.error("AI tahmini alınamadı");
+    } finally {
+      setPaintAILoading(false);
     }
   };
 
@@ -827,6 +844,97 @@ const PaintFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* AI Boya Tüketim Tahmini */}
+        {!isPaintAIOpen && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => { setIsPaintAIOpen(true); if (!paintForecast) fetchPaintForecast(); }}
+            className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-red-500 text-white shadow-lg flex items-center justify-center"
+            data-testid="paint-ai-btn"
+          >
+            <Sparkles className="h-6 w-6" />
+          </motion.button>
+        )}
+
+        <AnimatePresence>
+          {isPaintAIOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-4 right-4 left-4 md:left-auto md:w-[420px] z-50 bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              style={{ maxHeight: "75vh" }}
+              data-testid="paint-ai-panel"
+            >
+              <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-500/20 to-red-500/20 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-amber-400" />
+                  <span className="font-heading font-bold text-text-primary">Boya AI Tahmini</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">GPT-5.2</span>
+                </div>
+                <button onClick={() => setIsPaintAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
+                  <X className="h-5 w-5 text-text-secondary" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {paintAILoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-400 border-t-transparent" />
+                    <p className="text-text-secondary text-sm">Stok ve tuketim analiz ediliyor...</p>
+                  </div>
+                ) : paintForecast ? (
+                  <>
+                    {/* Kritik uyarı */}
+                    {paintForecast.critical_count > 0 && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                        <p className="text-sm text-red-400 font-semibold">{paintForecast.critical_count} boya kritik seviyede!</p>
+                      </div>
+                    )}
+
+                    {/* Stok listesi */}
+                    <div className="space-y-2" data-testid="paint-forecast-list">
+                      {paintForecast.paints.map((p) => (
+                        <div key={p.name} className={`rounded-lg p-2.5 border ${p.critical ? "bg-red-500/5 border-red-500/30" : p.days_left && p.days_left <= 7 ? "bg-amber-500/5 border-amber-500/30" : "bg-background border-border"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-text-primary">{p.name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.critical ? "bg-red-500/20 text-red-400" : p.days_left && p.days_left <= 7 ? "bg-amber-500/20 text-amber-400" : "bg-green-500/20 text-green-400"}`}>
+                              {p.days_left ? `~${p.days_left} gun` : "Kullanim yok"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-text-secondary">Stok: {p.stock}L</span>
+                            <span className="text-xs text-text-secondary">Gunluk: {p.daily_avg}L</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* AI Analizi */}
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3" data-testid="paint-ai-forecast-content">
+                      <p className="text-sm text-text-primary whitespace-pre-line leading-relaxed">{paintForecast.forecast}</p>
+                    </div>
+
+                    <Button size="sm" variant="outline" onClick={fetchPaintForecast} className="w-full text-amber-400 border-amber-500/30 hover:bg-amber-500/10" data-testid="paint-ai-refresh-btn">
+                      <Sparkles className="mr-2 h-4 w-4" /> Yenile
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-8 w-8 text-text-secondary mx-auto mb-2" />
+                    <p className="text-text-secondary text-sm">Tahmin yukleniyor...</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

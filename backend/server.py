@@ -2562,6 +2562,169 @@ async def get_paint_analytics(period: str = "weekly"):
         "total_consumed": sum(paint_consumption.values())
     }
 
+@api_router.get("/ai/paint-forecast")
+async def get_ai_paint_forecast():
+    """AI destekli boya tüketim tahmini"""
+    from datetime import timedelta
+    
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="AI servisi yapılandırılmamış")
+    
+    # Mevcut stoklar
+    paints = await db.paints.find({}, {"_id": 0}).to_list(100)
+    
+    # Son 14 gün tüketim
+    two_weeks_ago = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+    movements = await db.paint_movements.find(
+        {"movement_type": {"$in": ["remove", "used"]}, "created_at": {"$gte": two_weeks_ago}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Bekleyen işler (renk bilgisi ile)
+    pending_jobs = await db.jobs.find(
+        {"status": {"$in": ["pending", "in_progress"]}},
+        {"_id": 0}
+    ).to_list(200)
+    
+    # Boya bazında tüketim hesapla
+    paint_usage_14d = {}
+    for mov in movements:
+        pn = mov["paint_name"]
+        paint_usage_14d[pn] = paint_usage_14d.get(pn, 0) + mov["amount_kg"]
+    
+    # Stok bilgisi
+    stock_lines = []
+    forecasts = []
+    for p in paints:
+        name = p["name"]
+        stock = p.get("stock_kg", 0)
+        usage_14d = paint_usage_14d.get(name, 0)
+        daily_avg = round(usage_14d / 14, 2) if usage_14d > 0 else 0
+        days_left = round(stock / daily_avg) if daily_avg > 0 else None
+        
+        stock_lines.append(f"- {name}: Stok={stock}L, 14g tüketim={round(usage_14d,1)}L, Günlük ort={daily_avg}L, Tahmini kalan={days_left} gün" if days_left else f"- {name}: Stok={stock}L, 14g tüketim=0L")
+        
+        forecasts.append({
+            "name": name,
+            "stock": stock,
+            "usage_14d": round(usage_14d, 1),
+            "daily_avg": daily_avg,
+            "days_left": days_left,
+            "critical": days_left is not None and days_left <= 3
+        })
+    
+    # Bekleyen işlerin renkleri
+    job_colors = [j.get("colors", "") for j in pending_jobs if j.get("colors")]
+    
+    context = f"""BOYA STOK DURUMU
+{chr(10).join(stock_lines)}
+
+Bekleyen İşlerin Renkleri: {', '.join(job_colors[:20]) if job_colors else 'Bilgi yok'}
+Toplam Bekleyen İş: {len(pending_jobs)}"""
+    
+    try:
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"paint_forecast_{uuid.uuid4().hex[:8]}",
+            system_message="""Sen bir boya stok yönetim uzmanısın. Türkçe yanıt ver. Emoji kullanma.
+Verilen verilere göre:
+1. Kritik durumda olan boyaları belirt (3 gün içinde bitecekler)
+2. Sipariş verilmesi gerekenleri öner
+3. Bekleyen işlere göre hangi boyalara ihtiyaç olacağını tahmin et
+4. Genel stok durumu özeti ver
+Kısa ve net maddeler halinde yaz. Maksimum 6 madde."""
+        ).with_model("openai", "gpt-5.2")
+        
+        response = await chat.send_message(UserMessage(text=f"Boya stok durumunu analiz et:\n{context}"))
+        
+        return {
+            "forecast": response,
+            "paints": sorted(forecasts, key=lambda x: (x["days_left"] or 999)),
+            "critical_count": sum(1 for f in forecasts if f["critical"]),
+            "total_paints": len(paints)
+        }
+    except Exception as e:
+        logger.error(f"AI paint forecast error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI servisi hatası: {str(e)}")
+
+
+@api_router.get("/dashboard/live")
+async def get_live_dashboard():
+    """Canlı üretim panosu verisi - şifresiz erişim"""
+    from datetime import timedelta
+    
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    
+    all_machines = await db.machines.find({}, {"_id": 0}).to_list(50)
+    active_jobs = await db.jobs.find({"status": "in_progress"}, {"_id": 0}).to_list(50)
+    pending_jobs = await db.jobs.find({"status": "pending"}, {"_id": 0}).to_list(200)
+    
+    completed_today = await db.jobs.find(
+        {"status": "completed", "completed_at": {"$gte": today_start}}, {"_id": 0}
+    ).to_list(200)
+    
+    completed_7d = await db.jobs.find(
+        {"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0}
+    ).to_list(500)
+    
+    # Bugün koli
+    koli_today = sum(j.get("completed_koli", j.get("koli_count", 0)) for j in completed_today)
+    
+    # Makine detayları
+    machine_data = []
+    for m in all_machines:
+        active_job = next((j for j in active_jobs if j.get("machine_id") == m.get("id")), None)
+        pending_count = sum(1 for j in pending_jobs if j.get("machine_id") == m.get("id"))
+        machine_data.append({
+            "name": m["name"],
+            "status": m.get("status", "idle"),
+            "active_job": {
+                "name": active_job["name"],
+                "koli_count": active_job.get("koli_count", 0),
+                "operator_name": active_job.get("operator_name", ""),
+                "started_at": active_job.get("started_at", "")
+            } if active_job else None,
+            "pending_jobs": pending_count
+        })
+    
+    # Operatör sıralaması (bugün)
+    op_today = {}
+    for j in completed_today:
+        op = j.get("operator_name", "")
+        if op:
+            if op not in op_today:
+                op_today[op] = {"jobs": 0, "koli": 0}
+            op_today[op]["jobs"] += 1
+            op_today[op]["koli"] += j.get("completed_koli", j.get("koli_count", 0))
+    
+    operator_ranking = [{"name": k, "jobs": v["jobs"], "koli": v["koli"]} for k, v in sorted(op_today.items(), key=lambda x: x[1]["koli"], reverse=True)]
+    
+    # Son 7 gün günlük üretim
+    daily_data = {}
+    for j in completed_7d:
+        date = j.get("completed_at", "")[:10]
+        if date:
+            daily_data[date] = daily_data.get(date, 0) + j.get("completed_koli", j.get("koli_count", 0))
+    
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "summary": {
+            "total_machines": len(all_machines),
+            "working": sum(1 for m in all_machines if m.get("status") == "working"),
+            "idle": sum(1 for m in all_machines if m.get("status") == "idle"),
+            "maintenance": sum(1 for m in all_machines if m.get("status") == "maintenance"),
+            "koli_today": koli_today,
+            "completed_today": len(completed_today),
+            "pending_total": len(pending_jobs)
+        },
+        "machines": machine_data,
+        "operator_ranking": operator_ranking,
+        "daily_koli": [{"date": k, "koli": v} for k, v in sorted(daily_data.items())]
+    }
+
+
 @api_router.get("/paints/low-stock")
 async def get_low_stock_paints():
     """Düşük stoklu boyaları listele (5L altı)"""
