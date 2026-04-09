@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -72,6 +72,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [quickTransferMachineId, setQuickTransferMachineId] = useState("");
   const [quickTransferProducedKoli, setQuickTransferProducedKoli] = useState("");
   const [quickTransferLoading, setQuickTransferLoading] = useState(false);
+  const [expandedTimeline, setExpandedTimeline] = useState(null); // timeline açık olan iş id'si
   
   const [formData, setFormData] = useState({
     name: "",
@@ -1635,6 +1636,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                           {job.produced_before_pause > 0 && (
                             <p className="text-sm text-success">Üretilen: {job.produced_before_pause} / {job.koli_count} koli</p>
                           )}
+                          {job.remaining_koli > 0 && job.remaining_koli < job.koli_count && (
+                            <p className="text-sm text-warning font-semibold">Kalan: {job.remaining_koli} koli</p>
+                          )}
                           <p className="text-xs text-text-secondary">
                             Durdurulma: {job.paused_at ? new Date(job.paused_at).toLocaleString("tr-TR") : "-"}
                           </p>
@@ -1716,7 +1720,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             </div>
                             <div>
                               <p className="text-sm font-semibold">Koli</p>
-                              <p>{job.koli_count}</p>
+                              {job.remaining_koli > 0 && job.remaining_koli < job.koli_count ? (
+                                <div>
+                                  <p className="text-warning font-bold">Kalan: {job.remaining_koli}</p>
+                                  <p className="text-xs text-text-secondary">Toplam: {job.koli_count} | Yapılan: {job.completed_koli || (job.koli_count - job.remaining_koli)}</p>
+                                </div>
+                              ) : (
+                                <p>{job.koli_count}</p>
+                              )}
                             </div>
                             <div>
                               <p className="text-sm font-semibold">Renkler</p>
@@ -1736,6 +1747,36 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             <p className="mt-2 text-text-secondary">
                               <span className="font-semibold">Operatör:</span> {job.operator_name}
                             </p>
+                          )}
+                          {/* Transfer Timeline */}
+                          {job.transfer_history && job.transfer_history.length > 0 && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => setExpandedTimeline(expandedTimeline === job.id ? null : job.id)}
+                                className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                data-testid={`timeline-toggle-${job.id}`}
+                              >
+                                <Clock className="h-3.5 w-3.5" />
+                                Aktarma Geçmişi ({job.transfer_history.length})
+                                {expandedTimeline === job.id ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                              </button>
+                              {expandedTimeline === job.id && (
+                                <div className="mt-2 ml-2 border-l-2 border-blue-500/30 pl-3 space-y-2">
+                                  {job.transfer_history.map((t, idx) => (
+                                    <div key={idx} className="text-xs text-text-secondary">
+                                      <p className="font-semibold text-text-primary">
+                                        {t.from_machine} <span className="text-blue-400 mx-1">&rarr;</span> {t.to_machine}
+                                      </p>
+                                      <p>
+                                        {t.produced_koli > 0 && <span className="text-success mr-2">Üretilen: {t.produced_koli} koli</span>}
+                                        {t.transferred_by && <span className="mr-2">({t.transferred_by})</span>}
+                                        {t.transferred_at && new Date(t.transferred_at).toLocaleString("tr-TR")}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                         {/* Düzenle, Aktar ve Sil Butonları */}
@@ -1827,6 +1868,36 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                               <p>{job.operator_name || "-"}</p>
                             </div>
                           </div>
+                          {/* Tamamlanmış iş - Transfer Timeline */}
+                          {job.transfer_history && job.transfer_history.length > 0 && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => setExpandedTimeline(expandedTimeline === job.id ? null : job.id)}
+                                className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                data-testid={`timeline-toggle-completed-${job.id}`}
+                              >
+                                <Clock className="h-3.5 w-3.5" />
+                                Aktarma Geçmişi ({job.transfer_history.length})
+                                {expandedTimeline === job.id ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                              </button>
+                              {expandedTimeline === job.id && (
+                                <div className="mt-2 ml-2 border-l-2 border-blue-500/30 pl-3 space-y-2">
+                                  {job.transfer_history.map((t, idx) => (
+                                    <div key={idx} className="text-xs text-text-secondary">
+                                      <p className="font-semibold text-text-primary">
+                                        {t.from_machine} <span className="text-blue-400 mx-1">&rarr;</span> {t.to_machine}
+                                      </p>
+                                      <p>
+                                        {t.produced_koli > 0 && <span className="text-success mr-2">Üretilen: {t.produced_koli} koli</span>}
+                                        {t.transferred_by && <span className="mr-2">({t.transferred_by})</span>}
+                                        {t.transferred_at && new Date(t.transferred_at).toLocaleString("tr-TR")}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-2">
                           <Button

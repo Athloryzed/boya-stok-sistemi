@@ -1,0 +1,71 @@
+{
+  "summary": "Tested 3 new features: Job Transfer Timeline, Shift End Koli Tracking, and Auto-resume on Shift Start. All backend tests passed (8/8). Frontend UI verified for timeline toggle, remaining koli display in shift end dialog, and shift start toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "OperatorFlow - Active Job Section",
+        "issues": ["Active job card shows 'Koli: 30' but doesn't show remaining_koli (12) prominently. Consider adding 'Kalan: 12 / 30' display for partially completed jobs."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/new_features_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Add remaining_koli display to OperatorFlow active job section (currently only shows total koli_count)"
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": {
+    "plan_panel": "username=emrecan, password=testtest12",
+    "management_panel": "password=buse11993",
+    "operator_panel": "username=ali, password=134679"
+  },
+  "seed_data_creation": "Created TEST_AutoResume_Verify job to test auto-resume feature (deleted after test)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "3 new features fully tested and working: 1) Transfer Timeline - 'Et Yiyelim' job has 1 transfer history entry (33x33 ICM → 40x40 ICM), timeline toggle works in PlanFlow. 2) Remaining Koli Tracking - Shift end dialog shows 'Hedef: 12 koli (Toplam: 30)' for Laluna job. 3) Auto-resume - Verified with test job, resumed_jobs count returned in shift start response. Laluna job is currently in_progress on 33x33 ICM with completed_koli=18, remaining_koli=12.",
+  "features_tested": {
+    "transfer_history": {
+      "status": "PASS",
+      "details": [
+        "POST /api/jobs/{job_id}/quick-transfer records transfer_history",
+        "Transfer history preserved when job is split",
+        "'Et Yiyelim' job has 1 transfer entry: 33x33 ICM → 40x40 ICM",
+        "Timeline toggle 'Aktarma Geçmişi (1)' shows in PlanFlow",
+        "Expanded timeline shows from_machine → to_machine, date, user"
+      ]
+    },
+    "remaining_koli_tracking": {
+      "status": "PASS",
+      "details": [
+        "approve_operator_report accumulates completed_koli (not replace)",
+        "request_shift_end uses remaining_koli as target_koli",
+        "ManagementFlow shift end dialog shows 'Hedef: 12 koli (Toplam: 30)' for Laluna",
+        "OperatorFlow shift end dialog shows original_koli when different from target_koli"
+      ]
+    },
+    "auto_resume_on_shift_start": {
+      "status": "PASS",
+      "details": [
+        "POST /api/shifts/start auto-resumes pending jobs with completed_koli > 0 and remaining_koli > 0",
+        "Shift start response includes resumed_jobs count",
+        "Auto-resumed jobs set machine status to 'working'",
+        "ManagementFlow shows toast 'Vardiya başlatıldı! X iş otomatik devam etti.' when resumed_jobs > 0"
+      ]
+    }
+  }
+}

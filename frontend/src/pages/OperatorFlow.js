@@ -1298,6 +1298,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                   <p className="text-text-secondary">Makine: <span className="text-text-primary font-bold">{shiftEndData.machine_name}</span></p>
                   <p className="text-text-secondary">İş: <span className="text-text-primary font-bold">{shiftEndData.job_name}</span></p>
                   <p className="text-text-secondary">Hedef Koli: <span className="text-text-primary font-bold">{shiftEndData.target_koli}</span></p>
+                  {shiftEndData.original_koli && shiftEndData.original_koli !== shiftEndData.target_koli && (
+                    <p className="text-text-secondary text-sm">Orijinal Toplam: <span className="text-text-primary">{shiftEndData.original_koli}</span></p>
+                  )}
                 </div>
 
                 {/* İş Tamamlandı mı? */}

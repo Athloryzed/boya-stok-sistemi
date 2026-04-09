@@ -280,6 +280,8 @@ class Job(BaseModel):
     paused_at: Optional[str] = None
     pause_reason: Optional[str] = None
     produced_before_pause: int = 0  # Durdurmadan önce üretilen miktar
+    # Aktarma geçmişi
+    transfer_history: List[dict] = Field(default_factory=list)  # [{from_machine, to_machine, produced_koli, transferred_at, transferred_by}]
 
 class Shift(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -990,6 +992,19 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...)):
     total_produced = already_produced + produced_koli
     original_koli = job["koli_count"]
 
+    # Aktarma geçmişi kaydı
+    transfer_entry = {
+        "from_machine": job.get("machine_name", ""),
+        "from_machine_id": job.get("machine_id", ""),
+        "to_machine": target_machine["name"],
+        "to_machine_id": target_machine_id,
+        "produced_koli": total_produced,
+        "transferred_at": datetime.now(timezone.utc).isoformat(),
+        "transferred_by": user_name
+    }
+    existing_history = job.get("transfer_history", [])
+    updated_history = existing_history + [transfer_entry]
+
     if total_produced > 0 and total_produced < original_koli:
         # Eski işi tamamla (üretilen koli ile)
         await db.jobs.update_one(
@@ -997,7 +1012,8 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...)):
             {"$set": {
                 "status": "completed",
                 "completed_at": datetime.now(timezone.utc).isoformat(),
-                "completed_koli": total_produced
+                "completed_koli": total_produced,
+                "transfer_history": updated_history
             }}
         )
         # Kalan koliyle yeni iş oluştur (hedef makinede)
@@ -1016,6 +1032,7 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...)):
             image_url=job.get("image_url"),
             status="pending",
             order=0,
+            transfer_history=updated_history,
         )
         await db.jobs.insert_one(new_job.model_dump())
 
@@ -1057,7 +1074,8 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...)):
                     "paused_at": None,
                     "pause_reason": None,
                     "produced_before_pause": 0,
-                    "queued_at": datetime.now(timezone.utc).isoformat()
+                    "queued_at": datetime.now(timezone.utc).isoformat(),
+                    "transfer_history": updated_history
                 }}
             )
             await log_audit(
@@ -1088,6 +1106,8 @@ async def request_shift_end():
     # Her aktif iş için operatöre bildirim gönder (WebSocket üzerinden)
     notifications_sent = []
     for job in active_jobs:
+        # remaining_koli varsa onu hedef olarak kullan (devam eden iş)
+        effective_target = job.get("remaining_koli") if job.get("remaining_koli", 0) > 0 else job["koli_count"]
         notification = {
             "type": "shift_end_request",
             "shift_id": active_shift["id"],
@@ -1095,7 +1115,8 @@ async def request_shift_end():
             "job_name": job["name"],
             "machine_id": job["machine_id"],
             "machine_name": job["machine_name"],
-            "target_koli": job["koli_count"],
+            "target_koli": effective_target,
+            "original_koli": job["koli_count"],
             "operator_name": job.get("operator_name", ""),
             "message": "Vardiya bitti! Lütfen işinizi tamamlayın veya üretim bilgilerinizi girin."
         }
@@ -1231,17 +1252,23 @@ async def approve_operator_report(report_id: str, data: dict = Body(None)):
         )
         await db.shift_end_reports.insert_one(shift_report.model_dump())
         
-        # İşin kalan kolisini güncelle
+        # İşin kalan kolisini güncelle (birikimli)
         if report.get("job_id"):
-            remaining = report.get("target_koli", 0) - report.get("produced_koli", 0)
-            await db.jobs.update_one(
-                {"id": report["job_id"]},
-                {"$set": {
-                    "remaining_koli": remaining if remaining > 0 else 0,
-                    "completed_koli": report.get("produced_koli", 0),
-                    "status": "pending"  # Tekrar beklemede
-                }}
-            )
+            job = await db.jobs.find_one({"id": report["job_id"]}, {"_id": 0})
+            if job:
+                prev_completed = job.get("completed_koli", 0)
+                new_produced = report.get("produced_koli", 0)
+                total_completed = prev_completed + new_produced
+                original_koli = job.get("koli_count", 0)
+                remaining = original_koli - total_completed
+                await db.jobs.update_one(
+                    {"id": report["job_id"]},
+                    {"$set": {
+                        "remaining_koli": remaining if remaining > 0 else 0,
+                        "completed_koli": total_completed,
+                        "status": "pending"  # Tekrar beklemede
+                    }}
+                )
         
         # Defo kaydı
         if report.get("defect_kg", 0) > 0:
@@ -1573,19 +1600,42 @@ async def start_shift(started_by: str = None):
     shift = Shift()
     await db.shifts.insert_one(shift.model_dump())
     
+    # Tamamlanmamış işleri otomatik olarak devam ettir
+    # completed_koli > 0 olan pending işler = önceki vardiyada başlamış ama bitmemiş
+    partial_jobs = await db.jobs.find(
+        {"status": "pending", "completed_koli": {"$gt": 0}, "remaining_koli": {"$gt": 0}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    resumed_count = 0
+    for job in partial_jobs:
+        # Makineyi çalışır yap, işi devam ettir
+        await db.jobs.update_one(
+            {"id": job["id"]},
+            {"$set": {
+                "status": "in_progress",
+                "started_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        await db.machines.update_one(
+            {"id": job["machine_id"]},
+            {"$set": {"status": "working", "current_job_id": job["id"]}}
+        )
+        resumed_count += 1
+    
     # Tüm çalışanlara vardiya başladı bildirimi gönder
     try:
         await send_notification_to_all_workers(
             title="Vardiya Basladi!",
-            body="Gunluk vardiya baslamistir. Iyi calismalar!",
+            body=f"Gunluk vardiya baslamistir. {resumed_count} is otomatik devam etti." if resumed_count > 0 else "Gunluk vardiya baslamistir. Iyi calismalar!",
             data={"type": "shift_started", "shift_id": shift.id}
         )
     except Exception as e:
         logging.error(f"Shift start notification error: {e}")
     
-    await log_audit(started_by or "Yonetim", "create", "shift", shift.id, "Vardiya baslatildi")
+    await log_audit(started_by or "Yonetim", "create", "shift", shift.id, f"Vardiya baslatildi. {resumed_count} is otomatik devam etti." if resumed_count > 0 else "Vardiya baslatildi")
 
-    return shift
+    return {"id": shift.id, "started_at": shift.started_at, "status": shift.status, "resumed_jobs": resumed_count}
 
 @api_router.post("/shifts/end")
 async def end_shift():

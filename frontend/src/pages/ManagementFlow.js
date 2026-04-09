@@ -449,8 +449,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const handleStartShift = async () => {
     try {
-      await axios.post(`${API}/shifts/start`);
-      toast.success("Vardiya başlatıldı!");
+      const res = await axios.post(`${API}/shifts/start`);
+      const resumed = res.data?.resumed_jobs || 0;
+      toast.success(resumed > 0 ? `Vardiya başlatıldı! ${resumed} iş otomatik devam etti.` : "Vardiya başlatıldı!");
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Vardiya başlatılamadı");
@@ -462,13 +463,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     const activeJobs = jobs.filter(j => j.status === "in_progress");
     const reports = machines.map(machine => {
       const activeJob = activeJobs.find(j => j.machine_id === machine.id);
+      // remaining_koli varsa hedef olarak onu kullan (devam eden iş)
+      const effectiveTarget = activeJob?.remaining_koli > 0 ? activeJob.remaining_koli : (activeJob?.koli_count || 0);
       return {
         machine_id: machine.id,
         machine_name: machine.name,
         job_id: activeJob?.id || null,
         job_name: activeJob?.name || null,
-        target_koli: activeJob?.koli_count || 0,
-        produced_koli: activeJob?.completed_koli || 0,
+        target_koli: effectiveTarget,
+        original_koli: activeJob?.koli_count || 0,
+        produced_koli: 0,
         defect_kg: 0
       };
     });
@@ -555,12 +559,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       // Önce rapor formunu hazırla - tüm makineleri göster, aktif işi olanları işaretle
       const reports = machines.map(m => {
         const activeJob = activeJobs.find(j => j.machine_id === m.id);
+        const effectiveTarget = activeJob?.remaining_koli > 0 ? activeJob.remaining_koli : (activeJob?.koli_count || 0);
         return {
           machine_id: m.id,
           machine_name: m.name,
           job_id: activeJob?.id || null,
           job_name: activeJob?.name || null,
-          target_koli: activeJob?.koli_count || 0,
+          target_koli: effectiveTarget,
+          original_koli: activeJob?.koli_count || 0,
           produced_koli: "",
           defect_kg: ""
         };
@@ -2588,7 +2594,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         <div className="flex-1">
                           <h4 className="font-heading font-bold text-text-primary">{report.machine_name}</h4>
                           {report.job_name && (
-                            <p className="text-sm text-success">Aktif iş: {report.job_name} (Hedef: {report.target_koli} koli)</p>
+                            <p className="text-sm text-success">
+                              Aktif iş: {report.job_name} (Hedef: {report.target_koli} koli)
+                              {report.original_koli > 0 && report.original_koli !== report.target_koli && (
+                                <span className="text-text-secondary ml-1">(Toplam: {report.original_koli})</span>
+                              )}
+                            </p>
                           )}
                         </div>
                         <div className="flex gap-3">
