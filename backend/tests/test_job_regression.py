@@ -8,7 +8,7 @@ import os
 import time
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://factory-flow-demo.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://plan-batch-complete.preview.emergentagent.com')
 
 @pytest.fixture(scope="module")
 def api_client():

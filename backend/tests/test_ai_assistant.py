@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://factory-flow-demo.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://plan-batch-complete.preview.emergentagent.com')
 
 # Machine ID for 33x33 ICM (from the machines list)
 MACHINE_33x33_ICM_ID = "acc11c05-5415-4291-b989-89424c860b63"
