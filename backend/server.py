@@ -963,6 +963,110 @@ async def reorder_job(job_id: str, data: dict = Body(...)):
     )
     return {"success": True}
 
+# Hızlı İş Aktarma (Plan ekranından)
+@api_router.post("/jobs/{job_id}/quick-transfer")
+async def quick_transfer_job(job_id: str, data: dict = Body(...)):
+    """Pending veya paused işi başka bir makineye aktar. Üretilen koli varsa eski işi tamamla, kalan koliyle yeni iş oluştur."""
+    target_machine_id = data.get("target_machine_id")
+    produced_koli = data.get("produced_koli", 0)
+    user_name = data.get("user_name", "Plan")
+
+    if not target_machine_id:
+        raise HTTPException(status_code=400, detail="Hedef makine seçilmedi")
+
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+
+    if job["status"] not in ("pending", "paused"):
+        raise HTTPException(status_code=400, detail="Sadece bekleyen veya durdurulmuş işler aktarılabilir")
+
+    target_machine = await db.machines.find_one({"id": target_machine_id}, {"_id": 0})
+    if not target_machine:
+        raise HTTPException(status_code=404, detail="Hedef makine bulunamadı")
+
+    # Daha önce üretilen koli varsa (paused ise produced_before_pause olabilir)
+    already_produced = job.get("produced_before_pause", 0)
+    total_produced = already_produced + produced_koli
+    original_koli = job["koli_count"]
+
+    if total_produced > 0 and total_produced < original_koli:
+        # Eski işi tamamla (üretilen koli ile)
+        await db.jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "completed_koli": total_produced
+            }}
+        )
+        # Kalan koliyle yeni iş oluştur (hedef makinede)
+        remaining_koli = original_koli - total_produced
+        new_job = Job(
+            name=job["name"],
+            koli_count=remaining_koli,
+            colors=job.get("colors", ""),
+            machine_id=target_machine_id,
+            machine_name=target_machine["name"],
+            format=job.get("format"),
+            notes=job.get("notes", ""),
+            delivery_date=job.get("delivery_date"),
+            delivery_address=job.get("delivery_address"),
+            delivery_phone=job.get("delivery_phone"),
+            image_url=job.get("image_url"),
+            status="pending",
+            order=0,
+        )
+        await db.jobs.insert_one(new_job.model_dump())
+
+        await log_audit(
+            user_name, "quick_transfer", "job", job.get("name", ""),
+            f"Eski makine: {job.get('machine_name','')}, Yeni makine: {target_machine['name']}, Üretilen: {total_produced}, Kalan: {remaining_koli}"
+        )
+        return {
+            "success": True,
+            "message": f"{total_produced} koli tamamlandı, kalan {remaining_koli} koli {target_machine['name']} makinesine aktarıldı",
+            "new_job_id": new_job.id,
+            "split": True
+        }
+    else:
+        # Hiç üretim yoksa veya tamamı üretildiyse sadece makineyi değiştir
+        if total_produced >= original_koli and total_produced > 0:
+            # Tamamı üretilmiş, direkt tamamla
+            await db.jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "completed_koli": original_koli
+                }}
+            )
+            await log_audit(
+                user_name, "quick_complete", "job", job.get("name", ""),
+                f"Makine: {job.get('machine_name','')}, Koli: {original_koli}"
+            )
+            return {"success": True, "message": f"İş tamamlandı ({original_koli} koli)", "split": False}
+        else:
+            # Hiç üretim yok, sadece makineyi değiştir
+            await db.jobs.update_one(
+                {"id": job_id},
+                {"$set": {
+                    "machine_id": target_machine_id,
+                    "machine_name": target_machine["name"],
+                    "status": "pending",
+                    "paused_at": None,
+                    "pause_reason": None,
+                    "produced_before_pause": 0,
+                    "queued_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            await log_audit(
+                user_name, "quick_transfer", "job", job.get("name", ""),
+                f"Eski makine: {job.get('machine_name','')}, Yeni makine: {target_machine['name']}, Koli: {original_koli}"
+            )
+            return {"success": True, "message": f"İş {target_machine['name']} makinesine aktarıldı ({original_koli} koli)", "split": False}
+
+
 # ==================== YENİ VARDİYA SONU AKIŞI ====================
 
 @api_router.post("/shifts/request-end")

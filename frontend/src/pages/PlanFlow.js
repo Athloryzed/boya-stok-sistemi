@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -65,6 +65,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [selectedShipmentPallets, setSelectedShipmentPallets] = useState([]);
   const [duplicateJobWarning, setDuplicateJobWarning] = useState(null); // Aynı isimli iş uyarısı
   const [editPreviewImage, setEditPreviewImage] = useState(null); // Düzenleme formunda resim önizleme
+  
+  // Hızlı Aktar dialog state'leri
+  const [isQuickTransferOpen, setIsQuickTransferOpen] = useState(false);
+  const [quickTransferJob, setQuickTransferJob] = useState(null);
+  const [quickTransferMachineId, setQuickTransferMachineId] = useState("");
+  const [quickTransferProducedKoli, setQuickTransferProducedKoli] = useState("");
+  const [quickTransferLoading, setQuickTransferLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -670,6 +677,40 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // Hızlı Aktar dialog aç
+  const openQuickTransfer = (job) => {
+    setQuickTransferJob(job);
+    setQuickTransferMachineId("");
+    setQuickTransferProducedKoli(job.produced_before_pause > 0 ? job.produced_before_pause.toString() : "");
+    setIsQuickTransferOpen(true);
+  };
+
+  // Hızlı Aktar işlemi
+  const handleQuickTransfer = async () => {
+    if (!quickTransferMachineId) {
+      toast.error("Lütfen hedef makine seçin");
+      return;
+    }
+    setQuickTransferLoading(true);
+    try {
+      const response = await axios.post(`${API}/jobs/${quickTransferJob.id}/quick-transfer`, {
+        target_machine_id: quickTransferMachineId,
+        produced_koli: quickTransferProducedKoli ? parseInt(quickTransferProducedKoli) : 0,
+        user_name: userData?.display_name || userData?.username || "Plan"
+      });
+      toast.success(response.data.message);
+      setIsQuickTransferOpen(false);
+      setQuickTransferJob(null);
+      fetchJobs();
+      fetchAllJobs();
+      fetchCompletedJobs();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Aktarma başarısız");
+    } finally {
+      setQuickTransferLoading(false);
+    }
+  };
+
   // İş adı değiştiğinde aynı isimli iş kontrolü
   const checkDuplicateJob = (name) => {
     if (!name || name.trim().length < 2) {
@@ -1214,6 +1255,90 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
         <Tabs defaultValue="pending" className="space-y-6">
+
+          {/* Hızlı Aktar Dialog */}
+          <Dialog open={isQuickTransferOpen} onOpenChange={setIsQuickTransferOpen}>
+            <DialogContent className="bg-surface border-border max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-text-primary flex items-center gap-2">
+                  <ArrowRightLeft className="h-5 w-5 text-blue-500" /> Hızlı İş Aktarma
+                </DialogTitle>
+                <DialogDescription className="text-text-secondary">
+                  İşi başka bir makineye aktarın
+                </DialogDescription>
+              </DialogHeader>
+              {quickTransferJob && (
+                <div className="space-y-4 pt-2">
+                  {/* İş Bilgisi */}
+                  <div className="bg-background rounded-lg p-3 border border-border">
+                    <p className="font-bold text-text-primary text-lg">{quickTransferJob.name}</p>
+                    <div className="flex gap-4 mt-2 text-sm text-text-secondary">
+                      <span>Mevcut: <strong className="text-text-primary">{quickTransferJob.machine_name}</strong></span>
+                      <span>Toplam: <strong className="text-blue-500">{quickTransferJob.koli_count} koli</strong></span>
+                    </div>
+                    {quickTransferJob.produced_before_pause > 0 && (
+                      <p className="text-sm text-success mt-1">
+                        Daha önce üretilen: {quickTransferJob.produced_before_pause} koli
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Hedef Makine Seçimi */}
+                  <div>
+                    <Label className="text-text-primary mb-2 block">Hedef Makine</Label>
+                    <Select value={quickTransferMachineId} onValueChange={setQuickTransferMachineId}>
+                      <SelectTrigger data-testid="quick-transfer-machine-select" className="bg-background border-border text-text-primary">
+                        <SelectValue placeholder="Makine seçin..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-surface border-border">
+                        {machines.map((m) => (
+                          <SelectItem
+                            key={m.id}
+                            value={m.id}
+                            className="text-text-primary"
+                            disabled={m.id === quickTransferJob.machine_id}
+                          >
+                            {m.name} {m.maintenance ? "(BAKIM)" : ""} {m.id === quickTransferJob.machine_id ? "(Mevcut)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Üretilen Koli */}
+                  <div>
+                    <Label className="text-text-primary mb-2 block">
+                      Mevcut makinede yapılan koli (opsiyonel)
+                    </Label>
+                    <Input
+                      data-testid="quick-transfer-produced-koli"
+                      type="number"
+                      min="0"
+                      max={quickTransferJob.koli_count}
+                      value={quickTransferProducedKoli}
+                      onChange={(e) => setQuickTransferProducedKoli(e.target.value)}
+                      placeholder="0"
+                      className="bg-background border-border text-text-primary"
+                    />
+                    {quickTransferProducedKoli && parseInt(quickTransferProducedKoli) > 0 && (
+                      <p className="text-xs text-info mt-1">
+                        Kalan koli: {quickTransferJob.koli_count - (quickTransferJob.produced_before_pause || 0) - parseInt(quickTransferProducedKoli || 0)} adet hedef makineye aktarılacak
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    data-testid="quick-transfer-submit"
+                    onClick={handleQuickTransfer}
+                    disabled={!quickTransferMachineId || quickTransferLoading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {quickTransferLoading ? "Aktarılıyor..." : "Aktarımı Onayla"}
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
           {/* Mobile: 2x2 grid, Desktop: horizontal */}
           <div className="block md:hidden">
             <TabsList className="bg-surface border-border w-full grid grid-cols-2 gap-1 h-auto p-1">
@@ -1514,6 +1639,15 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             Durdurulma: {job.paused_at ? new Date(job.paused_at).toLocaleString("tr-TR") : "-"}
                           </p>
                         </div>
+                        <Button
+                          size="sm"
+                          onClick={() => openQuickTransfer(job)}
+                          className="ml-2 bg-blue-600 hover:bg-blue-700 text-white"
+                          data-testid={`quick-transfer-paused-${job.id}`}
+                        >
+                          <ArrowRightLeft className="h-4 w-4 mr-1" />
+                          <span className="hidden sm:inline">Hızlı Aktar</span>
+                        </Button>
                       </div>
                     ))}
                   </CardContent>
@@ -1604,8 +1738,17 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             </p>
                           )}
                         </div>
-                        {/* Düzenle ve Sil Butonları */}
+                        {/* Düzenle, Aktar ve Sil Butonları */}
                         <div className="flex flex-col gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            onClick={() => openQuickTransfer(job)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            data-testid={`quick-transfer-${job.id}`}
+                          >
+                            <ArrowRightLeft className="h-4 w-4 mr-1" />
+                            <span className="hidden md:inline">Aktar</span>
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
