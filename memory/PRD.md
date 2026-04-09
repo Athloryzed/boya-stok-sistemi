@@ -25,8 +25,10 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] AI Management Assistant (GPT-5.2)
 - [x] **AI Paint Forecast** - Boya tuketim tahmini ve stok uyarisi
 - [x] **Live Dashboard (TV)** - Sifresiz canli uretim panosu (/dashboard)
+- [x] **Hizli Is Aktarma (Quick Transfer)** - Plan ekranindan bekleyen/durdurulmus isleri baska makinelere aktarma, koli takibi ile (2026-04-09)
 
 ## Key API Endpoints
+- `POST /api/jobs/{job_id}/quick-transfer` - Hizli is aktarma (plan ekrani)
 - `GET /api/dashboard/live` - Live production dashboard (no auth)
 - `GET /api/ai/paint-forecast` - AI paint consumption forecast
 - `GET /api/ai/operator-suggestion` - AI operator suggestions
