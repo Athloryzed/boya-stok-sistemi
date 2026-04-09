@@ -26,6 +26,9 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] **AI Paint Forecast** - Boya tuketim tahmini ve stok uyarisi
 - [x] **Live Dashboard (TV)** - Sifresiz canli uretim panosu (/dashboard)
 - [x] **Hizli Is Aktarma (Quick Transfer)** - Plan ekranindan bekleyen/durdurulmus isleri baska makinelere aktarma, koli takibi ile (2026-04-09)
+- [x] **Is Aktarma Zaman Cizelgesi (Timeline)** - Islerin hangi makinelerden gectigini gosteren gecmis kaydı (2026-04-09)
+- [x] **Vardiya Koli Takibi** - Vardiya sonunda girilen koli birikimli olarak takip edilir, kalan koli herkes tarafindan gorunur (2026-04-09)
+- [x] **Otomatik Devam (Auto-Resume)** - Vardiya baslatildiginda tamamlanmamis isler otomatik olarak devam eder (2026-04-09)
 
 ## Key API Endpoints
 - `POST /api/jobs/{job_id}/quick-transfer` - Hizli is aktarma (plan ekrani)

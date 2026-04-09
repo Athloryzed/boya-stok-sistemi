@@ -1096,7 +1096,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <h3 className="text-2xl font-heading font-bold text-text-primary">{currentJobOnMachine.name}</h3>
-                      <p className="text-text-secondary">Koli: {currentJobOnMachine.koli_count}</p>
+                      {currentJobOnMachine.remaining_koli > 0 && currentJobOnMachine.remaining_koli < currentJobOnMachine.koli_count ? (
+                        <>
+                          <p className="text-warning font-bold">Kalan Koli: {currentJobOnMachine.remaining_koli} / {currentJobOnMachine.koli_count}</p>
+                          <p className="text-text-secondary text-sm">Yapılan: {currentJobOnMachine.completed_koli || (currentJobOnMachine.koli_count - currentJobOnMachine.remaining_koli)} koli</p>
+                        </>
+                      ) : (
+                        <p className="text-text-secondary">Koli: {currentJobOnMachine.koli_count}</p>
+                      )}
                       <p className="text-text-secondary">Renkler: {currentJobOnMachine.colors}</p>
                       {currentJobOnMachine.format && <p className="text-text-secondary">Format: {currentJobOnMachine.format}</p>}
                     </div>
