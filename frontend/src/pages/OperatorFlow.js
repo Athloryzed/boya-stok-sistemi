@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -36,7 +36,9 @@ const getDaysElapsedColor = (days) => {
 
 const OperatorFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
+  const [qrStartJobId, setQrStartJobId] = useState(null);
   const [operatorName, setOperatorName] = useState("");
   const [operatorPassword, setOperatorPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -93,10 +95,57 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [aiChatLoading, setAiChatLoading] = useState(false);
   const [aiSessionId] = useState(() => `ai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
   const aiChatEndRef = useRef(null);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+  const qrScannerRef = useRef(null);
 
   const openImagePreview = (imageUrl) => {
     setSelectedJobImage(imageUrl);
     setIsImagePreviewOpen(true);
+  };
+
+  // QR Scanner
+  const openQrScanner = async () => {
+    setIsQrScannerOpen(true);
+    setTimeout(async () => {
+      try {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        const scanner = new Html5Qrcode("qr-reader-element");
+        qrScannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            // QR'da URL var, start parametresini çıkar
+            try {
+              const url = new URL(decodedText);
+              const jobId = url.searchParams.get("start");
+              if (jobId) {
+                closeQrScanner();
+                setQrStartJobId(jobId);
+                toast.success("QR kod okundu!");
+              }
+            } catch {
+              // URL değil, direkt job id olabilir
+              closeQrScanner();
+              setQrStartJobId(decodedText);
+              toast.success("QR kod okundu!");
+            }
+          },
+          () => {} // ignore scan errors
+        );
+      } catch (err) {
+        toast.error("Kamera açılamadı: " + (err.message || err));
+        setIsQrScannerOpen(false);
+      }
+    }, 300);
+  };
+
+  const closeQrScanner = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop().catch(() => {});
+      qrScannerRef.current = null;
+    }
+    setIsQrScannerOpen(false);
   };
 
   // AI öneri getir
@@ -173,6 +222,12 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
   // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
   useEffect(() => {
+    // QR koddan gelen iş başlatma parametresini kontrol et
+    const startJobId = searchParams.get("start");
+    if (startJobId) {
+      setQrStartJobId(startJobId);
+    }
+    
     const remembered = localStorage.getItem("operator_remember");
     if (remembered) {
       try {
@@ -309,6 +364,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMachine]);
+
+  // QR kodla iş başlatma
+  useEffect(() => {
+    if (!qrStartJobId || !userData || !jobs.length) return;
+    const job = jobs.find(j => j.id === qrStartJobId && j.status === "pending");
+    if (job && selectedMachine && job.machine_id === selectedMachine.id) {
+      handleStartJob(job.id);
+      setQrStartJobId(null);
+      // URL'den start parametresini temizle
+      navigate("/operator", { replace: true });
+      toast.success(`QR ile iş başlatıldı: ${job.name}`);
+    } else if (job && !selectedMachine) {
+      // Makine henüz seçilmemiş - otomatik seç
+      const machine = machines.find(m => m.id === job.machine_id);
+      if (machine) {
+        handleMachineSelect(machine);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrStartJobId, userData, jobs, selectedMachine]);
 
   useEffect(() => {
     // Yeni mesaj geldiğinde bildirim göster
@@ -1184,10 +1259,21 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
             {/* Bekleyen İşler */}
             <div>
-              <h2 className="text-xl font-heading font-bold text-text-primary mb-4">
-                Sıradaki İşler ({filteredJobs.length})
-                {filteredJobs.length > 1 && <span className="text-sm font-normal text-text-secondary ml-2">(Sıralamak için sürükleyin)</span>}
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-heading font-bold text-text-primary">
+                  Sıradaki İşler ({filteredJobs.length})
+                  {filteredJobs.length > 1 && <span className="text-sm font-normal text-text-secondary ml-2">(Sıralamak için sürükleyin)</span>}
+                </h2>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openQrScanner}
+                  className="text-purple-500 border-purple-500 hover:bg-purple-500/10"
+                  data-testid="qr-scanner-btn"
+                >
+                  <QrCode className="h-4 w-4 mr-1" /> QR Tara
+                </Button>
+              </div>
               {filteredJobs.length === 0 ? (
                 <Card className="bg-surface border-border">
                   <CardContent className="p-8 text-center">
@@ -1585,6 +1671,19 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* QR Scanner Dialog */}
+        <Dialog open={isQrScannerOpen} onOpenChange={(open) => { if (!open) closeQrScanner(); }}>
+          <DialogContent className="bg-surface border-border max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-text-primary flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-purple-500" /> QR Kod Tara
+              </DialogTitle>
+            </DialogHeader>
+            <div id="qr-reader-element" className="w-full" data-testid="qr-reader" />
+            <p className="text-xs text-text-secondary text-center">Kamerayı iş kartındaki QR koda tutun</p>
           </DialogContent>
         </Dialog>
       </div>

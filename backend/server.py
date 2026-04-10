@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Set
 import uuid
 from datetime import datetime, timezone
+import random
+import string
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
@@ -276,6 +278,7 @@ class Job(BaseModel):
     order: int = 0  # Sıra numarası (düşük = öncelikli)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     queued_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())  # Sıraya eklenme tarihi
+    tracking_code: str = Field(default_factory=lambda: ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)))
     # Durdurma bilgileri
     paused_at: Optional[str] = None
     pause_reason: Optional[str] = None
@@ -748,6 +751,31 @@ async def reorder_jobs_batch(data: dict = Body(...)):
     return {"success": True}
 
 
+# Müşteri Sipariş Takip
+@api_router.get("/track/{tracking_code}")
+async def track_job(tracking_code: str):
+    """Müşteri için şifresiz sipariş takip sayfası"""
+    job = await db.jobs.find_one({"tracking_code": tracking_code}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Takip kodu bulunamadı")
+    
+    status_map = {
+        "pending": "Sırada Bekliyor",
+        "in_progress": "Üretimde",
+        "paused": "Beklemede",
+        "completed": "Tamamlandı"
+    }
+    
+    return {
+        "tracking_code": tracking_code,
+        "job_name": job.get("name", ""),
+        "status": job.get("status", "pending"),
+        "status_text": status_map.get(job.get("status", "pending"), "Bilinmiyor"),
+        "koli_count": job.get("koli_count", 0),
+        "delivery_date": job.get("delivery_date"),
+        "created_at": job.get("created_at"),
+        "completed_at": job.get("completed_at")
+    }
 
 
 @api_router.put("/jobs/{job_id}", response_model=Job)
@@ -4138,6 +4166,21 @@ async def send_notification_to_all_workers(title: str, body: str, data: dict = N
         logging.error(f"Error sending notification to all workers: {e}")
 
 app.include_router(api_router)
+
+# Startup: Eski işlere tracking_code ekle
+@app.on_event("startup")
+async def backfill_tracking_codes():
+    try:
+        jobs_without_code = await db.jobs.find(
+            {"tracking_code": {"$exists": False}}, {"_id": 0, "id": 1}
+        ).to_list(10000)
+        for job in jobs_without_code:
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            await db.jobs.update_one({"id": job["id"]}, {"$set": {"tracking_code": code}})
+        if jobs_without_code:
+            logger.info(f"Backfilled tracking codes for {len(jobs_without_code)} jobs")
+    except Exception as e:
+        logger.error(f"Tracking code backfill error: {e}")
 
 # WebSocket endpoint - Yönetici bildirimleri için
 @app.websocket("/api/ws/manager/{manager_id}")

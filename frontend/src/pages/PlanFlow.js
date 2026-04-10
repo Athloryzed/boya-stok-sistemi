@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp, QrCode, GripVertical, Printer } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -13,8 +13,38 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
+import { QRCodeSVG } from "qrcode.react";
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
+
+// Sürüklenebilir İş Kartı Wrapper
+const SortableJobItem = ({ id, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : "auto",
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div className="flex items-start gap-1">
+        <button
+          {...listeners}
+          className="mt-4 p-1.5 cursor-grab active:cursor-grabbing text-text-secondary hover:text-text-primary touch-none"
+          data-testid={`drag-handle-${id}`}
+          aria-label="Sürükle"
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
+        <div className="flex-1">{children}</div>
+      </div>
+    </div>
+  );
+};
 
 const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -73,6 +103,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [quickTransferProducedKoli, setQuickTransferProducedKoli] = useState("");
   const [quickTransferLoading, setQuickTransferLoading] = useState(false);
   const [expandedTimeline, setExpandedTimeline] = useState(null); // timeline açık olan iş id'si
+  const [qrDialogJob, setQrDialogJob] = useState(null); // QR kodu gösterilen iş
+
+  // DnD sensörleri
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } });
+  const dndSensors = useSensors(pointerSensor, touchSensor);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -712,6 +748,38 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // QR kodu yazdır
+  const printQrCode = (job) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const baseUrl = window.location.origin;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html><head><title>QR - ${job.name}</title>
+      <style>
+        body { font-family: sans-serif; text-align: center; padding: 40px; }
+        .card { border: 2px solid #333; border-radius: 12px; padding: 30px; max-width: 400px; margin: 0 auto; }
+        h2 { margin: 0 0 5px; font-size: 24px; }
+        .code { font-family: monospace; font-size: 18px; color: #666; margin-bottom: 20px; }
+        .info { font-size: 14px; color: #666; margin-top: 15px; }
+        img { margin: 10px auto; }
+      </style></head>
+      <body>
+        <div class="card">
+          <h2>${job.name}</h2>
+          <div class="code">${job.tracking_code || ""}</div>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(baseUrl + "/operator?start=" + job.id)}" />
+          <div class="info">
+            <p>Makine: ${job.machine_name} | Koli: ${job.koli_count}</p>
+            ${job.colors ? `<p>Renkler: ${job.colors}</p>` : ""}
+          </div>
+        </div>
+        <script>window.onload = () => { window.print(); }</script>
+      </body></html>
+    `);
+    printWindow.document.close();
+  };
+
   // İş adı değiştiğinde aynı isimli iş kontrolü
   const checkDuplicateJob = (name) => {
     if (!name || name.trim().length < 2) {
@@ -889,6 +957,32 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const selectedMachineName = selectedMachine && selectedMachine !== "all"
     ? machines.find(m => m.id === selectedMachine)?.name
     : null;
+
+  // Drag & Drop sıralama
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    
+    const oldIndex = filteredJobs.findIndex(j => j.id === active.id);
+    const newIndex = filteredJobs.findIndex(j => j.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    const reordered = arrayMove(filteredJobs, oldIndex, newIndex);
+    // Optimistic UI
+    setJobs(prev => {
+      const nonFiltered = prev.filter(j => j.status !== "pending" || (selectedFormat !== "all" && j.format !== selectedFormat));
+      return [...nonFiltered, ...reordered];
+    });
+    
+    try {
+      await axios.put(`${API}/jobs/reorder-batch`, {
+        jobs: reordered.map((j, idx) => ({ job_id: j.id, order: idx }))
+      });
+    } catch {
+      toast.error("Sıralama kaydedilemedi");
+      fetchJobs();
+    }
+  };
 
   if (!authenticated) {
     return (
@@ -1259,6 +1353,53 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
           {/* Hızlı Aktar Dialog */}
           <Dialog open={isQuickTransferOpen} onOpenChange={setIsQuickTransferOpen}>
+
+          {/* QR Kod Dialog */}
+          <Dialog open={!!qrDialogJob} onOpenChange={() => setQrDialogJob(null)}>
+            <DialogContent className="bg-surface border-border max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-text-primary flex items-center gap-2">
+                  <QrCode className="h-5 w-5 text-purple-500" /> QR Kod
+                </DialogTitle>
+                <DialogDescription className="text-text-secondary">
+                  Operatör bu QR kodu okutarak işi başlatabilir
+                </DialogDescription>
+              </DialogHeader>
+              {qrDialogJob && (
+                <div className="flex flex-col items-center gap-4 pt-2">
+                  <p className="font-bold text-text-primary text-lg">{qrDialogJob.name}</p>
+                  <div className="bg-white p-4 rounded-lg">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/operator?start=${qrDialogJob.id}`}
+                      size={200}
+                      data-testid="qr-code-svg"
+                    />
+                  </div>
+                  <p className="text-xs text-text-secondary font-mono">Takip: {qrDialogJob.tracking_code}</p>
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => printQrCode(qrDialogJob)}
+                      data-testid="qr-print-btn"
+                    >
+                      <Printer className="h-4 w-4 mr-2" /> Yazdır
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/track/${qrDialogJob.tracking_code}`);
+                        toast.success("Takip linki kopyalandı!");
+                      }}
+                      data-testid="qr-copy-link-btn"
+                    >
+                      <Copy className="h-4 w-4 mr-2" /> Link Kopyala
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
             <DialogContent className="bg-surface border-border max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-text-primary flex items-center gap-2">
@@ -1665,39 +1806,55 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   </CardContent>
                 </Card>
               ) : (
-                filteredJobs.map((job) => (
-                  <Card
-                    key={job.id}
-                    className="bg-surface border-border"
-                    data-testid={`job-card-${job.id}`}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3 flex-wrap">
-                            <h3 className="text-xl font-heading font-bold text-text-primary">
-                              {job.name}
-                            </h3>
-                            {job.format && (
-                              <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
-                                {job.format}
-                              </span>
-                            )}
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                job.status === "in_progress"
-                                  ? "bg-warning text-black"
-                                  : "bg-info text-white"
-                              }`}
-                            >
-                              {job.status === "in_progress" ? "Devam Ediyor" : job.status === "paused" ? "Duraklatıldı" : "Bekliyor"}
-                            </span>
-                            {/* Geçen Gün Sayısı */}
-                            {job.queued_at && (
-                              <span className={`px-2 py-1 rounded text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(job.queued_at))}`}>
-                                📅 {calculateDaysElapsed(job.queued_at)} gün
-                              </span>
-                            )}
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={filteredJobs.map(j => j.id)} strategy={verticalListSortingStrategy}>
+                    {filteredJobs.map((job) => (
+                      <SortableJobItem key={job.id} id={job.id}>
+                        <Card
+                          className="bg-surface border-border"
+                          data-testid={`job-card-${job.id}`}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                                  <h3 className="text-xl font-heading font-bold text-text-primary">
+                                    {job.name}
+                                  </h3>
+                                  {job.format && (
+                                    <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">
+                                      {job.format}
+                                    </span>
+                                  )}
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                      job.status === "in_progress"
+                                        ? "bg-warning text-black"
+                                        : "bg-info text-white"
+                                    }`}
+                                  >
+                                    {job.status === "in_progress" ? "Devam Ediyor" : job.status === "paused" ? "Duraklatıldı" : "Bekliyor"}
+                                  </span>
+                                  {/* Tracking Code Badge */}
+                                  {job.tracking_code && (
+                                    <span
+                                      className="px-2 py-1 bg-surface-highlight text-text-secondary text-xs font-mono rounded cursor-pointer hover:text-blue-400 transition-colors"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(job.tracking_code);
+                                        toast.success("Takip kodu kopyalandı!");
+                                      }}
+                                      title="Takip kodunu kopyala"
+                                      data-testid={`tracking-code-${job.id}`}
+                                    >
+                                      {job.tracking_code}
+                                    </span>
+                                  )}
+                                  {/* Geçen Gün Sayısı */}
+                                  {job.queued_at && (
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(job.queued_at))}`}>
+                                      {calculateDaysElapsed(job.queued_at)} gün
+                                    </span>
+                                  )}
                           </div>
                           {/* İş Resmi Thumbnail */}
                           {job.image_url && (
@@ -1793,6 +1950,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => setQrDialogJob(job)}
+                            className="text-purple-500 border-purple-500 hover:bg-purple-500/10"
+                            data-testid={`qr-btn-${job.id}`}
+                          >
+                            <QrCode className="h-4 w-4 mr-1" />
+                            <span className="hidden md:inline">QR</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => openEditJob(job)}
                             className="text-blue-500 border-blue-500 hover:bg-blue-500/10"
                             data-testid={`edit-job-${job.id}`}
@@ -1814,7 +1981,10 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                       </div>
                     </CardContent>
                   </Card>
-                ))
+                </SortableJobItem>
+                ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </TabsContent>
