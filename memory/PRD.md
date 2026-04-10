@@ -29,9 +29,14 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] **Is Aktarma Zaman Cizelgesi (Timeline)** - Islerin hangi makinelerden gectigini gosteren gecmis kaydı (2026-04-09)
 - [x] **Vardiya Koli Takibi** - Vardiya sonunda girilen koli birikimli olarak takip edilir, kalan koli herkes tarafindan gorunur (2026-04-09)
 - [x] **Otomatik Devam (Auto-Resume)** - Vardiya baslatildiginda tamamlanmamis isler otomatik olarak devam eder (2026-04-09)
+- [x] **Drag & Drop Is Siralama** - Plan ekraninda surukle-birak ile is sirasi degistirme (2026-04-10)
+- [x] **Musteri Siparis Takip** - /track/:code uzerinden sifresiz siparis durumu gosterimi (2026-04-10)
+- [x] **QR Kod Sistemi** - Is kartlarinda QR kod olusturma, yazdir ve operatorde QR tarama ile hizli is baslatma (2026-04-10)
 
 ## Key API Endpoints
 - `POST /api/jobs/{job_id}/quick-transfer` - Hizli is aktarma (plan ekrani)
+- `GET /api/track/{tracking_code}` - Musteri siparis takip (sifresiz)
+- `PUT /api/jobs/reorder-batch` - Toplu is siralama (drag & drop)
 - `GET /api/dashboard/live` - Live production dashboard (no auth)
 - `GET /api/ai/paint-forecast` - AI paint consumption forecast
 - `GET /api/ai/operator-suggestion` - AI operator suggestions
