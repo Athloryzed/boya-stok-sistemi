@@ -1388,7 +1388,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                       variant="outline"
                       className="flex-1"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/track/${qrDialogJob.tracking_code}`);
+                        navigator.clipboard.writeText(`${window.location.origin}/takip/${qrDialogJob.tracking_code}`);
                         toast.success("Takip linki kopyalandı!");
                       }}
                       data-testid="qr-copy-link-btn"
@@ -1835,20 +1835,6 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                                   >
                                     {job.status === "in_progress" ? "Devam Ediyor" : job.status === "paused" ? "Duraklatıldı" : "Bekliyor"}
                                   </span>
-                                  {/* Tracking Code Badge */}
-                                  {job.tracking_code && (
-                                    <span
-                                      className="px-2 py-1 bg-surface-highlight text-text-secondary text-xs font-mono rounded cursor-pointer hover:text-blue-400 transition-colors"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(job.tracking_code);
-                                        toast.success("Takip kodu kopyalandı!");
-                                      }}
-                                      title="Takip kodunu kopyala"
-                                      data-testid={`tracking-code-${job.id}`}
-                                    >
-                                      {job.tracking_code}
-                                    </span>
-                                  )}
                                   {/* Geçen Gün Sayısı */}
                                   {job.queued_at && (
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${getDaysElapsedColor(calculateDaysElapsed(job.queued_at))}`}>

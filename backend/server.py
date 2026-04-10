@@ -278,7 +278,7 @@ class Job(BaseModel):
     order: int = 0  # Sıra numarası (düşük = öncelikli)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     queued_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())  # Sıraya eklenme tarihi
-    tracking_code: str = Field(default_factory=lambda: ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)))
+    tracking_code: str = Field(default_factory=lambda: str(uuid.uuid4()))
     # Durdurma bilgileri
     paused_at: Optional[str] = None
     pause_reason: Optional[str] = None
@@ -751,13 +751,13 @@ async def reorder_jobs_batch(data: dict = Body(...)):
     return {"success": True}
 
 
-# Müşteri Sipariş Takip
-@api_router.get("/track/{tracking_code}")
-async def track_job(tracking_code: str):
-    """Müşteri için şifresiz sipariş takip sayfası"""
-    job = await db.jobs.find_one({"tracking_code": tracking_code}, {"_id": 0})
+# Müşteri Sipariş Takip (güvenli link)
+@api_router.get("/takip/{tracking_token}")
+async def track_job(tracking_token: str):
+    """Müşteri için özel link ile sipariş takip"""
+    job = await db.jobs.find_one({"tracking_code": tracking_token}, {"_id": 0})
     if not job:
-        raise HTTPException(status_code=404, detail="Takip kodu bulunamadı")
+        raise HTTPException(status_code=404, detail="Takip linki geçersiz")
     
     status_map = {
         "pending": "Sırada Bekliyor",
@@ -767,13 +767,10 @@ async def track_job(tracking_code: str):
     }
     
     return {
-        "tracking_code": tracking_code,
         "job_name": job.get("name", ""),
         "status": job.get("status", "pending"),
         "status_text": status_map.get(job.get("status", "pending"), "Bilinmiyor"),
-        "koli_count": job.get("koli_count", 0),
         "delivery_date": job.get("delivery_date"),
-        "created_at": job.get("created_at"),
         "completed_at": job.get("completed_at")
     }
 
@@ -4167,18 +4164,22 @@ async def send_notification_to_all_workers(title: str, body: str, data: dict = N
 
 app.include_router(api_router)
 
-# Startup: Eski işlere tracking_code ekle
+# Startup: Eski işlere tracking_code ekle veya kısa kodları UUID'ye çevir
 @app.on_event("startup")
 async def backfill_tracking_codes():
     try:
-        jobs_without_code = await db.jobs.find(
-            {"tracking_code": {"$exists": False}}, {"_id": 0, "id": 1}
+        # tracking_code olmayan veya 8 karakter kısa olan kodları güncelle
+        jobs_to_update = await db.jobs.find(
+            {"$or": [
+                {"tracking_code": {"$exists": False}},
+                {"tracking_code": {"$regex": "^.{1,8}$"}}
+            ]}, {"_id": 0, "id": 1}
         ).to_list(10000)
-        for job in jobs_without_code:
-            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        for job in jobs_to_update:
+            code = str(uuid.uuid4())
             await db.jobs.update_one({"id": job["id"]}, {"$set": {"tracking_code": code}})
-        if jobs_without_code:
-            logger.info(f"Backfilled tracking codes for {len(jobs_without_code)} jobs")
+        if jobs_to_update:
+            logger.info(f"Backfilled/upgraded tracking codes for {len(jobs_to_update)} jobs")
     except Exception as e:
         logger.error(f"Tracking code backfill error: {e}")
 

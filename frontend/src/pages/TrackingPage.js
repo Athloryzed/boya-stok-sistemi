@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Package, Clock, CheckCircle, Loader2, ArrowLeft, Search } from "lucide-react";
+import { Package, Clock, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import { Card, CardContent } from "../components/ui/card";
 import axios from "axios";
 import { API } from "../App";
@@ -15,38 +14,30 @@ const steps = [
 ];
 
 const TrackingPage = ({ theme }) => {
-  const { code } = useParams();
+  const { token } = useParams();
   const navigate = useNavigate();
-  const [trackingCode, setTrackingCode] = useState(code || "");
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (code) fetchTracking(code);
-  }, [code]);
-
-  const fetchTracking = async (c) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get(`${API}/track/${c}`);
-      setData(res.data);
-    } catch {
-      setError("Takip kodu bulunamadı. Lütfen kontrol edip tekrar deneyin.");
-      setData(null);
-    } finally {
+    if (!token) {
+      setError("Geçersiz takip linki.");
       setLoading(false);
+      return;
     }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (trackingCode.trim()) {
-      navigate(`/track/${trackingCode.trim()}`);
-      fetchTracking(trackingCode.trim());
-    }
-  };
+    const fetchTracking = async () => {
+      try {
+        const res = await axios.get(`${API}/takip/${token}`);
+        setData(res.data);
+      } catch {
+        setError("Bu takip linki geçersiz veya süresi dolmuş.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTracking();
+  }, [token]);
 
   const getStepIndex = (status) => {
     if (status === "paused") return 1;
@@ -58,54 +49,33 @@ const TrackingPage = ({ theme }) => {
 
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-background" : "bg-gray-50"}`}>
-      <div className="max-w-lg mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6 text-text-secondary hover:text-text-primary"
-          data-testid="tracking-back-btn"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Ana Sayfa
-        </Button>
-
+      <div className="max-w-lg mx-auto px-4 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="text-center mb-8">
             <Package className="h-12 w-12 mx-auto mb-3 text-blue-500" />
             <h1 className="text-2xl font-heading font-bold text-text-primary">
-              Sipariş Takip
+              Sipariş Durumu
             </h1>
-            <p className="text-text-secondary mt-1">Takip kodunuzu girerek siparişinizin durumunu öğrenin</p>
           </div>
 
-          <form onSubmit={handleSearch} className="flex gap-2 mb-8">
-            <Input
-              data-testid="tracking-code-input"
-              value={trackingCode}
-              onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
-              placeholder="Takip kodu (ör: AB12CD34)"
-              className="bg-surface border-border text-text-primary text-center text-lg tracking-widest font-mono"
-              maxLength={8}
-            />
-            <Button
-              type="submit"
-              disabled={loading || !trackingCode.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-              data-testid="tracking-search-btn"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </form>
-
           {loading && (
-            <div className="text-center py-8">
+            <div className="text-center py-12">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
+              <p className="text-text-secondary mt-3">Yükleniyor...</p>
             </div>
           )}
 
           {error && (
             <Card className="bg-red-500/10 border-red-500/30">
-              <CardContent className="p-6 text-center">
-                <p className="text-red-400" data-testid="tracking-error">{error}</p>
+              <CardContent className="p-8 text-center">
+                <p className="text-red-400 text-lg" data-testid="tracking-error">{error}</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate("/")}
+                  className="mt-4 text-text-secondary"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Ana Sayfa
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -114,12 +84,10 @@ const TrackingPage = ({ theme }) => {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="bg-surface border-border" data-testid="tracking-result">
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-bold text-text-primary mb-1">{data.job_name}</h2>
-                  <p className="text-xs text-text-secondary font-mono mb-6">Kod: {data.tracking_code}</p>
+                  <h2 className="text-xl font-bold text-text-primary text-center mb-6">{data.job_name}</h2>
 
                   {/* Progress Steps */}
-                  <div className="relative mb-6">
-                    {/* Progress Line */}
+                  <div className="relative mb-8">
                     <div className="absolute top-5 left-5 right-5 h-0.5 bg-border" />
                     <div
                       className="absolute top-5 left-5 h-0.5 bg-blue-500 transition-all duration-700"
@@ -159,7 +127,7 @@ const TrackingPage = ({ theme }) => {
                   {/* Status Badge */}
                   <div className="text-center py-4">
                     <span
-                      className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${
+                      className={`inline-block px-5 py-2.5 rounded-full text-sm font-bold ${
                         data.status === "completed"
                           ? "bg-green-500/20 text-green-400"
                           : data.status === "in_progress"
@@ -175,8 +143,14 @@ const TrackingPage = ({ theme }) => {
                   </div>
 
                   {data.delivery_date && (
-                    <p className="text-center text-text-secondary text-sm mt-2">
+                    <p className="text-center text-text-secondary text-sm mt-3">
                       Tahmini Teslim: <span className="text-text-primary font-semibold">{data.delivery_date}</span>
+                    </p>
+                  )}
+
+                  {data.completed_at && (
+                    <p className="text-center text-success text-sm mt-2">
+                      Tamamlanma: {new Date(data.completed_at).toLocaleDateString("tr-TR")}
                     </p>
                   )}
                 </CardContent>

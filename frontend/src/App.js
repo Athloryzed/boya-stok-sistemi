@@ -97,8 +97,7 @@ function App() {
             <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/dashboard" element={<LiveDashboard />} />
-            <Route path="/track" element={<TrackingPage theme={theme} />} />
-            <Route path="/track/:code" element={<TrackingPage theme={theme} />} />
+            <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
           </Routes>
         </BrowserRouter>
         <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
