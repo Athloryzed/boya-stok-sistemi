@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Egg } from "lucide-react";
 
 // Dalgalanan Türk Bayrağı bileşeni
 const WavingFlag = () => (
@@ -92,6 +92,27 @@ const Home = ({ theme, toggleTheme }) => {
       startY: 30 + Math.random() * 30,
       delay: Math.random() * 5,
       color: ["#FFBF00", "#60A5FA", "#F97316", "#A78BFA", "#34D399"][i]
+    })), []);
+
+  // Paskalya Yumurtaları
+  const easterEggs = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      left: 5 + Math.random() * 90,
+      delay: Math.random() * 10,
+      duration: 7 + Math.random() * 5,
+      size: 18 + Math.random() * 14,
+      rotate: Math.random() * 360,
+      baseColor: ["#FF6B9D", "#C084FC", "#60D5FA", "#FBBF24", "#34D399", "#FB923C", "#F472B6"][i % 7],
+      stripeColor: ["#FBBF24", "#34D399", "#FF6B9D", "#C084FC", "#60D5FA", "#F472B6", "#FB923C"][i % 7],
+    })), []);
+
+  // Paskalya Tavşanları (çimenlerde)
+  const bunnies = useMemo(() =>
+    Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      left: 15 + i * 30 + Math.random() * 10,
+      delay: i * 1.5,
     })), []);
 
   return (
@@ -224,6 +245,42 @@ const Home = ({ theme, toggleTheme }) => {
         </motion.div>
       ))}
 
+      {/* Paskalya Yumurtaları Düşüyor (her zaman göster) */}
+      {easterEggs.map(egg => (
+        <motion.div key={`egg-${egg.id}`}
+          className="absolute z-20 pointer-events-none"
+          style={{ left: `${egg.left}%`, top: -30 }}
+          animate={{
+            y: ["0vh", "105vh"],
+            rotate: [egg.rotate, egg.rotate + (egg.id % 2 === 0 ? 360 : -360)],
+            x: [0, Math.sin(egg.id * 0.8) * 40],
+          }}
+          transition={{ duration: egg.duration, repeat: Infinity, delay: egg.delay, ease: "linear" }}
+        >
+          <svg width={egg.size} height={egg.size * 1.3} viewBox="0 0 30 40">
+            {/* Yumurta gövdesi */}
+            <ellipse cx="15" cy="22" rx="12" ry="16" fill={egg.baseColor} />
+            <ellipse cx="15" cy="22" rx="12" ry="16" fill="url(#eggShine)" opacity="0.3" />
+            {/* Yatay çizgiler */}
+            <path d="M5,16 Q15,13 25,16" stroke={egg.stripeColor} strokeWidth="2.5" fill="none" opacity="0.8" />
+            <path d="M4,22 Q15,19 26,22" stroke={egg.stripeColor} strokeWidth="2" fill="none" opacity="0.6" />
+            <path d="M5,28 Q15,25 25,28" stroke={egg.stripeColor} strokeWidth="2.5" fill="none" opacity="0.8" />
+            {/* Küçük noktalar */}
+            <circle cx="10" cy="19" r="1.5" fill="white" opacity="0.7" />
+            <circle cx="20" cy="19" r="1.5" fill="white" opacity="0.7" />
+            <circle cx="15" cy="25" r="1.5" fill="white" opacity="0.7" />
+            {/* Parlama */}
+            <defs>
+              <radialGradient id="eggShine">
+                <stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="white" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="11" cy="16" rx="4" ry="5" fill="white" opacity="0.25" />
+          </svg>
+        </motion.div>
+      ))}
+
       {/* Ground - green grass with flowers */}
       <div className="absolute bottom-0 left-0 right-0 z-10">
         {/* Grass hills */}
@@ -254,10 +311,91 @@ const Home = ({ theme, toggleTheme }) => {
             </svg>
           </motion.div>
         ))}
+
+        {/* Paskalya Tavşanları */}
+        {bunnies.map(b => (
+          <motion.div key={`bunny-${b.id}`}
+            className="absolute z-20"
+            style={{ left: `${b.left}%`, bottom: "35px" }}
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, delay: b.delay, ease: "easeInOut" }}
+          >
+            <svg width="28" height="40" viewBox="0 0 28 40">
+              {/* Kulaklar */}
+              <ellipse cx="10" cy="8" rx="4" ry="10" fill="#F5E6D3" stroke="#E8D5C0" strokeWidth="0.5" />
+              <ellipse cx="10" cy="8" rx="2.5" ry="7" fill="#FFB7C5" opacity="0.6" />
+              <ellipse cx="18" cy="8" rx="4" ry="10" fill="#F5E6D3" stroke="#E8D5C0" strokeWidth="0.5" />
+              <ellipse cx="18" cy="8" rx="2.5" ry="7" fill="#FFB7C5" opacity="0.6" />
+              {/* Kafa */}
+              <circle cx="14" cy="22" r="9" fill="#F5E6D3" />
+              {/* Gözler */}
+              <circle cx="11" cy="20" r="1.5" fill="#333" />
+              <circle cx="17" cy="20" r="1.5" fill="#333" />
+              <circle cx="11.5" cy="19.5" r="0.5" fill="white" />
+              <circle cx="17.5" cy="19.5" r="0.5" fill="white" />
+              {/* Burun */}
+              <ellipse cx="14" cy="23" rx="1.5" ry="1" fill="#FFB7C5" />
+              {/* Ağız */}
+              <path d="M12,25 Q14,27 16,25" stroke="#D4A59A" strokeWidth="0.8" fill="none" />
+              {/* Bıyıklar */}
+              <line x1="5" y1="22" x2="11" y2="23" stroke="#D4A59A" strokeWidth="0.4" />
+              <line x1="5" y1="24" x2="11" y2="24" stroke="#D4A59A" strokeWidth="0.4" />
+              <line x1="17" y1="23" x2="23" y2="22" stroke="#D4A59A" strokeWidth="0.4" />
+              <line x1="17" y1="24" x2="23" y2="24" stroke="#D4A59A" strokeWidth="0.4" />
+              {/* Gövde */}
+              <ellipse cx="14" cy="35" rx="7" ry="6" fill="#F5E6D3" />
+            </svg>
+          </motion.div>
+        ))}
+
+        {/* Çimenlerdeki Paskalya Yumurtaları */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div key={`ground-egg-${i}`}
+            className="absolute z-15"
+            style={{ left: `${8 + i * 11}%`, bottom: `${10 + Math.sin(i * 1.5) * 8}px` }}
+            animate={{ rotate: [-5, 5, -5] }}
+            transition={{ duration: 2 + i * 0.3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <svg width="16" height="20" viewBox="0 0 30 40">
+              <ellipse cx="15" cy="22" rx="12" ry="16"
+                fill={["#FF6B9D", "#C084FC", "#60D5FA", "#FBBF24", "#34D399", "#FB923C", "#F472B6", "#A78BFA"][i]} />
+              <path d="M5,18 Q15,15 25,18" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
+              <path d="M5,26 Q15,23 25,26" stroke="white" strokeWidth="2" fill="none" opacity="0.5" />
+              <ellipse cx="11" cy="16" rx="3" ry="4" fill="white" opacity="0.2" />
+            </svg>
+          </motion.div>
+        ))}
       </div>
 
       {/* Main content */}
       <div className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+
+        {/* Paskalya Banner */}
+        <motion.div
+          className="mb-3"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1, type: "spring", stiffness: 200 }}
+        >
+          <motion.div
+            className="px-5 py-2 rounded-full border backdrop-blur-md"
+            style={{
+              background: "linear-gradient(135deg, rgba(251,191,36,0.25), rgba(244,114,182,0.25), rgba(192,132,252,0.25))",
+              borderColor: "rgba(255,255,255,0.4)",
+            }}
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <span className="text-sm sm:text-base font-bold" style={{
+              background: "linear-gradient(90deg, #FBBF24, #F472B6, #C084FC, #60D5FA)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>
+              Mutlu Paskalyalar!
+            </span>
+          </motion.div>
+        </motion.div>
+
         {/* Title */}
         <motion.div className="text-center mb-10"
           initial={{ opacity: 0, y: -30 }}
