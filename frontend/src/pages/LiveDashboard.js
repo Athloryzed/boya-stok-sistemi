@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Monitor, Activity, Package, Users, Clock, Wrench, ChevronUp } from "lucide-react";
+import { Monitor, Activity, Package, Users, Clock, Wrench, ChevronUp, Lock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
 import { API } from "../App";
 
+const DASHBOARD_PASSWORD = "buse4";
+
 const LiveDashboard = () => {
   const [data, setData] = useState(null);
   const [clock, setClock] = useState(new Date());
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    // Oturum kontrolü
+    const saved = sessionStorage.getItem("dashboard_auth");
+    if (saved === "true") setAuthenticated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
     fetchData();
     const dataInterval = setInterval(fetchData, 15000);
     const clockInterval = setInterval(() => setClock(new Date()), 1000);
     return () => { clearInterval(dataInterval); clearInterval(clockInterval); };
-  }, []);
+  }, [authenticated]);
 
   const fetchData = async () => {
     try {
@@ -24,6 +36,54 @@ const LiveDashboard = () => {
       console.error("Dashboard fetch error:", e);
     }
   };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === DASHBOARD_PASSWORD) {
+      setAuthenticated(true);
+      sessionStorage.setItem("dashboard_auth", "true");
+      setError("");
+    } else {
+      setError("Yanlış şifre");
+    }
+  };
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 w-80"
+        >
+          <div className="text-center mb-6">
+            <Lock className="h-10 w-10 mx-auto mb-3 text-amber-400" />
+            <h1 className="text-xl font-bold text-white">Canlı Pano</h1>
+            <p className="text-zinc-400 text-sm mt-1">Şifre gerekli</p>
+          </div>
+          <form onSubmit={handleLogin}>
+            <input
+              data-testid="dashboard-password-input"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Şifre"
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-600 rounded-lg text-white text-center mb-3 focus:outline-none focus:border-amber-400"
+              autoFocus
+            />
+            {error && <p className="text-red-400 text-sm text-center mb-3" data-testid="dashboard-error">{error}</p>}
+            <button
+              data-testid="dashboard-login-btn"
+              type="submit"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg transition-colors"
+            >
+              Giriş
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (

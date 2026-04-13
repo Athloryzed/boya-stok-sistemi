@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -114,6 +114,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
   const [isShiftEndChoiceDialogOpen, setIsShiftEndChoiceDialogOpen] = useState(false);
   const [shiftEndReports, setShiftEndReports] = useState([]);
+  
+  // Operatör seçimi ile iş başlatma
+  const [isStartJobDialogOpen, setIsStartJobDialogOpen] = useState(false);
+  const [startJobTarget, setStartJobTarget] = useState(null);
+  const [operatorsList, setOperatorsList] = useState([]);
+  const [selectedOperatorName, setSelectedOperatorName] = useState("");
+  const [customOperatorName, setCustomOperatorName] = useState("");
   const [defectWeeklyAnalytics, setDefectWeeklyAnalytics] = useState(null);
   const [defectMonthlyAnalytics, setDefectMonthlyAnalytics] = useState(null);
   const [defectDailyAnalytics, setDefectDailyAnalytics] = useState(null);
@@ -711,15 +718,37 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleStartJobFromManagement = async (job) => {
-    // Optimistic update - UI'yi hemen güncelle
-    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "in_progress", operator_name: "Yönetim", started_at: new Date().toISOString() } : j));
+    // Operatör listesini çek ve dialog aç
+    try {
+      const res = await axios.get(`${API}/operators/list`);
+      setOperatorsList(res.data || []);
+    } catch {
+      setOperatorsList([]);
+    }
+    setStartJobTarget(job);
+    setSelectedOperatorName("");
+    setCustomOperatorName("");
+    setIsStartJobDialogOpen(true);
+  };
+
+  const confirmStartJob = async () => {
+    const operatorName = customOperatorName.trim() || selectedOperatorName;
+    if (!operatorName) {
+      toast.error("Lütfen operatör seçin veya isim girin");
+      return;
+    }
+    const job = startJobTarget;
+    setIsStartJobDialogOpen(false);
+    
+    // Optimistic update
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "in_progress", operator_name: operatorName, started_at: new Date().toISOString() } : j));
     setMachines(prev => prev.map(m => m.id === job.machine_id ? { ...m, status: "working", current_job_id: job.id } : m));
     try {
-      await axios.put(`${API}/jobs/${job.id}/start`, { operator_name: "Yönetim" });
-      toast.success("İş başlatıldı!");
+      await axios.put(`${API}/jobs/${job.id}/start`, { operator_name: operatorName });
+      toast.success(`İş başlatıldı! Operatör: ${operatorName}`);
     } catch (error) {
       toast.error("İş başlatılamadı");
-      fetchData(); // Hata durumunda verileri geri yükle
+      fetchData();
     }
   };
 
@@ -2357,6 +2386,18 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             <Button size="sm" variant="outline" onClick={() => handleCompleteJob(machineJobs.current)} className="bg-success text-white">
                               Tamamla
                             </Button>
+                            {machineJobs.current.tracking_code && (
+                              <Button size="sm" variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/takip/${machineJobs.current.tracking_code}`);
+                                  toast.success("Takip linki kopyalandı!");
+                                }}
+                                className="text-blue-400 border-blue-400"
+                                data-testid={`copy-link-${machineJobs.current.id}`}
+                              >
+                                <Link2 className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" onClick={() => openEditJob(machineJobs.current)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -2698,6 +2739,64 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     Durdur
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Operatör Seçimi ile İş Başlatma Dialog */}
+        <Dialog open={isStartJobDialogOpen} onOpenChange={setIsStartJobDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-text-primary flex items-center gap-2">
+                <Play className="h-5 w-5 text-success" /> İş Başlat
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                Operatör seçerek işi başlatın
+              </DialogDescription>
+            </DialogHeader>
+            {startJobTarget && (
+              <div className="space-y-4 pt-2">
+                <div className="bg-background rounded-lg p-3 border border-border">
+                  <p className="font-bold text-text-primary">{startJobTarget.name}</p>
+                  <p className="text-sm text-text-secondary">Makine: {startJobTarget.machine_name} | Koli: {startJobTarget.koli_count}</p>
+                </div>
+
+                <div>
+                  <Label className="text-text-primary mb-2 block">Operatör Seç</Label>
+                  <Select value={selectedOperatorName} onValueChange={(v) => { setSelectedOperatorName(v); setCustomOperatorName(""); }}>
+                    <SelectTrigger data-testid="start-job-operator-select" className="bg-background border-border text-text-primary">
+                      <SelectValue placeholder="Operatör seçin..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {operatorsList.map((op) => (
+                        <SelectItem key={op.id} value={op.name} className="text-text-primary">
+                          {op.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-text-primary mb-2 block">veya İsim Yaz</Label>
+                  <Input
+                    data-testid="start-job-custom-operator"
+                    value={customOperatorName}
+                    onChange={(e) => { setCustomOperatorName(e.target.value); setSelectedOperatorName(""); }}
+                    placeholder="Yeni operatör ismi..."
+                    className="bg-background border-border text-text-primary"
+                  />
+                </div>
+
+                <Button
+                  data-testid="start-job-confirm-btn"
+                  onClick={confirmStartJob}
+                  disabled={!selectedOperatorName && !customOperatorName.trim()}
+                  className="w-full bg-success hover:bg-success/90 text-white"
+                >
+                  İşi Başlat
+                </Button>
               </div>
             )}
           </DialogContent>

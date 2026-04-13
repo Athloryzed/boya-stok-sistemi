@@ -766,13 +766,41 @@ async def track_job(tracking_token: str):
         "completed": "Tamamlandı"
     }
     
+    # Başlama tarihini Türkiye saatine çevir
+    started_at_tr = None
+    if job.get("started_at"):
+        try:
+            from zoneinfo import ZoneInfo
+            utc_dt = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
+            tr_dt = utc_dt.astimezone(ZoneInfo("Europe/Istanbul"))
+            started_at_tr = tr_dt.strftime("%d %B %Y, %H:%M")
+            # Türkçe ay isimleri
+            months_tr = {"January": "Ocak", "February": "Şubat", "March": "Mart", "April": "Nisan",
+                         "May": "Mayıs", "June": "Haziran", "July": "Temmuz", "August": "Ağustos",
+                         "September": "Eylül", "October": "Ekim", "November": "Kasım", "December": "Aralık"}
+            for en, tr in months_tr.items():
+                started_at_tr = started_at_tr.replace(en, tr)
+        except Exception:
+            started_at_tr = job.get("started_at", "")
+    
     return {
         "job_name": job.get("name", ""),
         "status": job.get("status", "pending"),
         "status_text": status_map.get(job.get("status", "pending"), "Bilinmiyor"),
-        "delivery_date": job.get("delivery_date"),
+        "started_at_tr": started_at_tr,
         "completed_at": job.get("completed_at")
     }
+
+
+# Operatör listesi (Yönetim paneli için)
+@api_router.get("/operators/list")
+async def get_operators_list():
+    """Aktif operatörlerin listesini döndür"""
+    operators = await db.users.find(
+        {"role": "operator", "is_active": True},
+        {"_id": 0, "id": 1, "username": 1, "display_name": 1}
+    ).to_list(100)
+    return [{"id": o.get("id", o.get("username")), "name": o.get("display_name", o.get("username", ""))} for o in operators]
 
 
 @api_router.put("/jobs/{job_id}", response_model=Job)

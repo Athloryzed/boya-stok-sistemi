@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Package, Clock, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Package, Clock, CheckCircle, Loader2, ArrowLeft, PlayCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import axios from "axios";
@@ -9,7 +9,7 @@ import { API } from "../App";
 
 const steps = [
   { key: "pending", label: "Sırada Bekliyor", icon: Clock },
-  { key: "in_progress", label: "Üretimde", icon: Loader2 },
+  { key: "in_progress", label: "Üretimde", icon: PlayCircle },
   { key: "completed", label: "Tamamlandı", icon: CheckCircle },
 ];
 
@@ -142,9 +142,10 @@ const TrackingPage = ({ theme }) => {
                     </span>
                   </div>
 
-                  {data.delivery_date && (
-                    <p className="text-center text-text-secondary text-sm mt-3">
-                      Tahmini Teslim: <span className="text-text-primary font-semibold">{data.delivery_date}</span>
+                  {/* Başlama Tarihi (TR saati) */}
+                  {data.started_at_tr && (
+                    <p className="text-center text-text-secondary text-sm mt-3" data-testid="tracking-start-date">
+                      Başlama: <span className="text-text-primary font-semibold">{data.started_at_tr}</span>
                     </p>
                   )}
 
