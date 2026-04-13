@@ -32,10 +32,16 @@ Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler 
 - [x] **Drag & Drop Is Siralama** - Plan ekraninda surukle-birak ile is sirasi degistirme (2026-04-10)
 - [x] **Musteri Siparis Takip** - /takip/:token uzerinden guvenli UUID link ile siparis durumu gosterimi, arama kutusu yok, sadece link ile erisim (2026-04-10)
 - [x] **QR Kod Sistemi** - Is kartlarinda QR kod olusturma, yazdir ve operatorde QR tarama ile hizli is baslatma (2026-04-10)
+- [x] **Guvenli Takip Linki** - UUID token ile musteri takip, baslama tarihi TR saati (2026-04-13)
+- [x] **Yonetim Operator Secimi** - Is baslatirken operator dropdown + serbest metin (2026-04-13)
+- [x] **Canli Pano Sifre Korumasi** - /dashboard icin sifre: buse4 (2026-04-13)
+- [x] **Aktif Islerde Link Kopyala** - Devam eden islerde musteri takip linki kopyalama (2026-04-13)
+- [x] **Paskalya Susleri** - Ana sayfada dusuen yumurtalar, tavsanlar, renkli yumurtalar (2026-04-13)
 
 ## Key API Endpoints
 - `POST /api/jobs/{job_id}/quick-transfer` - Hizli is aktarma (plan ekrani)
-- `GET /api/takip/{tracking_token}` - Musteri siparis takip (guvenli UUID link)
+- `GET /api/takip/{tracking_token}` - Musteri siparis takip (guvenli UUID link, TR saatli baslama tarihi)
+- `GET /api/operators/list` - Aktif operator listesi (yonetim paneli icin)
 - `PUT /api/jobs/reorder-batch` - Toplu is siralama (drag & drop)
 - `GET /api/dashboard/live` - Live production dashboard (no auth)
 - `GET /api/ai/paint-forecast` - AI paint consumption forecast
