@@ -1,25 +1,29 @@
 # Test Credentials
 
-## Management Panel (/management)
-- Password: `buse11993`
+## Management Panel
+- URL: /management
+- Password: buse11993
 
-## Operator Panel (/operator)
-- Username: `ali`
-- Password: `134679`
+## Operator Panel
+- URL: /operator
+- Username: ali
+- Password: 134679
 
-## Plan Panel (/plan)
-- Username: `emrecan`
-- Password: `testtest12`
+## Plan Panel
+- URL: /plan
+- Username: emrecan
+- Password: testtest12
 
-## Warehouse Panel (/warehouse)
-- Username: `depo1`
-- Password: `depo123`
+## Warehouse Panel
+- URL: /warehouse
+- Username: depo1
+- Password: depo123
 
-## Paint Panel (/paint)
-- Password: `buse11993`
+## Live Dashboard
+- URL: /dashboard
+- Password: buse4
 
-## Live Dashboard (/dashboard)
-- Password: `buse4`
-
-## Dashboard (no auth)
-- Path: /dashboard (requires password above)
+## Notes
+- All passwords in the database are bcrypt hashed
+- JWT tokens are automatically managed by frontend Axios interceptor
+- Tokens expire after 24 hours

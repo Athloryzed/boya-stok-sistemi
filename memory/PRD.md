@@ -1,81 +1,100 @@
-# Buse Kagit - Fabrika Yonetim Sistemi PRD
+# Buse Kagit - Uretim Yonetim Sistemi PRD
 
-## Problem Statement
-Bir kagit fabrikasi icin tam kapsamli yonetim sistemi. Yoneticiler, operatorler ve planlama ekibi icin ayri arayuzler ile is takibi, vardiya yonetimi ve bildirim sistemi.
+## Original Problem Statement
+Factory management system for Buse Kagit paper company. Full-stack React + FastAPI + MongoDB PWA with AI assistants, Excel exports, live dashboards, QR codes, drag & drop, and secure JWT/bcrypt authentication.
 
-## Technical Architecture
-- **Backend:** FastAPI, Motor (MongoDB async), WebSockets (/api/ws/)
-- **Frontend:** React, TailwindCSS, Shadcn/UI, Capacitor, Framer Motion, Recharts
-- **Database:** MongoDB
-- **AI:** GPT-5.2 via Emergent Universal Key (emergentintegrations library)
-- **3rd Party:** Twilio (SMS), Firebase Cloud Messaging (Push Notifications)
-- **PWA:** Service Worker v3 with network-first for HTML/JS
-- **Custom Domain:** bksistem.space
+## User Personas
+- **Yonetim (Management):** Factory owner/managers who oversee all operations
+- **Plan:** Production planners who assign jobs to machines
+- **Operator:** Machine operators who execute jobs
+- **Depo (Warehouse):** Warehouse staff managing stock and shipments
+- **Sofor (Driver):** Drivers handling deliveries
+- **Musteri (Customer):** External customers tracking their orders via secure UUID links
 
-## What's Implemented
-- [x] Role-based panels (Management, Operator, Plan, Warehouse, Paint)
-- [x] 24h Persistent Sessions, Error Boundary, Retry mechanism
-- [x] Audit Log System with real user names
-- [x] Optimistic UI, Swipe-to-dismiss toasts
-- [x] Spring Theme, Ataturk portrait, Turkish flag
-- [x] "Hatirla Beni" for Operator and Plan login
-- [x] Daily Analytics Drill-Down
-- [x] Haftalik Excel Raporu (4-sheet)
-- [x] AI Operator Assistant (GPT-5.2)
-- [x] AI Management Assistant (GPT-5.2)
-- [x] **AI Paint Forecast** - Boya tuketim tahmini ve stok uyarisi
-- [x] **Live Dashboard (TV)** - Sifresiz canli uretim panosu (/dashboard)
-- [x] **Hizli Is Aktarma (Quick Transfer)** - Plan ekranindan bekleyen/durdurulmus isleri baska makinelere aktarma, koli takibi ile (2026-04-09)
-- [x] **Is Aktarma Zaman Cizelgesi (Timeline)** - Islerin hangi makinelerden gectigini gosteren gecmis kaydı (2026-04-09)
-- [x] **Vardiya Koli Takibi** - Vardiya sonunda girilen koli birikimli olarak takip edilir, kalan koli herkes tarafindan gorunur (2026-04-09)
-- [x] **Otomatik Devam (Auto-Resume)** - Vardiya baslatildiginda tamamlanmamis isler otomatik olarak devam eder (2026-04-09)
-- [x] **Drag & Drop Is Siralama** - Plan ekraninda surukle-birak ile is sirasi degistirme (2026-04-10)
-- [x] **Musteri Siparis Takip** - /takip/:token uzerinden guvenli UUID link ile siparis durumu gosterimi, arama kutusu yok, sadece link ile erisim (2026-04-10)
-- [x] **QR Kod Sistemi** - Is kartlarinda QR kod olusturma, yazdir ve operatorde QR tarama ile hizli is baslatma (2026-04-10)
-- [x] **Guvenli Takip Linki** - UUID token ile musteri takip, baslama tarihi TR saati (2026-04-13)
-- [x] **Yonetim Operator Secimi** - Is baslatirken operator dropdown + serbest metin (2026-04-13)
-- [x] **Canli Pano Sifre Korumasi** - /dashboard icin sifre: buse4 (2026-04-13)
-- [x] **Aktif Islerde Link Kopyala** - Devam eden islerde musteri takip linki kopyalama (2026-04-13)
-- [x] **Paskalya Susleri** - Ana sayfada dusuen yumurtalar, tavsanlar, renkli yumurtalar (2026-04-13)
+## Core Requirements
+- Fast PWA experience with offline support
+- AI-powered assistance for operators and management (GPT-5.2)
+- Excel exports for weekly/monthly reporting
+- Live TV dashboard for factory monitoring
+- Quick Transfer for job assignment between machines
+- Shift management with auto-resume
+- Drag & Drop job sorting
+- Secure customer tracking links (UUID-based)
+- QR Code generation and scanning
+- JWT-based auth + bcrypt password hashing
 
-## Key API Endpoints
-- `POST /api/jobs/{job_id}/quick-transfer` - Hizli is aktarma (plan ekrani)
-- `GET /api/takip/{tracking_token}` - Musteri siparis takip (guvenli UUID link, TR saatli baslama tarihi)
-- `GET /api/operators/list` - Aktif operator listesi (yonetim paneli icin)
-- `PUT /api/jobs/reorder-batch` - Toplu is siralama (drag & drop)
-- `GET /api/dashboard/live` - Live production dashboard (no auth)
-- `GET /api/ai/paint-forecast` - AI paint consumption forecast
-- `GET /api/ai/operator-suggestion` - AI operator suggestions
-- `POST /api/ai/operator-chat` - Operator AI chat
-- `GET /api/ai/management-overview` - Factory AI analysis
-- `POST /api/ai/management-chat` - Management AI chat
-- `GET /api/analytics/daily-detail` - Daily drill-down
-- `GET /api/analytics/export` - Excel report (4 sheets)
+## Architecture (Post-Refactoring - Feb 2026)
 
-## Routes
-- `/` - Home (Spring Theme)
-- `/management` - Yonetim paneli
-- `/operator` - Operator paneli
-- `/plan` - Planlama paneli
-- `/warehouse` - Depo paneli
-- `/paint` - Boya paneli
-- `/driver` - Surucu paneli
-- `/dashboard` - Canli Uretim Panosu (TV, sifresiz)
+### Backend Structure
+```
+/app/backend/
+├── server.py              # Main app (~160 lines) - FastAPI setup, routers, WebSockets, startup events, CORS
+├── database.py            # MongoDB connection (client, db)
+├── auth.py                # JWT + bcrypt helpers (hash_password, verify_password, create_token, decode_token, get_current_user)
+├── models.py              # All Pydantic models (Machine, Job, Shift, User, Paint, etc.)
+├── websocket_manager.py   # ConnectionManager, ManagerConnectionManager (ws_manager, ws_manager_mgmt)
+├── services/
+│   ├── __init__.py
+│   ├── audit.py           # log_audit function
+│   └── notifications.py   # Firebase FCM, Twilio WhatsApp, notification helpers
+├── routes/
+│   ├── __init__.py
+│   ├── health.py          # /, /health
+│   ├── machines.py        # /machines CRUD, maintenance, cleanup
+│   ├── jobs.py            # /jobs CRUD, start/complete/pause/resume, clone, reorder, quick-transfer, tracking, upload
+│   ├── shifts.py          # /shifts start/end, operator reports, approval flow
+│   ├── defects.py         # /defects CRUD, weekly/monthly/daily analytics
+│   ├── analytics.py       # /analytics weekly/daily/monthly/daily-detail/daily-by-week, Excel export
+│   ├── users.py           # /users CRUD, /users/login, /management/login
+│   ├── warehouse.py       # /warehouse-requests, /warehouse/shipment-log
+│   ├── paints.py          # /paints CRUD, transactions, give-to-machine, return, analytics, AI forecast
+│   ├── ai.py              # /ai operator-suggestion, operator-chat, management-overview, management-chat
+│   ├── dashboard.py       # /dashboard/live
+│   ├── messages.py        # /messages CRUD, read/unread tracking
+│   ├── visitors.py        # /visitors log, stats
+│   ├── operators.py       # /operator/session management
+│   ├── pallets.py         # /pallets CRUD, search
+│   ├── logistics.py       # /vehicles, /shipments, /drivers (CRUD, login, location, status)
+│   └── misc.py            # /audit-logs, /managers/register, /notifications/register-token
+```
 
-## Upcoming Tasks
-- [ ] Shipment & Driver Module (P2)
+### Frontend Structure
+```
+/app/frontend/src/
+├── App.js                 # Routes, Axios JWT interceptor, visitor tracking
+├── pages/
+│   ├── Home.js            # Easter-themed home page
+│   ├── ManagementFlow.js  # Management panel (2,813 lines)
+│   ├── PlanFlow.js        # Planning panel with drag & drop (2,644 lines)
+│   ├── OperatorFlow.js    # Operator panel with QR scanner (1,702 lines)
+│   ├── PaintFlow.js       # Paint management (947 lines)
+│   ├── WarehouseFlow.js   # Warehouse management (754 lines)
+│   ├── DriverFlow.js      # Driver/shipping (556 lines)
+│   ├── LiveDashboard.js   # Live TV dashboard (254 lines)
+│   └── TrackingPage.js    # Customer tracking (167 lines)
+├── components/
+│   ├── ErrorBoundary.js
+│   └── ui/                # Shadcn/UI components
+```
 
-## Future Tasks (Backlog)
-- [ ] QR/Barcode Scanning (P3)
-- [ ] Frontend component refactoring (P3)
-- [ ] Renk gecis optimizasyonu (P3)
-- [ ] Makine bakim planlayici (P3)
-- [ ] Musteri siparis takip paneli (P3)
+## What's Been Implemented
+- All core features (jobs, machines, shifts, paint, warehouse, analytics, AI)
+- Security: JWT auth + bcrypt passwords
+- PWA with service worker
+- WebSocket real-time notifications
+- Excel export (weekly/monthly reports)
+- QR Code generation & scanning
+- Drag & Drop job sorting
+- Customer order tracking (UUID links)
+- Live TV Dashboard (password protected)
+- Easter-themed home page
+- **Backend Refactoring** (Feb 2026): Monolithic server.py split into 23 modular files
 
-## Test Credentials
-- Management: password `buse11993` (at /management)
-- Operator: `ali` / `134679` (at /operator)
-- Plan: `emrecan` / `testtest12` (at /plan)
-- Warehouse: `depo1` / `depo123` (at /warehouse)
-- Paint: password `buse11993` (at /paint)
-- Dashboard: no auth (at /dashboard)
+## Upcoming Tasks (Prioritized)
+- P1: Sevkiyat & Surucu Modulu (Shipment & Driver Module enhancements)
+- P3: Renk Gecis Optimizasyonu (Color Transition Optimization)
+- P3: Makine Bakim Planlayici (Machine Maintenance Planner)
+- P3: Frontend bilesen refactoring (Extract common components from *Flow.js files)
+
+## Known Issues
+- VPN/ISP block on custom domain (bksistem.space) in Turkey - no code fix possible
