@@ -264,6 +264,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
           
           setUserData(session);
           setOperatorName(session.display_name || session.username);
+          // JWT token'ı restore et
+          if (session.token) {
+            localStorage.setItem("auth_token", session.token);
+          }
           if (session.machine_id) {
             await fetchMachinesData();
             setStep(3);
@@ -658,6 +662,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         role: "operator"
       });
       const user = response.data;
+      // JWT token kaydet
+      if (user.token) {
+        localStorage.setItem("auth_token", user.token);
+      }
       // 24 saatlik oturum için login zamanını kaydet
       const sessionData = {
         ...user,

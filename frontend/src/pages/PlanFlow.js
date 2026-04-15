@@ -169,6 +169,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         if (hoursPassed < 24) {
           setUserData(session);
           setAuthenticated(true);
+          if (session.token) {
+            localStorage.setItem("auth_token", session.token);
+          }
         } else {
           // Oturum süresi dolmuş
           localStorage.removeItem("plan_session");
@@ -584,7 +587,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         role: "plan"
       });
       const user = response.data;
-      // 24 saatlik oturum için login zamanını kaydet
+      if (user.token) {
+        localStorage.setItem("auth_token", user.token);
+      }
       const sessionData = {
         ...user,
         login_time: Date.now()

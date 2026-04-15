@@ -49,6 +49,9 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         if (hoursPassed < 24 && session.username) {
           setUserData(session);
           setAuthenticated(true);
+          if (session.token) {
+            localStorage.setItem("auth_token", session.token);
+          }
         } else {
           localStorage.removeItem("depo_session");
         }
@@ -70,6 +73,9 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         role: "depo"
       });
       const user = response.data;
+      if (user.token) {
+        localStorage.setItem("auth_token", user.token);
+      }
       setUserData(user);
       localStorage.setItem("depo_session", JSON.stringify({ ...user, login_time: Date.now() }));
       setAuthenticated(true);

@@ -24,7 +24,6 @@ const PAINT_COLORS = {
   "Sarı": "#ffeb3b", "Gold": "#ffc107", "Gümüş": "#9e9e9e", "Pasta": "#bcaaa4"
 };
 const LOW_STOCK_THRESHOLD = 5;
-const MANAGEMENT_PASSWORD = "buse11993";
 
 // Geçen gün sayısını hesapla
 const calculateDaysElapsed = (dateString) => {
@@ -64,6 +63,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         if (session.expiry > now) {
           setAuthenticated(true);
           setManagerId(session.managerId);
+          if (session.token) {
+            localStorage.setItem("auth_token", session.token);
+          }
         } else {
           localStorage.removeItem("management_session");
         }
@@ -378,25 +380,27 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset]);
 
-  const handleLogin = () => {
-    if (password === MANAGEMENT_PASSWORD) {
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(`${API}/management/login`, { password });
+      const data = response.data;
+      if (data.token) {
+        localStorage.setItem("auth_token", data.token);
+      }
       const newManagerId = `manager_${Date.now()}`;
       setAuthenticated(true);
       setManagerId(newManagerId);
       
-      // 1 günlük oturum kaydet
       const session = {
-        expiry: new Date().getTime() + 24 * 60 * 60 * 1000, // 24 saat
-        managerId: newManagerId
+        expiry: new Date().getTime() + 24 * 60 * 60 * 1000,
+        managerId: newManagerId,
+        token: data.token
       };
       localStorage.setItem("management_session", JSON.stringify(session));
-      
-      // Manager'ı backend'e kaydet (bildirim için)
       registerManager(newManagerId);
-      
       toast.success("Giriş başarılı!");
-    } else {
-      toast.error("Yanlış şifre!");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Yanlış şifre!");
     }
   };
   

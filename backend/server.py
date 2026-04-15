@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Body, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Body, WebSocket, WebSocketDisconnect, UploadFile, File, Depends, Request, Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,9 +10,11 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Set
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import random
 import string
+import bcrypt
+import jwt
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from io import BytesIO
@@ -151,6 +154,56 @@ async def send_whatsapp_notification(message: str):
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# ==================== AUTH HELPERS ====================
+JWT_SECRET = os.environ['JWT_SECRET']
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRY_HOURS = 24
+MANAGEMENT_PASSWORD = os.environ.get('MANAGEMENT_PASSWORD', 'buse11993')
+
+security = HTTPBearer(auto_error=False)
+
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(plain: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception:
+        return False
+
+def create_token(user_id: str, username: str, role: str, display_name: str = "") -> str:
+    payload = {
+        "sub": user_id,
+        "username": username,
+        "role": role,
+        "display_name": display_name,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS),
+        "iat": datetime.now(timezone.utc)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def decode_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Oturum süresi doldu")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Geçersiz token")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Kimlik doğrulama gerekli")
+    return decode_token(credentials.credentials)
+
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Token varsa doğrula, yoksa None dön (opsiyonel auth)"""
+    if not credentials:
+        return None
+    try:
+        return decode_token(credentials.credentials)
+    except Exception:
+        return None
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -2605,9 +2658,9 @@ async def return_paint_from_machine(data: dict = Body(...)):
 
 # ==================== KULLANICI YÖNETİMİ ====================
 
-@api_router.post("/users", response_model=User)
-async def create_user(data: dict = Body(...)):
-    """Yeni kullanıcı oluştur"""
+@api_router.post("/users")
+async def create_user(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """Yeni kullanıcı oluştur (yetkili)"""
     username = data.get("username", "").strip()
     password = data.get("password", "")
     role = data.get("role", "")
@@ -2620,31 +2673,27 @@ async def create_user(data: dict = Body(...)):
     if role not in ["operator", "plan", "depo", "sofor"]:
         raise HTTPException(status_code=400, detail="Geçersiz rol")
     
-    # Kullanıcı adı kontrolü
     existing = await db.users.find_one({"username": username, "is_active": True})
     if existing:
         raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten kullanılıyor")
     
     user = User(
         username=username,
-        password=password,
+        password=hash_password(password),
         role=role,
         display_name=display_name,
         phone=phone
     )
     await db.users.insert_one(user.model_dump())
-    created_by_name = data.get("created_by", "Yonetim")
-    await log_audit(created_by_name, "create", "user", username, f"Rol: {role}")
-
+    await log_audit(current_user.get("display_name", "Yonetim"), "create", "user", username, f"Rol: {role}")
     
-    # Şifreyi döndürmeden önce kaldır
     user_dict = user.model_dump()
     user_dict.pop("password", None)
-    return user
+    return user_dict
 
 @api_router.get("/users")
-async def get_users(role: Optional[str] = None):
-    """Kullanıcıları listele"""
+async def get_users(role: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Kullanıcıları listele (yetkili)"""
     query = {"is_active": True}
     if role:
         query["role"] = role
@@ -2653,31 +2702,46 @@ async def get_users(role: Optional[str] = None):
 
 @api_router.post("/users/login")
 async def user_login(data: dict = Body(...)):
-    """Kullanıcı girişi (rol bazlı)"""
+    """Kullanıcı girişi - bcrypt + JWT"""
     username = data.get("username", "").strip()
     password = data.get("password", "")
-    expected_role = data.get("role")  # Hangi sayfadan giriş yapılıyor
+    expected_role = data.get("role")
     
     user = await db.users.find_one({
         "username": username,
-        "password": password,
         "is_active": True
     }, {"_id": 0})
     
     if not user:
         raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
     
+    # Bcrypt doğrulama
+    if not verify_password(password, user.get("password", "")):
+        raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+    
     # Rol kontrolü
     if expected_role and user["role"] != expected_role:
         raise HTTPException(status_code=403, detail=f"Bu sayfaya erişim yetkiniz yok. Yetkiniz: {user['role']}")
     
-    # Şifreyi döndürme
+    # JWT token oluştur
+    token = create_token(user["id"], user["username"], user["role"], user.get("display_name", ""))
+    
     user.pop("password", None)
-    return user
+    return {**user, "token": token}
+
+@api_router.post("/management/login")
+async def management_login(data: dict = Body(...)):
+    """Yönetim paneli girişi - JWT"""
+    password = data.get("password", "")
+    if password != MANAGEMENT_PASSWORD:
+        raise HTTPException(status_code=401, detail="Yanlış şifre")
+    
+    token = create_token("management", "yonetim", "management", "Yönetim")
+    return {"success": True, "token": token, "role": "management", "display_name": "Yönetim"}
 
 @api_router.delete("/users/{user_id}")
-async def delete_user(user_id: str):
-    """Kullanıcı sil (pasif yap)"""
+async def delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Kullanıcı sil (yetkili)"""
     result = await db.users.update_one(
         {"id": user_id},
         {"$set": {"is_active": False}}
@@ -4196,7 +4260,6 @@ app.include_router(api_router)
 @app.on_event("startup")
 async def backfill_tracking_codes():
     try:
-        # tracking_code olmayan veya 8 karakter kısa olan kodları güncelle
         jobs_to_update = await db.jobs.find(
             {"$or": [
                 {"tracking_code": {"$exists": False}},
@@ -4210,6 +4273,24 @@ async def backfill_tracking_codes():
             logger.info(f"Backfilled/upgraded tracking codes for {len(jobs_to_update)} jobs")
     except Exception as e:
         logger.error(f"Tracking code backfill error: {e}")
+
+# Startup: Düz metin şifreleri bcrypt'e migrate et
+@app.on_event("startup")
+async def migrate_passwords_to_bcrypt():
+    try:
+        users = await db.users.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1}).to_list(10000)
+        migrated = 0
+        for user in users:
+            pwd = user.get("password", "")
+            # bcrypt hash'leri $2b$ veya $2a$ ile başlar
+            if pwd and not pwd.startswith("$2b$") and not pwd.startswith("$2a$"):
+                hashed = hash_password(pwd)
+                await db.users.update_one({"id": user["id"]}, {"$set": {"password": hashed}})
+                migrated += 1
+        if migrated:
+            logger.info(f"Migrated {migrated} plain-text passwords to bcrypt")
+    except Exception as e:
+        logger.error(f"Password migration error: {e}")
 
 # WebSocket endpoint - Yönetici bildirimleri için
 @app.websocket("/api/ws/manager/{manager_id}")

@@ -17,6 +17,26 @@ import { Toaster } from "./components/ui/sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
+// Axios interceptor - JWT token'ı her isteğe ekle
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("auth_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// 401 hatası alınca token temizle
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !error.config.url?.includes("/login")) {
+      localStorage.removeItem("auth_token");
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Firebase Service Worker kaydı
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/firebase-messaging-sw.js')

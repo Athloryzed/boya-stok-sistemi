@@ -117,14 +117,18 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const handleLogin = () => {
-    if (password === "buse11993") {
-      // 24 saatlik oturum için login zamanını kaydet
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(`${API}/management/login`, { password });
+      const data = response.data;
+      if (data.token) {
+        localStorage.setItem("auth_token", data.token);
+      }
       localStorage.setItem("paint_session", JSON.stringify({ login_time: Date.now() }));
       setAuthenticated(true);
       toast.success("Giriş başarılı!");
-    } else {
-      toast.error("Yanlış şifre!");
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Yanlış şifre!");
     }
   };
 
