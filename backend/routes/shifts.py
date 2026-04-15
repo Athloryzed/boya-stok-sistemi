@@ -19,7 +19,7 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 @router.post("/shifts/request-end")
 async def request_shift_end():
     """Vardiya sonu bildirimi gönder - tüm aktif operatörlere"""
-    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if not active_shift:
         raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
 
@@ -197,7 +197,7 @@ async def approve_all_reports_and_end_shift():
     for report in pending_reports:
         await approve_operator_report(report["id"], {"approved_by": "Yönetim (Toplu)"})
 
-    active_shift = await db.shifts.find_one({"status": "pending_reports"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "pending_reports"}, {"_id": 0}, sort=[("started_at", -1)])
     if active_shift:
         await db.shifts.update_one(
             {"id": active_shift["id"]},
@@ -213,9 +213,10 @@ async def approve_all_reports_and_end_shift():
 
 @router.get("/shifts/status")
 async def get_shift_status():
-    """Mevcut vardiya durumunu getir"""
+    """Mevcut vardiya durumunu getir - en son vardiyayi dondur"""
     shift = await db.shifts.find_one(
-        {"status": {"$in": ["active", "pending_reports"]}}, {"_id": 0}
+        {"status": {"$in": ["active", "pending_reports"]}}, {"_id": 0},
+        sort=[("started_at", -1)]
     )
     if not shift:
         return {"status": "no_active_shift", "shift": None}
@@ -234,7 +235,7 @@ async def end_shift_with_report(data: dict = Body(...)):
     """Vardiya bitişinde makine bazlı üretim ve defo raporu"""
     machine_reports = data.get("reports", [])
 
-    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if not active_shift:
         raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
 
@@ -288,7 +289,7 @@ async def end_shift_with_report(data: dict = Body(...)):
 
 @router.post("/shifts/start")
 async def start_shift(started_by: str = None):
-    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if active_shift:
         raise HTTPException(status_code=400, detail="There is already an active shift")
 
@@ -329,7 +330,7 @@ async def start_shift(started_by: str = None):
 
 @router.post("/shifts/end")
 async def end_shift():
-    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if not active_shift:
         raise HTTPException(status_code=400, detail="No active shift found")
 
@@ -343,7 +344,7 @@ async def end_shift():
 @router.post("/shifts/notify-end")
 async def notify_shift_end():
     """Vardiya bitiş bildirimi gönder"""
-    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if not active_shift:
         raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
 
@@ -370,8 +371,27 @@ async def notify_shift_end():
 
 @router.get("/shifts/current")
 async def get_current_shift():
-    shift = await db.shifts.find_one({"status": "active"}, {"_id": 0})
+    shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     return shift
+
+
+@router.post("/shifts/cleanup-stuck")
+async def cleanup_stuck_shifts():
+    """Takili kalmis pending_reports vardiyalarini temizle (admin)"""
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.shifts.update_many(
+        {"status": "pending_reports"},
+        {"$set": {"status": "ended", "ended_at": now, "pending_approval": False}}
+    )
+    cleaned = result.modified_count
+
+    if cleaned > 0:
+        await db.shift_operator_reports.update_many(
+            {"status": "pending"},
+            {"$set": {"status": "expired", "approved_at": now, "approved_by": "Sistem (Temizlik)"}}
+        )
+
+    return {"message": f"{cleaned} takili vardiya temizlendi", "cleaned": cleaned}
 
 
 @router.get("/shift-reports")
