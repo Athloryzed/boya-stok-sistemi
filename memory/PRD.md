@@ -48,6 +48,7 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Security: JWT auth on ALL endpoints + bcrypt passwords
 - Dashboard password moved from client-side to server-side
 - Backend refactoring: monolithic server.py → 23 modular files
+- **MongoDB Indexes:** 43 custom indexes across all 24 collections (id, status, compound queries, date ranges)
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
 ## Upcoming Tasks

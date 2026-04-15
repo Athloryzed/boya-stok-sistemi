@@ -163,6 +163,104 @@ async def migrate_passwords_to_bcrypt():
     except Exception as e:
         logger.error(f"Password migration error: {e}")
 
+
+from pymongo import ASCENDING, DESCENDING
+
+@app.on_event("startup")
+async def ensure_indexes():
+    """Tum koleksiyonlar icin MongoDB indekslerini olustur (idempotent)"""
+    try:
+        # jobs - en cok sorgulanan koleksiyon
+        await db.jobs.create_index("id", unique=True)
+        await db.jobs.create_index([("status", ASCENDING), ("machine_id", ASCENDING)])
+        await db.jobs.create_index([("status", ASCENDING), ("completed_at", DESCENDING)])
+        await db.jobs.create_index("tracking_code", unique=True)
+        await db.jobs.create_index([("machine_id", ASCENDING), ("status", ASCENDING)])
+        await db.jobs.create_index("created_at")
+
+        # users
+        await db.users.create_index("id", unique=True)
+        await db.users.create_index([("username", ASCENDING), ("is_active", ASCENDING)])
+        await db.users.create_index([("role", ASCENDING), ("is_active", ASCENDING)])
+
+        # machines
+        await db.machines.create_index("id", unique=True)
+        await db.machines.create_index("name", unique=True)
+
+        # audit_logs
+        await db.audit_logs.create_index([("created_at", DESCENDING)])
+
+        # shifts
+        await db.shifts.create_index("id", unique=True)
+        await db.shifts.create_index("status")
+
+        # defect_logs
+        await db.defect_logs.create_index("date")
+        await db.defect_logs.create_index([("machine_id", ASCENDING), ("created_at", DESCENDING)])
+
+        # paint_movements
+        await db.paint_movements.create_index([("movement_type", ASCENDING), ("created_at", DESCENDING)])
+        await db.paint_movements.create_index([("paint_id", ASCENDING), ("created_at", DESCENDING)])
+
+        # shift_end_reports
+        await db.shift_end_reports.create_index([("created_at", DESCENDING)])
+        await db.shift_end_reports.create_index("shift_id")
+        await db.shift_end_reports.create_index([("machine_id", ASCENDING), ("created_at", DESCENDING)])
+
+        # shift_operator_reports
+        await db.shift_operator_reports.create_index("id", unique=True)
+        await db.shift_operator_reports.create_index([("status", ASCENDING), ("shift_id", ASCENDING)])
+
+        # machine_messages
+        await db.machine_messages.create_index([("machine_id", ASCENDING), ("created_at", DESCENDING)])
+        await db.machine_messages.create_index([("machine_id", ASCENDING), ("is_read", ASCENDING)])
+        await db.machine_messages.create_index([("sender_role", ASCENDING), ("created_at", DESCENDING)])
+
+        # visitors
+        await db.visitors.create_index([("visited_at", DESCENDING)])
+
+        # operator_sessions
+        await db.operator_sessions.create_index([("device_id", ASCENDING), ("expires_at", DESCENDING)])
+
+        # pallets
+        await db.pallets.create_index("id", unique=True)
+        await db.pallets.create_index("job_id")
+        await db.pallets.create_index("status")
+
+        # paints
+        await db.paints.create_index("id", unique=True)
+
+        # active_paints_to_machine
+        await db.active_paints_to_machine.create_index("id", unique=True)
+        await db.active_paints_to_machine.create_index([("returned", ASCENDING), ("created_at", DESCENDING)])
+
+        # ai_chat_history
+        await db.ai_chat_history.create_index([("session_id", ASCENDING), ("created_at", ASCENDING)])
+
+        # fcm_tokens
+        await db.fcm_tokens.create_index("token", unique=True)
+        await db.fcm_tokens.create_index("user_type")
+
+        # shipments
+        await db.shipments.create_index("id", unique=True)
+        await db.shipments.create_index([("status", ASCENDING), ("driver_id", ASCENDING)])
+
+        # drivers
+        await db.drivers.create_index([("name", ASCENDING), ("is_active", ASCENDING)])
+
+        # vehicles
+        await db.vehicles.create_index("id", unique=True)
+
+        # warehouse_requests
+        await db.warehouse_requests.create_index([("status", ASCENDING), ("created_at", DESCENDING)])
+
+        # maintenance_logs
+        await db.maintenance_logs.create_index([("machine_id", ASCENDING), ("ended_at", ASCENDING)])
+
+        logger.info("MongoDB indexes ensured for all collections")
+    except Exception as e:
+        logger.error(f"Index creation error: {e}")
+
 # ==================== CORS Middleware ====================
 
 app.add_middleware(
