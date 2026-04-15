@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body, UploadFile, File
+from fastapi import APIRouter, HTTPException, Body, UploadFile, File, Depends
 from typing import List, Optional
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,13 +15,14 @@ from services.notifications import (
     send_notification_to_plan_users
 )
 from websocket_manager import ws_manager, ws_manager_mgmt
+from auth import get_current_user
 
 router = APIRouter()
 
 
 # Dosya Yükleme Endpoint'i
 @router.post("/upload/image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     """Görsel yükle ve Base64 olarak MongoDB'ye kaydet"""
     try:
         allowed_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
@@ -58,7 +59,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 
 @router.get("/jobs", response_model=List[Job])
-async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None):
+async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     query = {}
     if status:
         query["status"] = status
@@ -74,7 +75,7 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
 
 
 @router.post("/jobs", response_model=Job)
-async def create_job(job: Job, created_by: str = None):
+async def create_job(job: Job, created_by: str = None, current_user: dict = Depends(get_current_user)):
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
 
@@ -94,7 +95,7 @@ async def create_job(job: Job, created_by: str = None):
 
 
 @router.post("/jobs/{job_id}/clone", response_model=Job)
-async def clone_job(job_id: str, updates: dict = Body(...)):
+async def clone_job(job_id: str, updates: dict = Body(...), current_user: dict = Depends(get_current_user)):
     original_job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not original_job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -121,7 +122,7 @@ async def clone_job(job_id: str, updates: dict = Body(...)):
 
 # Batch reorder - MUST be before /jobs/{job_id} to avoid wildcard conflict
 @router.put("/jobs/reorder-batch")
-async def reorder_jobs_batch(data: dict = Body(...)):
+async def reorder_jobs_batch(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Birden fazla işin sırasını değiştir"""
     job_orders = data.get("jobs", [])
     for item in job_orders:
@@ -173,7 +174,7 @@ async def track_job(tracking_token: str):
 
 # Operatör listesi (Yönetim paneli için)
 @router.get("/operators/list")
-async def get_operators_list():
+async def get_operators_list(current_user: dict = Depends(get_current_user)):
     """Aktif operatörlerin listesini döndür"""
     operators = await db.users.find(
         {"role": "operator", "is_active": True},
@@ -184,14 +185,14 @@ async def get_operators_list():
 
 # Durdurulan İşleri Listele
 @router.get("/jobs/paused")
-async def get_paused_jobs():
+async def get_paused_jobs(current_user: dict = Depends(get_current_user)):
     """Durdurulmuş işleri listele"""
     paused = await db.jobs.find({"status": "paused"}, {"_id": 0}).to_list(100)
     return paused
 
 
 @router.put("/jobs/{job_id}", response_model=Job)
-async def update_job(job_id: str, updates: dict = Body(...)):
+async def update_job(job_id: str, updates: dict = Body(...), current_user: dict = Depends(get_current_user)):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -206,7 +207,7 @@ async def update_job(job_id: str, updates: dict = Body(...)):
 
 
 @router.delete("/jobs/{job_id}")
-async def delete_job(job_id: str, deleted_by: str = None):
+async def delete_job(job_id: str, deleted_by: str = None, current_user: dict = Depends(get_current_user)):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
@@ -216,7 +217,7 @@ async def delete_job(job_id: str, deleted_by: str = None):
 
 
 @router.put("/jobs/{job_id}/start")
-async def start_job(job_id: str, data: dict = Body(...)):
+async def start_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     operator_name = data.get("operator_name")
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
@@ -242,7 +243,7 @@ async def start_job(job_id: str, data: dict = Body(...)):
 
 
 @router.put("/jobs/{job_id}/complete")
-async def complete_job(job_id: str, data: dict = Body(None)):
+async def complete_job(job_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -299,7 +300,7 @@ async def _send_completion_notifications(job: dict, job_id: str, completed_koli:
 
 
 @router.put("/jobs/{job_id}/pause")
-async def pause_job(job_id: str, data: dict = Body(...)):
+async def pause_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """İşi durdur ve sebep not et"""
     pause_reason = data.get("pause_reason", "")
     produced_koli = data.get("produced_koli", 0)
@@ -340,7 +341,7 @@ async def pause_job(job_id: str, data: dict = Body(...)):
 
 
 @router.put("/jobs/{job_id}/resume")
-async def resume_job(job_id: str, data: dict = Body(...)):
+async def resume_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Durdurulan işe devam et"""
     operator_name = data.get("operator_name", "")
 
@@ -377,7 +378,7 @@ async def resume_job(job_id: str, data: dict = Body(...)):
 
 
 @router.put("/jobs/{job_id}/reorder")
-async def reorder_job(job_id: str, data: dict = Body(...)):
+async def reorder_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """İşin sırasını değiştir"""
     new_order = data.get("order", 0)
     await db.jobs.update_one({"id": job_id}, {"$set": {"order": new_order}})
@@ -385,7 +386,7 @@ async def reorder_job(job_id: str, data: dict = Body(...)):
 
 
 @router.post("/jobs/{job_id}/quick-transfer")
-async def quick_transfer_job(job_id: str, data: dict = Body(...)):
+async def quick_transfer_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Pending veya paused işi başka bir makineye aktar."""
     target_machine_id = data.get("target_machine_id")
     produced_koli = data.get("produced_koli", 0)

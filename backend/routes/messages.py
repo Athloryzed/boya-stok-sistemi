@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional
 import logging
 
@@ -6,8 +6,9 @@ from database import db
 from models import MachineMessage
 from websocket_manager import ws_manager
 from services.notifications import send_notification_to_operators
+from auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.post("/messages", response_model=MachineMessage)

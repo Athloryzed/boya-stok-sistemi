@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Depends
 from typing import Optional
 
 from database import db
 from models import Pallet, PalletScan
 from services.audit import log_audit
+from auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.post("/pallets")

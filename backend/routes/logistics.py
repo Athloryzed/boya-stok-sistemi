@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional
 from datetime import datetime, timezone
 
 from database import db
 from models import Vehicle, Shipment, Driver
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -11,20 +12,20 @@ router = APIRouter()
 # ==================== ARAÇ YÖNETİMİ ====================
 
 @router.post("/vehicles", response_model=Vehicle)
-async def create_vehicle(data: dict = Body(...)):
+async def create_vehicle(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     vehicle = Vehicle(plate=data.get("plate"), driver_name=data.get("driver_name"))
     await db.vehicles.insert_one(vehicle.model_dump())
     return vehicle
 
 
 @router.get("/vehicles")
-async def get_vehicles():
+async def get_vehicles(current_user: dict = Depends(get_current_user)):
     vehicles = await db.vehicles.find({"is_active": True}, {"_id": 0}).to_list(100)
     return vehicles
 
 
 @router.delete("/vehicles/{vehicle_id}")
-async def delete_vehicle(vehicle_id: str):
+async def delete_vehicle(vehicle_id: str, current_user: dict = Depends(get_current_user)):
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"is_active": False}})
     return {"success": True}
 
@@ -32,7 +33,7 @@ async def delete_vehicle(vehicle_id: str):
 # ==================== SEVKİYAT YÖNETİMİ ====================
 
 @router.post("/shipments", response_model=Shipment)
-async def create_shipment(data: dict = Body(...)):
+async def create_shipment(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     pallet_ids = data.get("pallet_ids", [])
 
     total_koli = 0
@@ -68,7 +69,7 @@ async def get_shipments(status: Optional[str] = None, driver_id: Optional[str] =
 
 
 @router.get("/shipments/{shipment_id}")
-async def get_shipment(shipment_id: str):
+async def get_shipment(shipment_id: str, current_user: dict = Depends(get_current_user)):
     shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
     if not shipment:
         raise HTTPException(status_code=404, detail="Sevkiyat bulunamadı")
@@ -78,7 +79,7 @@ async def get_shipment(shipment_id: str):
 
 
 @router.put("/shipments/{shipment_id}")
-async def update_shipment(shipment_id: str, data: dict = Body(...)):
+async def update_shipment(shipment_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     update_data = {}
     for key in ["delivery_address", "delivery_phone", "delivery_notes", "total_koli", "driver_id", "driver_name", "vehicle_id", "vehicle_plate"]:
         if key in data:
@@ -95,7 +96,7 @@ async def update_shipment(shipment_id: str, data: dict = Body(...)):
 
 
 @router.put("/shipments/{shipment_id}/status")
-async def update_shipment_status(shipment_id: str, data: dict = Body(...)):
+async def update_shipment_status(shipment_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     status = data.get("status")
     reason = data.get("reason")
 
@@ -120,7 +121,7 @@ async def update_shipment_status(shipment_id: str, data: dict = Body(...)):
 
 
 @router.delete("/shipments/{shipment_id}")
-async def delete_shipment(shipment_id: str):
+async def delete_shipment(shipment_id: str, current_user: dict = Depends(get_current_user)):
     shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
     if shipment:
         await db.pallets.update_many(
@@ -134,14 +135,14 @@ async def delete_shipment(shipment_id: str):
 # ==================== ŞOFÖR YÖNETİMİ ====================
 
 @router.post("/drivers", response_model=Driver)
-async def create_driver(data: dict = Body(...)):
+async def create_driver(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     driver = Driver(name=data.get("name"), password=data.get("password"), phone=data.get("phone"))
     await db.drivers.insert_one(driver.model_dump())
     return driver
 
 
 @router.get("/drivers")
-async def get_drivers():
+async def get_drivers(current_user: dict = Depends(get_current_user)):
     drivers = await db.drivers.find({"is_active": True}, {"_id": 0, "password": 0}).to_list(100)
     return drivers
 
@@ -160,7 +161,7 @@ async def driver_login(data: dict = Body(...)):
 
 
 @router.put("/drivers/{driver_id}/location")
-async def update_driver_location(driver_id: str, data: dict = Body(...)):
+async def update_driver_location(driver_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     lat = data.get("lat")
     lng = data.get("lng")
     await db.drivers.update_one(
@@ -174,7 +175,7 @@ async def update_driver_location(driver_id: str, data: dict = Body(...)):
 
 
 @router.get("/drivers/{driver_id}/location")
-async def get_driver_location(driver_id: str):
+async def get_driver_location(driver_id: str, current_user: dict = Depends(get_current_user)):
     driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password": 0})
     if not driver:
         raise HTTPException(status_code=404, detail="Şoför bulunamadı")
@@ -186,7 +187,7 @@ async def get_driver_location(driver_id: str):
 
 
 @router.get("/drivers/{driver_id}/shipments")
-async def get_driver_shipments(driver_id: str):
+async def get_driver_shipments(driver_id: str, current_user: dict = Depends(get_current_user)):
     shipments = await db.shipments.find({
         "driver_id": driver_id,
         "status": {"$in": ["preparing", "in_transit"]}

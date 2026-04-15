@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Body, Request
+from fastapi import APIRouter, Body, Request, Depends
 from datetime import datetime, timezone, timedelta
 
 from database import db
 from models import Visitor
+from auth import get_current_user
 
 router = APIRouter()
 
@@ -103,13 +104,13 @@ async def log_visitor(request: Request, data: dict = Body(...)):
 
 
 @router.get("/visitors")
-async def get_visitors(limit: int = 100):
+async def get_visitors(limit: int = 100, current_user: dict = Depends(get_current_user)):
     visitors = await db.visitors.find({}, {"_id": 0}).sort("visited_at", -1).to_list(limit)
     return visitors
 
 
 @router.get("/visitors/stats")
-async def get_visitor_stats():
+async def get_visitor_stats(current_user: dict = Depends(get_current_user)):
     total = await db.visitors.count_documents({})
 
     day_ago = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
@@ -129,6 +130,6 @@ async def get_visitor_stats():
 
 
 @router.delete("/visitors/clear")
-async def clear_visitors():
+async def clear_visitors(current_user: dict = Depends(get_current_user)):
     result = await db.visitors.delete_many({})
     return {"message": f"{result.deleted_count} kayıt silindi"}

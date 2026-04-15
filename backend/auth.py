@@ -14,6 +14,7 @@ JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_HOURS = 24
 MANAGEMENT_PASSWORD = os.environ.get('MANAGEMENT_PASSWORD', 'buse11993')
+DASHBOARD_PASSWORD = os.environ.get('DASHBOARD_PASSWORD', 'buse4')
 
 security = HTTPBearer(auto_error=False)
 

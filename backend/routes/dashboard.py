@@ -1,13 +1,24 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Body, Depends
 from datetime import datetime, timezone, timedelta
 
 from database import db
+from auth import get_current_user, create_token, DASHBOARD_PASSWORD
 
 router = APIRouter()
 
 
+@router.post("/dashboard/login")
+async def dashboard_login(data: dict = Body(...)):
+    """Dashboard girisi - sifre dogrulama"""
+    password = data.get("password", "")
+    if password != DASHBOARD_PASSWORD:
+        raise HTTPException(status_code=401, detail="Yanlis sifre")
+    token = create_token("dashboard", "dashboard", "dashboard", "Dashboard")
+    return {"success": True, "token": token}
+
+
 @router.get("/dashboard/live")
-async def get_live_dashboard():
+async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
     """Canlı üretim panosu verisi"""
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()

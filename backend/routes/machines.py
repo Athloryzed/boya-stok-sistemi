@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Depends
 from typing import List
 from datetime import datetime, timezone
 
 from database import db
 from models import Machine, MaintenanceLog
+from auth import get_current_user
 
 router = APIRouter()
 
 
 @router.post("/machines/init")
-async def init_machines():
+async def init_machines(current_user: dict = Depends(get_current_user)):
     machine_names = ["40x40", "40x40 ICM", "33x33 (Büyük)", "33x33 ICM", "33x33 (Eski)", "30x30", "24x24", "Dispanser"]
     existing = await db.machines.count_documents({})
     if existing == 0:
@@ -19,13 +20,13 @@ async def init_machines():
 
 
 @router.get("/machines", response_model=List[Machine])
-async def get_machines():
+async def get_machines(current_user: dict = Depends(get_current_user)):
     machines = await db.machines.find({}, {"_id": 0}).to_list(100)
     return machines
 
 
 @router.put("/machines/{machine_id}/maintenance")
-async def toggle_maintenance(machine_id: str, data: dict = Body(...)):
+async def toggle_maintenance(machine_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     maintenance = data.get("maintenance", False)
     reason = data.get("reason", "")
 
@@ -54,13 +55,13 @@ async def toggle_maintenance(machine_id: str, data: dict = Body(...)):
 
 
 @router.get("/maintenance-logs", response_model=List[MaintenanceLog])
-async def get_maintenance_logs():
+async def get_maintenance_logs(current_user: dict = Depends(get_current_user)):
     logs = await db.maintenance_logs.find({}, {"_id": 0}).sort("started_at", -1).to_list(100)
     return logs
 
 
 @router.post("/machines/cleanup")
-async def cleanup_duplicate_machines():
+async def cleanup_duplicate_machines(current_user: dict = Depends(get_current_user)):
     machines = await db.machines.find({}, {"_id": 0}).to_list(1000)
     seen_names = {}
     duplicates_to_delete = []

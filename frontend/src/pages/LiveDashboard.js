@@ -3,9 +3,9 @@ import { motion } from "framer-motion";
 import { Monitor, Activity, Package, Users, Clock, Wrench, ChevronUp, Lock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
-import { API } from "../App";
 
-const DASHBOARD_PASSWORD = "buse4";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const DASHBOARD_API = `${BACKEND_URL}/api`;
 
 const LiveDashboard = () => {
   const [data, setData] = useState(null);
@@ -15,9 +15,12 @@ const LiveDashboard = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Oturum kontrolü
-    const saved = sessionStorage.getItem("dashboard_auth");
-    if (saved === "true") setAuthenticated(true);
+    // Oturum kontrolü - token varsa geçerli mi kontrol et
+    const savedToken = sessionStorage.getItem("dashboard_token");
+    if (savedToken) {
+      localStorage.setItem("auth_token", savedToken);
+      setAuthenticated(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -30,21 +33,32 @@ const LiveDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API}/dashboard/live`);
+      const token = sessionStorage.getItem("dashboard_token");
+      const res = await axios.get(`${DASHBOARD_API}/dashboard/live`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setData(res.data);
     } catch (e) {
       console.error("Dashboard fetch error:", e);
+      if (e.response?.status === 401) {
+        sessionStorage.removeItem("dashboard_token");
+        setAuthenticated(false);
+      }
     }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === DASHBOARD_PASSWORD) {
-      setAuthenticated(true);
-      sessionStorage.setItem("dashboard_auth", "true");
-      setError("");
-    } else {
-      setError("Yanlış şifre");
+    try {
+      const res = await axios.post(`${DASHBOARD_API}/dashboard/login`, { password });
+      if (res.data.token) {
+        sessionStorage.setItem("dashboard_token", res.data.token);
+        localStorage.setItem("auth_token", res.data.token);
+        setAuthenticated(true);
+        setError("");
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Yanlış şifre");
     }
   };
 

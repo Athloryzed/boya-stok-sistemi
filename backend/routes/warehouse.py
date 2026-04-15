@@ -1,12 +1,13 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime, timezone
 
 from database import db
 from models import WarehouseRequest, WarehouseShipmentLog
 from websocket_manager import ws_manager
+from auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.post("/warehouse-requests", response_model=WarehouseRequest)

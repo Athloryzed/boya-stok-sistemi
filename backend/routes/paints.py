@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import os
@@ -8,8 +8,9 @@ import logging
 from database import db
 from models import Paint, PaintMovement, ActivePaintToMachine
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 INITIAL_PAINTS = [
     "Siyah", "Beyaz", "Mavi", "Lacivert", "Refleks", "Kırmızı",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional
 from datetime import datetime, timezone
 import logging
@@ -11,8 +11,9 @@ from services.notifications import (
     send_whatsapp_notification
 )
 from websocket_manager import ws_manager
+from auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.post("/shifts/request-end")
