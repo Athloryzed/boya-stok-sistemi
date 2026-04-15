@@ -1,14 +1,18 @@
-from fastapi import APIRouter, HTTPException, Body, Depends
+from fastapi import APIRouter, HTTPException, Body, Depends, Request
 from datetime import datetime, timezone, timedelta
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import db
 from auth import get_current_user, create_token, DASHBOARD_PASSWORD
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/dashboard/login")
-async def dashboard_login(data: dict = Body(...)):
+@limiter.limit("10/minute")
+async def dashboard_login(request: Request, data: dict = Body(...)):
     """Dashboard girisi - sifre dogrulama"""
     password = data.get("password", "")
     if password != DASHBOARD_PASSWORD:

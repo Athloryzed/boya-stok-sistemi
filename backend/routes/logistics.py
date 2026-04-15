@@ -1,12 +1,15 @@
-from fastapi import APIRouter, HTTPException, Body, Depends
+from fastapi import APIRouter, HTTPException, Body, Depends, Request
 from typing import Optional
 from datetime import datetime, timezone
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import db
 from models import Vehicle, Shipment, Driver
-from auth import get_current_user
+from auth import get_current_user, hash_password, verify_password, create_token
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ==================== ARAÇ YÖNETİMİ ====================
@@ -136,9 +139,11 @@ async def delete_shipment(shipment_id: str, current_user: dict = Depends(get_cur
 
 @router.post("/drivers", response_model=Driver)
 async def create_driver(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    driver = Driver(name=data.get("name"), password=data.get("password"), phone=data.get("phone"))
-    await db.drivers.insert_one(driver.model_dump())
-    return driver
+    driver = Driver(name=data.get("name"), password=hash_password(data.get("password")), phone=data.get("phone"))
+    doc = driver.model_dump()
+    await db.drivers.insert_one(doc)
+    doc.pop("password", None)
+    return doc
 
 
 @router.get("/drivers")
@@ -148,16 +153,18 @@ async def get_drivers(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/drivers/login")
-async def driver_login(data: dict = Body(...)):
+@limiter.limit("10/minute")
+async def driver_login(request: Request, data: dict = Body(...)):
     name = data.get("name")
     password = data.get("password")
     driver = await db.drivers.find_one(
-        {"name": name, "password": password, "is_active": True}, {"_id": 0}
+        {"name": name, "is_active": True}, {"_id": 0}
     )
-    if not driver:
+    if not driver or not verify_password(password, driver.get("password", "")):
         raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+    token = create_token(driver.get("id", ""), name, "sofor", name)
     driver.pop("password", None)
-    return driver
+    return {**driver, "token": token}
 
 
 @router.put("/drivers/{driver_id}/location")

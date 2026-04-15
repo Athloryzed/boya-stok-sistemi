@@ -23,7 +23,14 @@
 - URL: /dashboard
 - Password: buse4
 
+## Driver Panel
+- URL: /driver
+- Name: Test Şoför
+- Password: 1234
+
 ## Notes
-- All passwords in the database are bcrypt hashed
+- All passwords (users + drivers) are bcrypt hashed in database
 - JWT tokens are automatically managed by frontend Axios interceptor
 - Tokens expire after 24 hours
+- Login endpoints have rate limiting (10 requests/minute per IP)
+- Dashboard password verified server-side (not in frontend JS)

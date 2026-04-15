@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Body, Depends
+from fastapi import APIRouter, HTTPException, Body, Depends, Request
 from typing import Optional
 from datetime import datetime, timezone
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import db
 from models import User
@@ -8,6 +10,7 @@ from auth import hash_password, verify_password, create_token, get_current_user,
 from services.audit import log_audit
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/users")
@@ -52,7 +55,8 @@ async def get_users(role: Optional[str] = None, current_user: dict = Depends(get
 
 
 @router.post("/users/login")
-async def user_login(data: dict = Body(...)):
+@limiter.limit("10/minute")
+async def user_login(request: Request, data: dict = Body(...)):
     """Kullanıcı girişi - bcrypt + JWT"""
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -76,7 +80,8 @@ async def user_login(data: dict = Body(...)):
 
 
 @router.post("/management/login")
-async def management_login(data: dict = Body(...)):
+@limiter.limit("10/minute")
+async def management_login(request: Request, data: dict = Body(...)):
     """Yönetim paneli girişi - JWT"""
     password = data.get("password", "")
     if password != MANAGEMENT_PASSWORD:

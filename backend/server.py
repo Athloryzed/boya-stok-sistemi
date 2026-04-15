@@ -1,6 +1,10 @@
-from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, Request
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
 from pathlib import Path
 import os
 import logging
@@ -12,6 +16,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Core modules
 from database import client, db
@@ -38,6 +45,14 @@ from routes.logistics import router as logistics_router
 from routes.misc import router as misc_router
 
 app = FastAPI()
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Çok fazla istek. Lütfen biraz bekleyin."}
+    )
 
 # Uploads klasörü için static files
 UPLOADS_DIR = Path(__file__).parent / "uploads"
@@ -150,6 +165,7 @@ async def backfill_tracking_codes():
 @app.on_event("startup")
 async def migrate_passwords_to_bcrypt():
     try:
+        # Users tablosu
         users = await db.users.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1}).to_list(10000)
         migrated = 0
         for user in users:
@@ -159,7 +175,19 @@ async def migrate_passwords_to_bcrypt():
                 await db.users.update_one({"id": user["id"]}, {"$set": {"password": hashed}})
                 migrated += 1
         if migrated:
-            logger.info(f"Migrated {migrated} plain-text passwords to bcrypt")
+            logger.info(f"Migrated {migrated} plain-text user passwords to bcrypt")
+
+        # Drivers tablosu
+        drivers = await db.drivers.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1}).to_list(10000)
+        driver_migrated = 0
+        for driver in drivers:
+            pwd = driver.get("password", "")
+            if pwd and not pwd.startswith("$2b$") and not pwd.startswith("$2a$"):
+                hashed = hash_password(pwd)
+                await db.drivers.update_one({"id": driver["id"]}, {"$set": {"password": hashed}})
+                driver_migrated += 1
+        if driver_migrated:
+            logger.info(f"Migrated {driver_migrated} plain-text driver passwords to bcrypt")
     except Exception as e:
         logger.error(f"Password migration error: {e}")
 
