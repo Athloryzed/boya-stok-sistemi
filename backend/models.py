@@ -310,3 +310,38 @@ class AIChatRequest(BaseModel):
 class AIManagementChatRequest(BaseModel):
     message: str
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+
+
+# ==================== BOBİN TAKİP MODELLERİ ====================
+
+class Bobin(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    brand: str  # Marka (Hayat, vs.)
+    width_cm: float  # Genişlik (cm) - 24, 30, 33, 40
+    grammage: float  # Gramaj (gr) - 17, 20, vs.
+    color: str = "Beyaz"  # Kağıt rengi
+    quantity: int = 0  # Adet (depodaki)
+    total_weight_kg: float = 0.0  # Toplam ağırlık (kg)
+    weight_per_piece_kg: float = 0.0  # Adet başı ağırlık (kg)
+    supplier: Optional[str] = None  # Tedarikçi
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class BobinMovement(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    bobin_id: str
+    bobin_label: str  # "Hayat 24cm 17gr Beyaz" gibi özet
+    movement_type: str  # "purchase", "to_machine", "sale", "adjustment"
+    quantity: int = 0  # Adet değişimi
+    weight_kg: float = 0.0  # Ağırlık değişimi
+    machine_id: Optional[str] = None
+    machine_name: Optional[str] = None
+    customer_name: Optional[str] = None  # Müşteriye satış için
+    note: Optional[str] = None
+    user_name: str = ""  # İşlemi yapan kullanıcı
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

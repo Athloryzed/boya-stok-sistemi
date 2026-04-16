@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Egg } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Egg, Layers } from "lucide-react";
 
 // Dalgalanan Türk Bayrağı bileşeni
 const WavingFlag = () => (
@@ -36,6 +36,7 @@ const modules = [
   { name: "Operator", path: "/operator", icon: HardHat, color: "#34D399", desc: "Uretim takibi" },
   { name: "Depo", path: "/warehouse", icon: Warehouse, color: "#F97316", desc: "Stok yonetimi" },
   { name: "Boya", path: "/paint", icon: Paintbrush, color: "#A78BFA", desc: "Boya takibi" },
+  { name: "Bobin", path: "/bobin", icon: Layers, color: "#10B981", desc: "Bobin takibi" },
   { name: "Surucu", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
   { name: "Canli Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];

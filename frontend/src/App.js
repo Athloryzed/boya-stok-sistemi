@@ -11,6 +11,7 @@ import PaintFlow from "./pages/PaintFlow";
 import DriverFlow from "./pages/DriverFlow";
 import LiveDashboard from "./pages/LiveDashboard";
 import TrackingPage from "./pages/TrackingPage";
+import BobinFlow from "./pages/BobinFlow";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
@@ -116,6 +117,7 @@ function App() {
             <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+            <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
             <Route path="/dashboard" element={<LiveDashboard />} />
             <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
           </Routes>

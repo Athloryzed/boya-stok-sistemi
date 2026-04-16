@@ -43,6 +43,7 @@ from routes.operators import router as operators_router
 from routes.pallets import router as pallets_router
 from routes.logistics import router as logistics_router
 from routes.misc import router as misc_router
+from routes.bobins import router as bobins_router
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -89,6 +90,7 @@ api_router.include_router(operators_router)
 api_router.include_router(pallets_router)
 api_router.include_router(logistics_router)
 api_router.include_router(misc_router)
+api_router.include_router(bobins_router)
 
 app.include_router(api_router)
 
@@ -284,6 +286,15 @@ async def ensure_indexes():
 
         # maintenance_logs
         await db.maintenance_logs.create_index([("machine_id", ASCENDING), ("ended_at", ASCENDING)])
+
+        # bobins
+        await db.bobins.create_index("id", unique=True)
+        await db.bobins.create_index([("brand", ASCENDING), ("width_cm", ASCENDING), ("grammage", ASCENDING), ("color", ASCENDING)])
+
+        # bobin_movements
+        await db.bobin_movements.create_index([("bobin_id", ASCENDING), ("created_at", DESCENDING)])
+        await db.bobin_movements.create_index([("movement_type", ASCENDING), ("created_at", DESCENDING)])
+        await db.bobin_movements.create_index([("created_at", DESCENDING)])
 
         logger.info("MongoDB indexes ensured for all collections")
     except Exception as e:
