@@ -19,6 +19,11 @@
 - Username: depo1
 - Password: depo123
 
+## Bobin Management
+- URL: /bobin
+- Username: depo1
+- Password: depo123
+
 ## Live Dashboard
 - URL: /dashboard
 - Password: buse4

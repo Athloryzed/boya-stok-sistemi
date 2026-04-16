@@ -45,10 +45,11 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 
 ## What's Been Implemented
 - All core features (jobs, machines, shifts, paint, warehouse, analytics, AI)
-- Security: JWT auth on ALL endpoints + bcrypt passwords
+- **Bobin (Paper Roll) Tracking Module** — brand/width/grammage/color based stock, machine assignment, customer sales, movement history with user tracking, Excel export with audit logging
+- Security: JWT auth on ALL endpoints + bcrypt passwords + rate limiting
 - Dashboard password moved from client-side to server-side
-- Backend refactoring: monolithic server.py → 23 modular files
-- **MongoDB Indexes:** 43 custom indexes across all 24 collections (id, status, compound queries, date ranges)
+- Backend refactoring: monolithic server.py → 23+ modular files
+- MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
 ## Upcoming Tasks
