@@ -318,6 +318,7 @@ class AIManagementChatRequest(BaseModel):
 class Bobin(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    barcode: str = ""  # Barkod/QR kodu
     brand: str  # Marka (Hayat, vs.)
     width_cm: float  # Genişlik (cm) - 24, 30, 33, 40
     grammage: float  # Gramaj (gr) - 17, 20, vs.

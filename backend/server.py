@@ -289,6 +289,7 @@ async def ensure_indexes():
 
         # bobins
         await db.bobins.create_index("id", unique=True)
+        await db.bobins.create_index("barcode", sparse=True)
         await db.bobins.create_index([("brand", ASCENDING), ("width_cm", ASCENDING), ("grammage", ASCENDING), ("color", ASCENDING)])
 
         # bobin_movements

@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def bobin_label(b: dict) -> str:
-    """Bobin özet etiketi oluştur"""
     return f"{b.get('brand', '')} {b.get('width_cm', '')}cm {b.get('grammage', '')}gr {b.get('color', '')}"
 
 
@@ -26,14 +25,21 @@ def bobin_label(b: dict) -> str:
 
 @router.get("/bobins")
 async def get_bobins():
-    """Tüm bobinleri listele"""
     bobins = await db.bobins.find({}, {"_id": 0}).sort("brand", 1).to_list(500)
     return bobins
 
 
+@router.get("/bobins/barcode/{code}")
+async def get_bobin_by_barcode(code: str):
+    """Barkod ile bobin bul"""
+    bobin = await db.bobins.find_one({"barcode": code}, {"_id": 0})
+    if not bobin:
+        raise HTTPException(status_code=404, detail="Bu barkoda ait bobin bulunamadi")
+    return bobin
+
+
 @router.post("/bobins")
 async def create_bobin(data: dict = Body(...)):
-    """Yeni bobin türü ekle (ilk alım)"""
     brand = data.get("brand", "").strip()
     width_cm = float(data.get("width_cm", 0))
     grammage = float(data.get("grammage", 0))
@@ -43,77 +49,77 @@ async def create_bobin(data: dict = Body(...)):
     supplier = data.get("supplier", "")
     notes = data.get("notes", "")
     user_name = data.get("user_name", "")
+    barcode = data.get("barcode", "").strip()
 
     if not brand or width_cm <= 0 or grammage <= 0:
-        raise HTTPException(status_code=400, detail="Marka, genişlik ve gramaj zorunludur")
+        raise HTTPException(status_code=400, detail="Marka, genislik ve gramaj zorunludur")
 
     weight_per_piece = round(total_weight_kg / quantity, 2) if quantity > 0 else 0
 
-    # Aynı tür bobin var mı kontrol et
-    existing = await db.bobins.find_one({
-        "brand": brand, "width_cm": width_cm,
-        "grammage": grammage, "color": color
-    }, {"_id": 0})
+    # Barkod ile arama (varsa)
+    existing = None
+    if barcode:
+        existing = await db.bobins.find_one({"barcode": barcode}, {"_id": 0})
+
+    # Barkod yoksa marka/olcu/gramaj/renk ile ara
+    if not existing:
+        existing = await db.bobins.find_one({
+            "brand": brand, "width_cm": width_cm,
+            "grammage": grammage, "color": color
+        }, {"_id": 0})
 
     if existing:
-        # Mevcut stoka ekle
         new_qty = existing["quantity"] + quantity
         new_weight = existing["total_weight_kg"] + total_weight_kg
         new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
-        await db.bobins.update_one(
-            {"id": existing["id"]},
-            {"$set": {
-                "quantity": new_qty,
-                "total_weight_kg": round(new_weight, 2),
-                "weight_per_piece_kg": new_wpp,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+        update_data = {
+            "quantity": new_qty,
+            "total_weight_kg": round(new_weight, 2),
+            "weight_per_piece_kg": new_wpp,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        if barcode and not existing.get("barcode"):
+            update_data["barcode"] = barcode
+        await db.bobins.update_one({"id": existing["id"]}, {"$set": update_data})
         label = bobin_label(existing)
-        # Hareket kaydı
         movement = BobinMovement(
             bobin_id=existing["id"], bobin_label=label,
             movement_type="purchase", quantity=quantity,
             weight_kg=total_weight_kg,
-            note=f"Tedarikçi: {supplier}" if supplier else notes,
+            note=f"Tedarikci: {supplier}" if supplier else notes,
             user_name=user_name
         )
         await db.bobin_movements.insert_one(movement.model_dump())
         await log_audit(user_name or "Depo", "purchase", "bobin", label,
-                        f"+{quantity} adet, +{total_weight_kg}kg, Tedarikçi: {supplier}")
-
+                        f"+{quantity} adet, +{total_weight_kg}kg, Tedarikci: {supplier}")
         updated = await db.bobins.find_one({"id": existing["id"]}, {"_id": 0})
         return {"bobin": updated, "message": f"{label} stoka eklendi (+{quantity} adet)"}
     else:
-        # Yeni bobin türü
         bobin = Bobin(
-            brand=brand, width_cm=width_cm, grammage=grammage, color=color,
+            barcode=barcode, brand=brand, width_cm=width_cm, grammage=grammage, color=color,
             quantity=quantity, total_weight_kg=round(total_weight_kg, 2),
             weight_per_piece_kg=weight_per_piece, supplier=supplier, notes=notes
         )
         await db.bobins.insert_one(bobin.model_dump())
         label = bobin_label(bobin.model_dump())
-
         movement = BobinMovement(
             bobin_id=bobin.id, bobin_label=label,
             movement_type="purchase", quantity=quantity,
             weight_kg=total_weight_kg,
-            note=f"Tedarikçi: {supplier}" if supplier else notes,
+            note=f"Tedarikci: {supplier}" if supplier else notes,
             user_name=user_name
         )
         await db.bobin_movements.insert_one(movement.model_dump())
         await log_audit(user_name or "Depo", "create", "bobin", label,
-                        f"{quantity} adet, {total_weight_kg}kg, Tedarikçi: {supplier}")
-
-        return {"bobin": bobin.model_dump(), "message": f"{label} oluşturuldu ({quantity} adet)"}
+                        f"{quantity} adet, {total_weight_kg}kg, Tedarikci: {supplier}")
+        return {"bobin": bobin.model_dump(), "message": f"{label} olusturuldu ({quantity} adet)"}
 
 
 @router.delete("/bobins/{bobin_id}")
 async def delete_bobin(bobin_id: str, data: dict = Body(None)):
-    """Bobin türünü sil (stokta yoksa)"""
     bobin = await db.bobins.find_one({"id": bobin_id}, {"_id": 0})
     if not bobin:
-        raise HTTPException(status_code=404, detail="Bobin bulunamadı")
+        raise HTTPException(status_code=404, detail="Bobin bulunamadi")
     if bobin.get("quantity", 0) > 0:
         raise HTTPException(status_code=400, detail="Stokta bobin varken silinemez")
     await db.bobins.delete_one({"id": bobin_id})
@@ -126,7 +132,6 @@ async def delete_bobin(bobin_id: str, data: dict = Body(None)):
 
 @router.post("/bobins/{bobin_id}/purchase")
 async def purchase_bobin(bobin_id: str, data: dict = Body(...)):
-    """Mevcut bobin türüne stok ekle"""
     quantity = int(data.get("quantity", 0))
     weight_kg = float(data.get("weight_kg", 0))
     supplier = data.get("supplier", "")
@@ -134,11 +139,11 @@ async def purchase_bobin(bobin_id: str, data: dict = Body(...)):
     note = data.get("note", "")
 
     if quantity <= 0 or weight_kg <= 0:
-        raise HTTPException(status_code=400, detail="Adet ve ağırlık sıfırdan büyük olmalı")
+        raise HTTPException(status_code=400, detail="Adet ve agirlik sifirdan buyuk olmali")
 
     bobin = await db.bobins.find_one({"id": bobin_id}, {"_id": 0})
     if not bobin:
-        raise HTTPException(status_code=404, detail="Bobin bulunamadı")
+        raise HTTPException(status_code=404, detail="Bobin bulunamadi")
 
     new_qty = bobin["quantity"] + quantity
     new_weight = bobin["total_weight_kg"] + weight_kg
@@ -147,8 +152,7 @@ async def purchase_bobin(bobin_id: str, data: dict = Body(...)):
     await db.bobins.update_one(
         {"id": bobin_id},
         {"$set": {
-            "quantity": new_qty,
-            "total_weight_kg": round(new_weight, 2),
+            "quantity": new_qty, "total_weight_kg": round(new_weight, 2),
             "weight_per_piece_kg": new_wpp,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -157,15 +161,12 @@ async def purchase_bobin(bobin_id: str, data: dict = Body(...)):
     label = bobin_label(bobin)
     movement = BobinMovement(
         bobin_id=bobin_id, bobin_label=label,
-        movement_type="purchase", quantity=quantity,
-        weight_kg=weight_kg,
-        note=f"Tedarikçi: {supplier}. {note}".strip() if supplier else note,
+        movement_type="purchase", quantity=quantity, weight_kg=weight_kg,
+        note=f"Tedarikci: {supplier}. {note}".strip() if supplier else note,
         user_name=user_name
     )
     await db.bobin_movements.insert_one(movement.model_dump())
-    await log_audit(user_name or "Depo", "purchase", "bobin", label,
-                    f"+{quantity} adet, +{weight_kg}kg")
-
+    await log_audit(user_name or "Depo", "purchase", "bobin", label, f"+{quantity} adet, +{weight_kg}kg")
     return {"message": f"{label} stok eklendi (+{quantity} adet, +{weight_kg}kg)", "new_quantity": new_qty, "new_weight": round(new_weight, 2)}
 
 
@@ -173,36 +174,30 @@ async def purchase_bobin(bobin_id: str, data: dict = Body(...)):
 
 @router.post("/bobins/{bobin_id}/to-machine")
 async def give_bobin_to_machine(bobin_id: str, data: dict = Body(...)):
-    """Stoktan makineye bobin ver"""
     quantity = int(data.get("quantity", 0))
     machine_id = data.get("machine_id", "")
     machine_name = data.get("machine_name", "")
     user_name = data.get("user_name", "")
 
     if quantity <= 0:
-        raise HTTPException(status_code=400, detail="Adet sıfırdan büyük olmalı")
+        raise HTTPException(status_code=400, detail="Adet sifirdan buyuk olmali")
 
     bobin = await db.bobins.find_one({"id": bobin_id}, {"_id": 0})
     if not bobin:
-        raise HTTPException(status_code=404, detail="Bobin bulunamadı")
-
+        raise HTTPException(status_code=404, detail="Bobin bulunamadi")
     if bobin["quantity"] < quantity:
         raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {bobin['quantity']} adet")
 
     wpp = bobin.get("weight_per_piece_kg", 0)
     weight_out = round(wpp * quantity, 2)
-
     new_qty = bobin["quantity"] - quantity
-    new_weight = round(bobin["total_weight_kg"] - weight_out, 2)
-    if new_weight < 0:
-        new_weight = 0
+    new_weight = max(round(bobin["total_weight_kg"] - weight_out, 2), 0)
     new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
 
     await db.bobins.update_one(
         {"id": bobin_id},
         {"$set": {
-            "quantity": new_qty,
-            "total_weight_kg": new_weight,
+            "quantity": new_qty, "total_weight_kg": new_weight,
             "weight_per_piece_kg": new_wpp,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -211,57 +206,45 @@ async def give_bobin_to_machine(bobin_id: str, data: dict = Body(...)):
     label = bobin_label(bobin)
     movement = BobinMovement(
         bobin_id=bobin_id, bobin_label=label,
-        movement_type="to_machine", quantity=quantity,
-        weight_kg=weight_out,
-        machine_id=machine_id, machine_name=machine_name,
-        user_name=user_name
+        movement_type="to_machine", quantity=quantity, weight_kg=weight_out,
+        machine_id=machine_id, machine_name=machine_name, user_name=user_name
     )
     await db.bobin_movements.insert_one(movement.model_dump())
     await log_audit(user_name or "Depo", "to_machine", "bobin", label,
                     f"-{quantity} adet ({weight_out}kg) -> {machine_name}")
-
-    return {
-        "message": f"{quantity} adet {label} -> {machine_name} ({weight_out}kg)",
-        "new_quantity": new_qty, "new_weight": new_weight
-    }
+    return {"message": f"{quantity} adet {label} -> {machine_name} ({weight_out}kg)", "new_quantity": new_qty, "new_weight": new_weight}
 
 
 # ==================== MÜŞTERİYE SATIŞ ====================
 
 @router.post("/bobins/{bobin_id}/sale")
 async def sell_bobin(bobin_id: str, data: dict = Body(...)):
-    """Müşteriye bobin sat"""
     quantity = int(data.get("quantity", 0))
     customer_name = data.get("customer_name", "")
     user_name = data.get("user_name", "")
     note = data.get("note", "")
 
     if quantity <= 0:
-        raise HTTPException(status_code=400, detail="Adet sıfırdan büyük olmalı")
+        raise HTTPException(status_code=400, detail="Adet sifirdan buyuk olmali")
     if not customer_name:
-        raise HTTPException(status_code=400, detail="Müşteri adı zorunludur")
+        raise HTTPException(status_code=400, detail="Musteri adi zorunludur")
 
     bobin = await db.bobins.find_one({"id": bobin_id}, {"_id": 0})
     if not bobin:
-        raise HTTPException(status_code=404, detail="Bobin bulunamadı")
-
+        raise HTTPException(status_code=404, detail="Bobin bulunamadi")
     if bobin["quantity"] < quantity:
         raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {bobin['quantity']} adet")
 
     wpp = bobin.get("weight_per_piece_kg", 0)
     weight_out = round(wpp * quantity, 2)
-
     new_qty = bobin["quantity"] - quantity
-    new_weight = round(bobin["total_weight_kg"] - weight_out, 2)
-    if new_weight < 0:
-        new_weight = 0
+    new_weight = max(round(bobin["total_weight_kg"] - weight_out, 2), 0)
     new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
 
     await db.bobins.update_one(
         {"id": bobin_id},
         {"$set": {
-            "quantity": new_qty,
-            "total_weight_kg": new_weight,
+            "quantity": new_qty, "total_weight_kg": new_weight,
             "weight_per_piece_kg": new_wpp,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -270,26 +253,19 @@ async def sell_bobin(bobin_id: str, data: dict = Body(...)):
     label = bobin_label(bobin)
     movement = BobinMovement(
         bobin_id=bobin_id, bobin_label=label,
-        movement_type="sale", quantity=quantity,
-        weight_kg=weight_out,
-        customer_name=customer_name,
-        note=note, user_name=user_name
+        movement_type="sale", quantity=quantity, weight_kg=weight_out,
+        customer_name=customer_name, note=note, user_name=user_name
     )
     await db.bobin_movements.insert_one(movement.model_dump())
     await log_audit(user_name or "Depo", "sale", "bobin", label,
-                    f"-{quantity} adet ({weight_out}kg) -> Müşteri: {customer_name}")
-
-    return {
-        "message": f"{quantity} adet {label} -> {customer_name} ({weight_out}kg)",
-        "new_quantity": new_qty, "new_weight": new_weight
-    }
+                    f"-{quantity} adet ({weight_out}kg) -> Musteri: {customer_name}")
+    return {"message": f"{quantity} adet {label} -> {customer_name} ({weight_out}kg)", "new_quantity": new_qty, "new_weight": new_weight}
 
 
 # ==================== HAREKET GEÇMİŞİ ====================
 
 @router.get("/bobins/movements")
 async def get_bobin_movements(bobin_id: Optional[str] = None, movement_type: Optional[str] = None, limit: int = 200):
-    """Bobin hareketlerini listele"""
     query = {}
     if bobin_id:
         query["bobin_id"] = bobin_id
@@ -303,9 +279,7 @@ async def get_bobin_movements(bobin_id: Optional[str] = None, movement_type: Opt
 
 @router.get("/bobins/export")
 async def export_bobins(data: dict = Depends(get_current_user)):
-    """Bobin stok ve hareket raporunu Excel olarak indir"""
     user_display = data.get("display_name", data.get("username", "Bilinmeyen"))
-
     bobins = await db.bobins.find({}, {"_id": 0}).sort("brand", 1).to_list(500)
     movements = await db.bobin_movements.find({}, {"_id": 0}).sort("created_at", -1).to_list(2000)
 
@@ -327,40 +301,39 @@ async def export_bobins(data: dict = Depends(get_current_user)):
         for col in range(1, cols + 1):
             ws.column_dimensions[get_column_letter(col)].width = 18
 
-    # SAYFA 1: STOK DURUMU
     ws1 = wb.active
     ws1.title = "Bobin Stok"
-    ws1.merge_cells("A1:G1")
+    ws1.merge_cells("A1:H1")
     t = ws1.cell(row=1, column=1, value=f"BUSE KAGIT - Bobin Stok Durumu ({datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')})")
     t.font = title_font
     t.fill = title_fill
     t.alignment = center_align
     ws1.row_dimensions[1].height = 30
 
-    headers = ["Marka", "Genislik (cm)", "Gramaj (gr)", "Renk", "Adet", "Toplam Agirlik (kg)", "Adet Basi (kg)"]
+    headers = ["Barkod", "Marka", "Genislik (cm)", "Gramaj (gr)", "Renk", "Adet", "Toplam Agirlik (kg)", "Adet Basi (kg)"]
     for col, h in enumerate(headers, 1):
         ws1.cell(row=3, column=col, value=h)
-    style_header(ws1, 3, 7)
+    style_header(ws1, 3, 8)
 
     for idx, b in enumerate(bobins):
         row = 4 + idx
-        ws1.cell(row=row, column=1, value=b.get("brand", ""))
-        ws1.cell(row=row, column=2, value=b.get("width_cm", 0)).alignment = center_align
-        ws1.cell(row=row, column=3, value=b.get("grammage", 0)).alignment = center_align
-        ws1.cell(row=row, column=4, value=b.get("color", ""))
-        ws1.cell(row=row, column=5, value=b.get("quantity", 0)).alignment = center_align
-        ws1.cell(row=row, column=6, value=round(b.get("total_weight_kg", 0), 2)).alignment = center_align
-        ws1.cell(row=row, column=7, value=round(b.get("weight_per_piece_kg", 0), 2)).alignment = center_align
+        ws1.cell(row=row, column=1, value=b.get("barcode", ""))
+        ws1.cell(row=row, column=2, value=b.get("brand", ""))
+        ws1.cell(row=row, column=3, value=b.get("width_cm", 0)).alignment = center_align
+        ws1.cell(row=row, column=4, value=b.get("grammage", 0)).alignment = center_align
+        ws1.cell(row=row, column=5, value=b.get("color", ""))
+        ws1.cell(row=row, column=6, value=b.get("quantity", 0)).alignment = center_align
+        ws1.cell(row=row, column=7, value=round(b.get("total_weight_kg", 0), 2)).alignment = center_align
+        ws1.cell(row=row, column=8, value=round(b.get("weight_per_piece_kg", 0), 2)).alignment = center_align
 
     total_row = 4 + len(bobins)
     ws1.cell(row=total_row, column=1, value="TOPLAM").font = Font(bold=True)
-    ws1.cell(row=total_row, column=5, value=sum(b.get("quantity", 0) for b in bobins)).alignment = center_align
-    ws1.cell(row=total_row, column=5).font = Font(bold=True)
-    ws1.cell(row=total_row, column=6, value=round(sum(b.get("total_weight_kg", 0) for b in bobins), 2)).alignment = center_align
+    ws1.cell(row=total_row, column=6, value=sum(b.get("quantity", 0) for b in bobins)).alignment = center_align
     ws1.cell(row=total_row, column=6).font = Font(bold=True)
-    auto_width(ws1, 7)
+    ws1.cell(row=total_row, column=7, value=round(sum(b.get("total_weight_kg", 0) for b in bobins), 2)).alignment = center_align
+    ws1.cell(row=total_row, column=7).font = Font(bold=True)
+    auto_width(ws1, 8)
 
-    # SAYFA 2: HAREKET GEÇMİŞİ
     ws2 = wb.create_sheet("Hareket Gecmisi")
     ws2.merge_cells("A1:H1")
     t2 = ws2.cell(row=1, column=1, value="Bobin Hareket Gecmisi")
@@ -400,9 +373,8 @@ async def export_bobins(data: dict = Depends(get_current_user)):
     wb.save(output)
     output.seek(0)
 
-    # Export log
     await log_audit(user_display, "export", "bobin", "Excel",
-                    f"Bobin stok raporu indirildi ({len(bobins)} tür, {len(movements)} hareket)")
+                    f"Bobin stok raporu indirildi ({len(bobins)} tur, {len(movements)} hareket)")
 
     filename = f"bobin_stok_{datetime.now(timezone.utc).strftime('%d%m%Y_%H%M')}.xlsx"
     return StreamingResponse(
