@@ -225,7 +225,7 @@ const Home = ({ theme, toggleTheme }) => {
       </div>
 
       {/* Sun / Moon */}
-      <motion.div className="absolute z-10" style={{ left: `${sunX}%`, top: `${sunY}%` }}
+      <motion.div className="absolute z-10 pointer-events-none" style={{ left: `${sunX}%`, top: `${sunY}%` }}
         animate={{ left: `${sunX}%`, top: `${sunY}%` }} transition={{ duration: 2, ease: "easeInOut" }}>
         {isNight ? (
           <div className="w-16 h-16 rounded-full bg-gray-200 shadow-[0_0_40px_rgba(255,255,255,0.3)] relative">
@@ -245,14 +245,14 @@ const Home = ({ theme, toggleTheme }) => {
 
       {/* Stars */}
       {isNight && [...Array(30)].map((_, i) => (
-        <motion.div key={`star-${i}`} className="absolute w-1 h-1 bg-white rounded-full"
+        <motion.div key={`star-${i}`} className="absolute w-1 h-1 bg-white rounded-full pointer-events-none"
           style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 40}%` }}
           animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.5 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 3 }} />
       ))}
 
       {/* Clouds */}
       {!isNight && [...Array(4)].map((_, i) => (
-        <motion.div key={`cloud-${i}`} className="absolute" style={{ top: `${8 + i * 7}%` }}
+        <motion.div key={`cloud-${i}`} className="absolute pointer-events-none" style={{ top: `${8 + i * 7}%` }}
           animate={{ x: ["-20vw", "120vw"] }} transition={{ duration: 40 + i * 15, repeat: Infinity, ease: "linear", delay: i * 8 }}>
           <div className="flex gap-0">
             <div className={`rounded-full bg-white/60 ${i % 2 === 0 ? "w-20 h-8" : "w-16 h-6"}`} />
@@ -317,7 +317,7 @@ const Home = ({ theme, toggleTheme }) => {
       ))}
 
       {/* Ground */}
-      <div className="absolute bottom-0 left-0 right-0 z-10">
+      <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none">
         <svg viewBox="0 0 1440 200" className="w-full" preserveAspectRatio="none">
           <path d="M0,120 C200,80 400,140 600,100 C800,60 1000,130 1200,90 C1300,70 1400,110 1440,100 L1440,200 L0,200 Z"
             fill={isNight ? "#1a3a1a" : "#4ade80"} />
@@ -346,7 +346,7 @@ const Home = ({ theme, toggleTheme }) => {
 
         {/* Cimenlikte oynayan cocuklar (tavsanlar yerine) */}
         {groundChildren.map(c => (
-          <motion.div key={`gc-${c.id}`} className="absolute z-20"
+          <motion.div key={`gc-${c.id}`} className="absolute z-20 pointer-events-none"
             style={{ left: `${c.left}%`, bottom: "30px" }}
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 2, repeat: Infinity, delay: c.delay, ease: "easeInOut" }}>
@@ -356,7 +356,7 @@ const Home = ({ theme, toggleTheme }) => {
 
         {/* Bayrak tutan cocuklar (cimenlikte) */}
         {flagChildren.map(fc => (
-          <motion.div key={`fc-${fc.id}`} className="absolute z-20"
+          <motion.div key={`fc-${fc.id}`} className="absolute z-20 pointer-events-none"
             style={{ left: `${fc.left}%`, bottom: "25px" }}
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 2.5, repeat: Infinity, delay: fc.id * 0.8, ease: "easeInOut" }}>
@@ -367,29 +367,6 @@ const Home = ({ theme, toggleTheme }) => {
 
       {/* Main content */}
       <div className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 py-8">
-
-        {/* 23 Nisan Banner */}
-        <motion.div className="mb-3"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.1, type: "spring", stiffness: 200 }}>
-          <motion.div
-            className="px-5 py-2.5 rounded-full border backdrop-blur-md"
-            style={{
-              background: "linear-gradient(135deg, rgba(227,10,23,0.3), rgba(255,255,255,0.15), rgba(227,10,23,0.3))",
-              borderColor: "rgba(255,255,255,0.5)",
-            }}
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
-            <span className="text-sm sm:text-base font-bold" style={{
-              background: "linear-gradient(90deg, #E30A17, #FBBF24, #E30A17, #FBBF24)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}>
-              23 Nisan Ulusal Egemenlik ve Cocuk Bayrami Kutlu Olsun!
-            </span>
-          </motion.div>
-        </motion.div>
 
         {/* Title */}
         <motion.div className="text-center mb-10"

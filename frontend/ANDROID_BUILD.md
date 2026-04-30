@@ -57,7 +57,7 @@ Sonra `android/app/build.gradle` dosyasına signing config ekleyin.
 
 ## Uygulama Özellikleri
 
-- **Live URL:** https://plan-batch-complete.preview.emergentagent.com
+- **Live URL:** https://bobin-tracker-pro.preview.emergentagent.com
 - **Senkronizasyon:** Web sitesi ile aynı backend, otomatik senkron
 - **Push Notifications:** Firebase entegrasyonu ile (yapılandırma gerekli)
 
@@ -86,5 +86,5 @@ npx cap sync android
 ## iOS Kullanıcıları
 
 iOS kullanıcıları web sitesine erişmeye devam edebilir:
-- Safari'den https://plan-batch-complete.preview.emergentagent.com adresine gidin
+- Safari'den https://bobin-tracker-pro.preview.emergentagent.com adresine gidin
 - "Ana Ekrana Ekle" seçeneği ile PWA olarak kurabilirler

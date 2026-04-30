@@ -1392,13 +1392,25 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     <Button
                       variant="outline"
                       className="flex-1"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/takip/${qrDialogJob.tracking_code}`);
-                        toast.success("Takip linki kopyalandı!");
+                      onClick={async () => {
+                        const link = `${window.location.origin}/takip/${qrDialogJob.tracking_code}`;
+                        const shareData = { title: "Sipariş Takip", text: `${qrDialogJob.name} takip linki:`, url: link };
+                        try {
+                          if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                            await navigator.share(shareData);
+                          } else {
+                            await navigator.clipboard.writeText(link);
+                            toast.success("Takip linki kopyalandı!");
+                          }
+                        } catch (err) {
+                          if (err?.name !== "AbortError") {
+                            try { await navigator.clipboard.writeText(link); toast.success("Takip linki kopyalandı!"); } catch { toast.error("Link paylaşılamadı"); }
+                          }
+                        }
                       }}
                       data-testid="qr-copy-link-btn"
                     >
-                      <Copy className="h-4 w-4 mr-2" /> Link Kopyala
+                      <Copy className="h-4 w-4 mr-2" /> Link Paylaş
                     </Button>
                   </div>
                 </div>

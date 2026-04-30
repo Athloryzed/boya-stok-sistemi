@@ -183,55 +183,59 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setJobs(jobsRes.data);
       setShiftStatus(shiftStatusRes.data);
     } catch (error) {
-      if (retryCount < 3) {
-        setTimeout(() => fetchData(retryCount + 1), 2000 * (retryCount + 1));
+      console.error("Primary fetch error:", error);
+      if (retryCount < 2) {
+        setTimeout(() => fetchData(retryCount + 1), 3000 * (retryCount + 1));
       } else {
-        toast.error("Sunucuya bağlanılamadı. Sayfa yenileniyor...");
-        setTimeout(() => window.location.reload(), 3000);
+        toast.error("Sunucuya bağlanılamadı. Lütfen ağ bağlantınızı kontrol edin.");
       }
     }
   };
   
   const fetchSecondaryData = async () => {
     try {
-      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, auditRes] = await Promise.all([
-        axios.get(`${API}/analytics/weekly`),
-        axios.get(`${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`),
-        axios.get(`${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`),
-        axios.get(`${API}/maintenance-logs`),
-        axios.get(`${API}/paints`),
-        axios.get(`${API}/paints/low-stock`),
-        axios.get(`${API}/messages/all/incoming`),
-        axios.get(`${API}/messages/all/unread-count`),
-        axios.get(`${API}/visitors?limit=50`),
-        axios.get(`${API}/visitors/stats`),
-        axios.get(`${API}/users`),
-        axios.get(`${API}/users/drivers/locations`),
-        axios.get(`${API}/defects/analytics/weekly`),
-        axios.get(`${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`),
-        axios.get(`${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`),
-        axios.get(`${API}/shifts/pending-reports`),
-        axios.get(`${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`)
-      ]);
-      
-      setWeeklyAnalytics(weeklyRes.data);
-      setMonthlyAnalytics(monthlyRes.data);
-      setDailyAnalytics(dailyRes.data);
-      setMaintenanceLogs(logsRes.data);
-      setPaints(paintsRes.data);
-      setLowStockPaints(lowStockRes.data.low_stock_paints || []);
-      setIncomingMessages(messagesRes.data);
-      setUnreadMessagesCount(unreadRes.data.unread_count);
-      setVisitors(visitorsRes.data);
-      setVisitorStats(visitorStatsRes.data);
-      setUsers(usersRes.data);
-      setDriverLocations(driversRes.data);
-      setDefectWeeklyAnalytics(defectWeeklyRes.data);
-      setDefectMonthlyAnalytics(defectMonthlyRes.data);
-      setDefectDailyAnalytics(defectDailyRes.data);
-      setPendingReports(pendingRes.data);
-      setAuditLogs(auditRes.data.logs || []);
-      setAuditLogTotal(auditRes.data.total || 0);
+      const endpoints = [
+        `${API}/analytics/weekly`,
+        `${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`,
+        `${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`,
+        `${API}/maintenance-logs`,
+        `${API}/paints`,
+        `${API}/paints/low-stock`,
+        `${API}/messages/all/incoming`,
+        `${API}/messages/all/unread-count`,
+        `${API}/visitors?limit=50`,
+        `${API}/visitors/stats`,
+        `${API}/users`,
+        `${API}/users/drivers/locations`,
+        `${API}/defects/analytics/weekly`,
+        `${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`,
+        `${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`,
+        `${API}/shifts/pending-reports`,
+        `${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`
+      ];
+      const results = await Promise.allSettled(endpoints.map(url => axios.get(url)));
+      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, auditRes] = results;
+
+      if (weeklyRes.status === "fulfilled") setWeeklyAnalytics(weeklyRes.value.data);
+      if (monthlyRes.status === "fulfilled") setMonthlyAnalytics(monthlyRes.value.data);
+      if (dailyRes.status === "fulfilled") setDailyAnalytics(dailyRes.value.data);
+      if (logsRes.status === "fulfilled") setMaintenanceLogs(logsRes.value.data);
+      if (paintsRes.status === "fulfilled") setPaints(paintsRes.value.data);
+      if (lowStockRes.status === "fulfilled") setLowStockPaints(lowStockRes.value.data.low_stock_paints || []);
+      if (messagesRes.status === "fulfilled") setIncomingMessages(messagesRes.value.data);
+      if (unreadRes.status === "fulfilled") setUnreadMessagesCount(unreadRes.value.data.unread_count);
+      if (visitorsRes.status === "fulfilled") setVisitors(visitorsRes.value.data);
+      if (visitorStatsRes.status === "fulfilled") setVisitorStats(visitorStatsRes.value.data);
+      if (usersRes.status === "fulfilled") setUsers(usersRes.value.data);
+      if (driversRes.status === "fulfilled") setDriverLocations(driversRes.value.data);
+      if (defectWeeklyRes.status === "fulfilled") setDefectWeeklyAnalytics(defectWeeklyRes.value.data);
+      if (defectMonthlyRes.status === "fulfilled") setDefectMonthlyAnalytics(defectMonthlyRes.value.data);
+      if (defectDailyRes.status === "fulfilled") setDefectDailyAnalytics(defectDailyRes.value.data);
+      if (pendingRes.status === "fulfilled") setPendingReports(pendingRes.value.data);
+      if (auditRes.status === "fulfilled") {
+        setAuditLogs(auditRes.value.data.logs || []);
+        setAuditLogTotal(auditRes.value.data.total || 0);
+      }
     } catch (error) {
       console.error("Secondary data fetch error:", error);
     }
@@ -378,7 +382,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset]);
+  }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset, auditLogPage]);
 
   const handleLogin = async () => {
     try {
@@ -2392,9 +2396,21 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             </Button>
                             {machineJobs.current.tracking_code && (
                               <Button size="sm" variant="outline"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`${window.location.origin}/takip/${machineJobs.current.tracking_code}`);
-                                  toast.success("Takip linki kopyalandı!");
+                                onClick={async () => {
+                                  const link = `${window.location.origin}/takip/${machineJobs.current.tracking_code}`;
+                                  const shareData = { title: "Sipariş Takip", text: `${machineJobs.current.name} takip linki:`, url: link };
+                                  try {
+                                    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                                      await navigator.share(shareData);
+                                    } else {
+                                      await navigator.clipboard.writeText(link);
+                                      toast.success("Takip linki kopyalandı!");
+                                    }
+                                  } catch (err) {
+                                    if (err?.name !== "AbortError") {
+                                      try { await navigator.clipboard.writeText(link); toast.success("Takip linki kopyalandı!"); } catch { toast.error("Link paylaşılamadı"); }
+                                    }
+                                  }
                                 }}
                                 className="text-blue-400 border-blue-400"
                                 data-testid={`copy-link-${machineJobs.current.id}`}

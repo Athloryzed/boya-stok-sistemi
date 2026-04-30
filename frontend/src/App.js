@@ -38,15 +38,19 @@ axios.interceptors.response.use(
   }
 );
 
-// Firebase Service Worker kaydı
+// Firebase Service Worker kaydı - iOS Safari / ağ problemlerinde bloke etmemesi için
+// Arka planda sessizce kaydet, hataları sessizce yok say
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then((registration) => {
-      console.log('Firebase SW registered:', registration.scope);
-    })
-    .catch((error) => {
-      console.log('Firebase SW registration failed:', error);
+  // index.html içinde zaten /service-worker.js kaydediliyor.
+  // Firebase SW'yi sadece Notification API destekliyorsa ve iOS Safari değilse kaydet.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const supportsPush = "PushManager" in window;
+  if (!isIOS && supportsPush) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .catch(() => { /* sessiz */ });
     });
+  }
 }
 
 // Ziyaretçi takip bileşeni

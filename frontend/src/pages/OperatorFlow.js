@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode, Link2, Share2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -1209,13 +1209,48 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       <p className="text-sm text-info"><span className="font-semibold">Not:</span> {currentJobOnMachine.notes}</p>
                     </div>
                   )}
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-4 flex-wrap">
                     <Button onClick={() => openPauseDialog(currentJobOnMachine)} disabled={loading} variant="outline" className="border-warning text-warning hover:bg-warning/20">
                       <Pause className="mr-2 h-4 w-4" /> Durdur
                     </Button>
                     <Button onClick={() => handleCompleteJob(currentJobOnMachine)} disabled={loading} className="bg-success text-white hover:bg-success/90">
                       <CheckCircle className="mr-2 h-4 w-4" /> Tamamla
                     </Button>
+                    {currentJobOnMachine.tracking_code && (
+                      <Button
+                        onClick={async () => {
+                          const link = `${window.location.origin}/takip/${currentJobOnMachine.tracking_code}`;
+                          const shareData = {
+                            title: "Sipariş Takip",
+                            text: `${currentJobOnMachine.name} siparişinizin durumunu takip edin:`,
+                            url: link,
+                          };
+                          try {
+                            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                              await navigator.share(shareData);
+                            } else {
+                              await navigator.clipboard.writeText(link);
+                              toast.success("Takip linki kopyalandı! Müşteriye gönderebilirsiniz.");
+                            }
+                          } catch (err) {
+                            // Kullanıcı share'i iptal ettiyse sessizce yok say
+                            if (err?.name !== "AbortError") {
+                              try {
+                                await navigator.clipboard.writeText(link);
+                                toast.success("Takip linki kopyalandı!");
+                              } catch {
+                                toast.error("Link paylaşılamadı");
+                              }
+                            }
+                          }
+                        }}
+                        variant="outline"
+                        className="border-blue-400 text-blue-400 hover:bg-blue-400/20"
+                        data-testid={`operator-share-link-${currentJobOnMachine.id}`}
+                      >
+                        <Share2 className="mr-2 h-4 w-4" /> Müşteriye Link Gönder
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
