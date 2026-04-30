@@ -52,6 +52,15 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 25) — Operasyon Özeti Metrik Kartları
+- ManagementFlow.js: Düşük Stok uyarısı altına 6 canlı metrik kartı eklendi (stat-card-industrial).
+- Metrikler: Bugünkü Üretim (koli), Aktif İş + operatör sayısı, Bekleyen İş, Aktif Makine (working/total + bakımda), Onay Bekleyen, Düşük Stok.
+- Her kart accent color (gold/emerald/blue/purple/amber/red) ile label/icon/metric/sub-text.
+- Responsive grid: mobile 2, tablet 3, desktop 6 kolon.
+- Staggered entrance animasyonu (motion.div, 0.05s step).
+- Graceful empty states: 0 değerler gri renge düşüyor (pendingApprovals, lowStock).
+- Hesaplamalar mevcut state'ten (jobs, machines, pendingReports, lowStockPaints) türetiliyor — yeni API çağrısı yok.
+
 ### Feb 2026 (Iteration 24) — Industrial UI Polish Pass (P2)
 - Tailwind config extended: steel-blue accent palette (400-700), amber hierarchy (100-700), surface-elevated, border-subtle, text-muted, industrial shadow + grain bg-image.
 - App.css industrial design system (lines 600+): .header-industrial, .panel-industrial, .panel-elevated, .stat-card-industrial, .badge-steel, .badge-gold, .live-dot, .section-label, .divider-industrial, .grain-overlay — all with light-theme variants.
