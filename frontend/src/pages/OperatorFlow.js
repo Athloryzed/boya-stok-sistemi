@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode, Link2, Share2 } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode, Link2, Share2, LogOut } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -919,53 +919,68 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <Button variant="outline" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {step > 1 ? "Geri" : "Ana Sayfa"}
-          </Button>
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-background">
+      {/* Industrial Header */}
+      <div className="header-industrial sticky top-0 z-40 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <Button variant="outline" size="sm" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
+              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">{step > 1 ? "Geri" : "Ana Sayfa"}</span>
+            </Button>
+            <div className="h-6 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-success to-emerald-700 flex items-center justify-center text-white font-black text-sm shadow-lg">O</div>
+              <div className="hidden sm:block">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Operatör</p>
+                <h1 className="text-sm font-heading font-bold text-text-primary leading-tight">{selectedMachine?.name || "Makine Seçin"}</h1>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
             {/* Mesaj butonu - sadece makine seçildiyse */}
             {selectedMachine && (
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={openChat}
-                className="border-border bg-surface hover:bg-surface-highlight relative"
+                className="border-border bg-surface/60 hover:bg-surface-highlight relative h-9 w-9"
                 data-testid="chat-button"
               >
-                <MessageSquare className="h-5 w-5 text-blue-500" />
+                <MessageSquare className="h-4 w-4 text-blue-400" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                     {unreadCount}
                   </span>
                 )}
               </Button>
             )}
-            {step > 1 && (
-              <Button variant="outline" onClick={handleLogout} data-testid="logout-button" className="border-border bg-surface hover:bg-surface-highlight">
-                Çıkış Yap
-              </Button>
-            )}
             {notificationPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleEnableNotifications} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleEnableNotifications}
                 data-testid="enable-notifications"
-                className="border-border bg-surface hover:bg-surface-highlight"
+                className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9"
                 title="Bildirimleri Aktif Et"
               >
-                <BellRing className="h-5 w-5 text-warning" />
+                <BellRing className="h-4 w-4 text-warning" />
               </Button>
             )}
-            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            {step > 1 && (
+              <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
+                <span className="hidden sm:inline">Çıkış</span>
+                <LogOut className="h-4 w-4 sm:ml-1.5" />
+              </Button>
+            )}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-4 md:p-6">
 
         {/* Bildirim Pop-up */}
         <AnimatePresence>

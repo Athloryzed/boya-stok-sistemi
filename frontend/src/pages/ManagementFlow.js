@@ -917,49 +917,63 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   } : null;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Button variant="outline" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Ana Sayfa
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    <div className="min-h-screen bg-background">
+      {/* Industrial Header */}
+      <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
+              <ArrowLeft className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">Ana Sayfa</span>
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout} 
-              data-testid="logout-button" 
-              className="border-error text-error hover:bg-error/10"
-            >
-              <LogOut className="mr-2 h-4 w-4" /> Çıkış
+            <div className="h-6 w-px bg-border hidden md:block" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-black font-black text-sm shadow-gold-glow">B</div>
+              <div className="hidden sm:block">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
+                <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Yönetim Paneli</h1>
+              </div>
+            </div>
+            {currentShift && (
+              <div className="hidden md:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-success/10 border border-success/30">
+                <span className="live-dot" />
+                <span className="text-xs font-mono font-semibold text-success uppercase tracking-wider">Vardiya Aktif</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {currentShift ? (
+              <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9">
+                <PowerOff className="h-4 w-4 md:mr-1.5" />
+                <span className="hidden md:inline">Vardiya Bitir</span>
+              </Button>
+            ) : (
+              <Button data-testid="start-shift-button" onClick={handleStartShift} size="sm" className="bg-success text-white hover:bg-success/90 h-9">
+                <Power className="h-4 w-4 md:mr-1.5" />
+                <span className="hidden md:inline">Vardiya Başlat</span>
+              </Button>
+            )}
+            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
+              <LogOut className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">Çıkış</span>
             </Button>
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <h1 className="text-4xl md:text-5xl font-heading font-black text-primary">YÖNETİM PANELİ</h1>
-          {currentShift ? (
-            <Button data-testid="end-shift-button" onClick={handleEndShift} className="bg-error text-white hover:bg-error/90">
-              <PowerOff className="mr-2 h-5 w-5" /> Vardiya Bitir
-            </Button>
-          ) : (
-            <Button data-testid="start-shift-button" onClick={handleStartShift} className="bg-success text-white hover:bg-success/90">
-              <Power className="mr-2 h-5 w-5" /> Vardiya Başlat
-            </Button>
-          )}
-        </div>
-
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Düşük Stok Uyarısı */}
         {lowStockPaints.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-500/20 border border-red-500 rounded-lg">
-            <div className="flex items-center gap-2 text-red-500 font-bold mb-2">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/40 rounded-lg">
+            <div className="flex items-center gap-2 text-red-400 font-bold mb-2">
               <AlertTriangle className="h-5 w-5" /> DÜŞÜK BOYA STOKU ({LOW_STOCK_THRESHOLD}L altı)
             </div>
             <div className="flex flex-wrap gap-2">
               {lowStockPaints.map(paint => (
-                <span key={paint.id} className="px-3 py-1 bg-red-500/30 rounded-full text-sm text-red-200">
+                <span key={paint.id} className="px-3 py-1 bg-red-500/20 rounded-full text-sm text-red-200 border border-red-500/30">
                   {paint.name}: {paint.stock_kg.toFixed(1)} L
                 </span>
               ))}

@@ -1052,82 +1052,75 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/")}
-            data-testid="back-button"
-            className="border-border bg-surface hover:bg-surface-highlight"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Ana Sayfa
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleTheme}
-            data-testid="theme-toggle"
-            className="border-border bg-surface hover:bg-surface-highlight"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-4xl sm:text-5xl font-heading font-black text-success">
-            PLANLAMA PANELİ
-          </h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                data-testid="add-job-button"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Yeni İş Ekle
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-heading">Yeni İş Ekle</DialogTitle>
-                <DialogDescription className="text-text-secondary">
-                  Yeni bir iş tanımlamak için aşağıdaki formu doldurun.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 pb-4">
-                <div>
-                  <Label className="text-text-primary">İş Adı *</Label>
-                  <Input
-                    data-testid="job-name-input"
-                    value={formData.name}
-                    onChange={(e) => {
-                      setFormData({...formData, name: e.target.value});
-                      checkDuplicateJob(e.target.value);
-                    }}
-                    className="bg-background border-border text-text-primary"
-                  />
-                  {duplicateJobWarning && (
-                    <div 
-                      className="mt-2 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg cursor-pointer hover:bg-yellow-500/30 transition-colors"
-                      onClick={() => loadExistingJob(duplicateJobWarning)}
-                    >
-                      <p className="text-yellow-500 text-sm font-medium">
-                        ⚠️ "{duplicateJobWarning.name}" adında bir iş zaten mevcut!
-                      </p>
-                      <p className="text-yellow-400 text-xs mt-1">
-                        Makine: {duplicateJobWarning.machine_name} | Durum: {duplicateJobWarning.status === "pending" ? "Bekliyor" : duplicateJobWarning.status === "in_progress" ? "Devam Ediyor" : duplicateJobWarning.status}
-                      </p>
-                      <p className="text-yellow-300 text-xs mt-1 underline">
-                        👆 Düzenlemek için tıklayın
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-text-primary">Koli Sayısı *</Label>
-                  <Input
+    <div className="min-h-screen bg-background">
+      {/* Industrial Header */}
+      <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
+              <ArrowLeft className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">Ana Sayfa</span>
+            </Button>
+            <div className="h-6 w-px bg-border hidden md:block" />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-success to-teal-700 flex items-center justify-center text-white font-black text-sm shadow-lg">P</div>
+              <div className="hidden sm:block">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
+                <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Planlama Paneli</h1>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  data-testid="add-job-button"
+                  size="sm"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-9"
+                >
+                  <Plus className="h-4 w-4 md:mr-1.5" />
+                  <span className="hidden md:inline">Yeni İş</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-heading">Yeni İş Ekle</DialogTitle>
+                  <DialogDescription className="text-text-secondary">
+                    Yeni bir iş tanımlamak için aşağıdaki formu doldurun.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 pb-4">
+                  <div>
+                    <Label className="text-text-primary">İş Adı *</Label>
+                    <Input
+                      data-testid="job-name-input"
+                      value={formData.name}
+                      onChange={(e) => {
+                        setFormData({...formData, name: e.target.value});
+                        checkDuplicateJob(e.target.value);
+                      }}
+                      className="bg-background border-border text-text-primary"
+                    />
+                    {duplicateJobWarning && (
+                      <div 
+                        className="mt-2 p-3 bg-yellow-500/20 border border-yellow-500 rounded-lg cursor-pointer hover:bg-yellow-500/30 transition-colors"
+                        onClick={() => loadExistingJob(duplicateJobWarning)}
+                      >
+                        <p className="text-yellow-500 text-sm font-medium">
+                          ⚠️ "{duplicateJobWarning.name}" adında bir iş zaten mevcut!
+                        </p>
+                        <p className="text-yellow-400 text-xs mt-1">
+                          Makine: {duplicateJobWarning.machine_name} | Durum: {duplicateJobWarning.status === "pending" ? "Bekliyor" : duplicateJobWarning.status === "in_progress" ? "Devam Ediyor" : duplicateJobWarning.status}
+                        </p>
+                        <p className="text-yellow-300 text-xs mt-1 underline">
+                          👆 Düzenlemek için tıklayın
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-text-primary">Koli Sayısı *</Label>
+                    <Input
                     data-testid="job-koli-input"
                     type="number"
                     value={formData.koli_count}
@@ -1267,8 +1260,20 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               </div>
             </DialogContent>
           </Dialog>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleTheme}
+              data-testid="theme-toggle"
+              className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="mb-8">
           <h2 className="text-xl md:text-2xl font-heading font-bold text-text-primary mb-4">Makine Durumları</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
