@@ -52,6 +52,14 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 24) — Industrial UI Polish Pass (P2)
+- Tailwind config extended: steel-blue accent palette (400-700), amber hierarchy (100-700), surface-elevated, border-subtle, text-muted, industrial shadow + grain bg-image.
+- App.css industrial design system (lines 600+): .header-industrial, .panel-industrial, .panel-elevated, .stat-card-industrial, .badge-steel, .badge-gold, .live-dot, .section-label, .divider-industrial, .grain-overlay — all with light-theme variants.
+- Typography refinements: tabular-nums, tighter letter-spacing for headings, .metric-display class.
+- Custom scrollbar (industrial steel).
+- ManagementFlow/PlanFlow/OperatorFlow: sticky industrial header with panel logo (B/P/O badge), 'Buse Kağıt + Panel Title' stacked label, live-dot for active shift, refined action buttons (icon-only on mobile, full on desktop), 40px+ touch targets.
+- Amber focus-visible outline globally.
+
 ### Feb 2026 (Iteration 23)
 - Home.js: '23 Nisan' banner text removed; all decorative animations (balloons, children, Atatürk, Türk bayrağı, cicekler) retained with pointer-events-none (mobile tap fix).
 - ManagementFlow.js audit log pagination bug fixed: auditLogPage added to useEffect deps (Sonraki/Onceki now refetches).
