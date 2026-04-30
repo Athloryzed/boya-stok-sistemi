@@ -138,6 +138,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditLogTotal, setAuditLogTotal] = useState(0);
   const [auditLogPage, setAuditLogPage] = useState(0);
+
+  // Tab kontrolü (metrik kartından tıklayınca açılacak tab)
+  const [activeTab, setActiveTab] = useState("machines");
   
   // İş Durdurma
   const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
@@ -998,6 +1001,22 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             const pendingApprovals = pendingReports.length;
             const activeOperators = new Set(jobs.filter(j => j.status === "in_progress").map(j => j.operator_name).filter(Boolean)).size;
 
+            // Dünün üretim trendi (Bugünkü Üretim için)
+            let trend = null;
+            if (dailyAnalytics?.daily_stats?.length === 7 && dailyWeekOffset === 0) {
+              // Bugünün haftalık indexi: 0=Pzt ... 6=Paz
+              const jsDay = new Date().getDay(); // 0=Paz ... 6=Cmt
+              const todayIdx = jsDay === 0 ? 6 : jsDay - 1;
+              const yesterdayIdx = todayIdx - 1;
+              if (yesterdayIdx >= 0) {
+                const yesterdayKoli = dailyAnalytics.daily_stats[yesterdayIdx]?.total_koli || 0;
+                if (yesterdayKoli > 0 || koliToday > 0) {
+                  const delta = yesterdayKoli === 0 ? 100 : Math.round(((koliToday - yesterdayKoli) / yesterdayKoli) * 100);
+                  trend = { delta, yesterdayKoli };
+                }
+              }
+            }
+
             const metrics = [
               {
                 label: "Bugünkü Üretim",
@@ -1006,7 +1025,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: `${completedToday.length} iş tamamlandı`,
                 icon: TrendingUp,
                 accent: "#FFBF00",
-                testid: "metric-today-production"
+                testid: "metric-today-production",
+                tab: "analytics",
+                trend
               },
               {
                 label: "Aktif İş",
@@ -1015,7 +1036,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: `${activeOperators} operatör çalışıyor`,
                 icon: Activity,
                 accent: "#10B981",
-                testid: "metric-active-jobs"
+                testid: "metric-active-jobs",
+                tab: "machines"
               },
               {
                 label: "Bekleyen İş",
@@ -1024,7 +1046,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: "Üretim kuyruğunda",
                 icon: Package,
                 accent: "#3B82F6",
-                testid: "metric-pending-jobs"
+                testid: "metric-pending-jobs",
+                tab: "machines"
               },
               {
                 label: "Aktif Makine",
@@ -1033,7 +1056,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: maintenanceMachines > 0 ? `${maintenanceMachines} bakımda` : "Tümü hazır",
                 icon: Factory,
                 accent: "#A78BFA",
-                testid: "metric-active-machines"
+                testid: "metric-active-machines",
+                tab: "maintenance"
               },
               {
                 label: "Onay Bekleyen",
@@ -1042,7 +1066,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: pendingApprovals > 0 ? "İncelemeniz gerekli" : "Her şey yolunda",
                 icon: ClipboardCheck,
                 accent: pendingApprovals > 0 ? "#F59E0B" : "#71717A",
-                testid: "metric-pending-approvals"
+                testid: "metric-pending-approvals",
+                tab: "pending-approval"
               },
               {
                 label: "Düşük Stok",
@@ -1051,21 +1076,26 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 sub: lowStockPaints.length > 0 ? "Boya sipariş gerekli" : "Stok seviyesi iyi",
                 icon: Layers,
                 accent: lowStockPaints.length > 0 ? "#EF4444" : "#71717A",
-                testid: "metric-low-stock"
+                testid: "metric-low-stock",
+                tab: "paints"
               }
             ];
 
             return (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
                 {metrics.map((m, idx) => (
-                  <motion.div
+                  <motion.button
                     key={m.label}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, delay: 0.05 * idx, ease: "easeOut" }}
-                    className="stat-card-industrial"
+                    whileHover={{ y: -3 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { setActiveTab(m.tab); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className="stat-card-industrial text-left cursor-pointer"
                     data-testid={m.testid}
                     style={{ borderLeftColor: m.accent }}
+                    aria-label={`${m.label}: ${m.value} ${m.unit}. ${m.sub}. Tıklayarak ${m.tab} sekmesine git.`}
                   >
                     <div className="flex items-start justify-between mb-1.5">
                       <span className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-tight">
@@ -1079,15 +1109,29 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       </span>
                       {m.unit && <span className="text-xs text-text-secondary font-mono">{m.unit}</span>}
                     </div>
-                    <p className="text-[11px] text-text-muted mt-0.5 truncate">{m.sub}</p>
-                  </motion.div>
+                    {m.trend ? (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span
+                          className={`text-[10px] font-mono font-bold inline-flex items-center gap-0.5 ${
+                            m.trend.delta > 0 ? "text-success" : m.trend.delta < 0 ? "text-error" : "text-text-muted"
+                          }`}
+                          data-testid="metric-trend"
+                        >
+                          {m.trend.delta > 0 ? "▲" : m.trend.delta < 0 ? "▼" : "·"} {Math.abs(m.trend.delta)}%
+                        </span>
+                        <span className="text-[10px] text-text-muted truncate">dün ({m.trend.yesterdayKoli})</span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-text-muted mt-0.5 truncate">{m.sub}</p>
+                    )}
+                  </motion.button>
                 ))}
               </div>
             );
           })()}
         </div>
 
-        <Tabs defaultValue="machines" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Mobile: 3-row grid layout, Desktop: horizontal scroll */}
           <div className="block md:hidden">
             <div className="grid grid-cols-3 gap-1">

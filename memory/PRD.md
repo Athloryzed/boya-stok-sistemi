@@ -52,6 +52,15 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 26) — Tıklanabilir Metrik Kartları + Trend
+- Metrik kartları artık motion.button — tıklayınca ilgili Tab'e geçiş + smooth scroll top.
+- Tab eşlemesi: Bugünkü Üretim→analytics, Aktif İş/Bekleyen İş→machines, Aktif Makine→maintenance, Onay Bekleyen→pending-approval, Düşük Stok→paints.
+- activeTab state ile Tabs controlled component'e dönüştürüldü (defaultValue yerine value/onValueChange).
+- 'Bugünkü Üretim' kartında dün-bugün trend indicator: ▲/▼ percent + yesterday koli. dailyAnalytics.daily_stats'ten hesaplanıyor (week_offset===0 iken).
+- Renk: yeşil (artış), kırmızı (düşüş), gri (değişmez).
+- Erişilebilirlik: aria-label eklendi (her kart için "Metrik: değer. detay. Tab'e git.").
+- whileHover -y3 + whileTap scale 0.98 micro-interaction.
+
 ### Feb 2026 (Iteration 25) — Operasyon Özeti Metrik Kartları
 - ManagementFlow.js: Düşük Stok uyarısı altına 6 canlı metrik kartı eklendi (stat-card-industrial).
 - Metrikler: Bugünkü Üretim (koli), Aktif İş + operatör sayısı, Bekleyen İş, Aktif Makine (working/total + bakımda), Onay Bekleyen, Düşük Stok.
