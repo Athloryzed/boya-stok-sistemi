@@ -2724,6 +2724,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           <DialogContent className="bg-surface border-border">
             <DialogHeader>
               <DialogTitle className="text-xl font-heading">Yeni Kullanıcı Ekle</DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                Sistem için yeni bir kullanıcı oluşturun. Çoklu rol atayarak tek hesapla birden fazla panele erişim verebilirsiniz.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
