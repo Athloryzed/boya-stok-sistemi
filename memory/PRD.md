@@ -52,8 +52,19 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 23)
+- Home.js: '23 Nisan' banner text removed; all decorative animations (balloons, children, Atatürk, Türk bayrağı, cicekler) retained with pointer-events-none (mobile tap fix).
+- ManagementFlow.js audit log pagination bug fixed: auditLogPage added to useEffect deps (Sonraki/Onceki now refetches).
+- ManagementFlow.js fetchSecondaryData now uses Promise.allSettled — single endpoint failures no longer break dashboard.
+- ManagementFlow.js fetchData: no more window.location.reload() loop on intermittent network errors.
+- OperatorFlow.js: 'Musteriye Link Gonder' button added to active job card, uses navigator.share + clipboard fallback.
+- PlanFlow.js QR dialog: 'Link Kopyala' → 'Link Paylas' (navigator.share).
+- index.html: viewport-fit=cover, apple-mobile-web-app-status-bar-style=default, global CSS touch-action:manipulation, env(safe-area-inset-*) padding, -webkit-tap-highlight-color transparent — iPhone Safari tap/UI fixes.
+- App.js: Firebase SW registration skipped on iOS and when PushManager unavailable (prevents hang on strict mobile networks).
+
 ## Upcoming Tasks
 - P1: Sevkiyat & Surucu Modulu enhancements
+- P2: Frontend bilesen refactoring (extract common Job/Modal/Table components from ManagementFlow/PlanFlow/OperatorFlow)
+- P2: Overall UI polish pass (user requested holistic visual optimization)
 - P3: Renk Gecis Optimizasyonu
 - P3: Makine Bakim Planlayici
-- P3: Frontend bilesen refactoring
