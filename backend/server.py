@@ -168,16 +168,25 @@ async def backfill_tracking_codes():
 async def migrate_passwords_to_bcrypt():
     try:
         # Users tablosu
-        users = await db.users.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1}).to_list(10000)
+        users = await db.users.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1, "role": 1, "roles": 1}).to_list(10000)
         migrated = 0
+        roles_migrated = 0
         for user in users:
+            updates = {}
             pwd = user.get("password", "")
             if pwd and not pwd.startswith("$2b$") and not pwd.startswith("$2a$"):
-                hashed = hash_password(pwd)
-                await db.users.update_one({"id": user["id"]}, {"$set": {"password": hashed}})
+                updates["password"] = hash_password(pwd)
                 migrated += 1
+            # roles array yoksa role'den türet
+            if not user.get("roles") and user.get("role"):
+                updates["roles"] = [user["role"]]
+                roles_migrated += 1
+            if updates:
+                await db.users.update_one({"id": user["id"]}, {"$set": updates})
         if migrated:
             logger.info(f"Migrated {migrated} plain-text user passwords to bcrypt")
+        if roles_migrated:
+            logger.info(f"Migrated {roles_migrated} users to roles[] array")
 
         # Drivers tablosu
         drivers = await db.drivers.find({"is_active": True}, {"_id": 0, "id": 1, "password": 1}).to_list(10000)

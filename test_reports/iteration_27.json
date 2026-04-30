@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 27 — Multi-role users + analytics bug fix FULLY VALIDATED. Backend: 14/14 pytest pass (test_iteration27.py). Frontend: all 6 testids verified runtime on https://bobin-tracker-pro.preview.emergentagent.com/management after buse11993 login. Coverage: (a) Analytics bug fix — created TEST_analytics_xxx job (koli=20), started shift, POST /shifts/end-with-report with produced_koli=10 on pending job, verified /analytics/daily-by-week?week_offset=0 today's total_koli increased by ≥10 (diff assertion passed — bug fixed). Endpoint shape valid (7 days, day_name/total_koli/full_date/machines keys). (b) User API — POST /users with roles=['plan','depo'] → 200, returns role='plan' + roles=['plan','depo']. Legacy role:'operator' → roles=['operator']. Invalid role → 400. (c) Login API — coklukullanici/test123 with role='plan' → 200 login_role=plan, role='depo' → 200 login_role=depo, role='operator' → 403 with detail listing 'plan, depo'. (d) PATCH /users/{id}/roles → updates role+roles, GET confirms persistence; empty list → 400, unknown id → 404. (e) GET /users returns 'roles' array on every user (migration working for legacy). GET /users?role=plan includes coklukullanici (matches roles[] too). (f) Regression: ali/134679/operator, emrecan/testtest12/plan, depo1/depo123/depo all login 200 with correct login_role. Frontend: Kullanıcılar tab → Çoklu Rol Test user shows Planlama+Depo badges + badge-gold '×2' multi-role-indicator-coklukullanici; edit-user-roles-coklukullanici pencil button opens 'Rolleri Düzenle: coklukullanici' dialog with 4-cell user-roles-grid (role-toggle-operator/plan/depo/sofor); Yeni Kullanıcı Ekle dialog shows same 4-checkbox grid and displays green 'Çoklu rol: Kullanıcı her panelden giriş yapabilecek.' hint when 2+ roles selected. Metrik kartları + Düşük Stok uyarısı korunmuş (iteration 25 regresyon temiz).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Yeni Kullanıcı Ekle / Rolleri Düzenle dialogs", "issues": ["Console warning: 'Missing Description or aria-describedby={undefined} for DialogContent' — shadcn a11y warning, non-blocking but Radix best-practice'e göre DialogDescription eklemek iyi olur"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration27.py",
+    "/app/test_reports/pytest/iteration27_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "analytics.py daily + daily-by-week: prior_partials sum için her completed job'a ayrı bir DB query atılıyor (N+1). Günde 100+ tamamlanan iş olursa latency artabilir; optional optimization: shift_end_reports'u job_id'lere göre önden gruplayarak dict lookup. Şu an veri hacmi düşük, blocker değil.",
+    "users.py create_user: 'roles_input' valid olmayan rolleri filtreliyor ama eğer kullanıcı ['operator','xyz'] gönderirse xyz sessizce yutuluyor — 400 dönmek ya da warning loglamak daha defansif olur.",
+    "users.py login: user.get('roles') None döndüğünde fallback [user.get('role')] doğru ama legacy kullanıcıda role de boşsa [None] olabilir; mevcut ama düşük olasılık. Migration server.py'de zaten $set roles=[role] yapıyor, bu ihtimal düşük.",
+    "ManagementFlow.js 2864+: handleUpdateUserRoles sonrası liste yenileme loadUsers() ile yapılıyor (muhtemelen) — edit dialog açıkken kullanıcı silindiyse null reference olabilir; !open kontrolü var, güvenli.",
+    "Dialog a11y: Her iki dialog'a (Yeni Kullanıcı / Rolleri Düzenle) <DialogDescription> eklemek Radix warning'i giderir."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration27.py (yeni — 14 test)"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests pass)",
+    "frontend": "100% — tüm data-testid'ler bulundu, çoklu rol rozet/×2 indicator, edit/create dialog grid, çoklu rol yeşil uyarısı"
+  },
+  "test_credentials": {
+    "management": "buse11993",
+    "multi_role": "coklukullanici / test123 (roles: plan+depo)",
+    "legacy": "ali/134679, emrecan/testtest12, depo1/depo123"
+  },
+  "seed_data_creation": "Test users prefixed TEST_multi_*, TEST_single_*, TEST_patch_* oluşturuldu ve test_cleanup fixture'ı ile silindi (soft delete). Analytics testinde bir TEST_analytics_* job oluşturuldu ve DELETE /jobs ile silindi; ancak shift_end_report kaydı DB'de kalıyor (public cleanup API yok) — kalıcı yan etki: bugünkü analytics'te 10 koli artış görünür (tek seferlik, zararsız). Sonraki testlerde farkı yine delta olarak ölçmek daha güvenli.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 27 tamamen geçti. test_iteration27.py 14 testi regression olarak tekrar çalışabilir (PYTEST komutu: 'export $(grep REACT_APP_BACKEND_URL /app/frontend/.env) && pytest backend/tests/test_iteration27.py -v'). NOT: Test REACT_APP_BACKEND_URL env değişkenini bekler; shell'den export edilmelidir. Analytics E2E testi bir kez çalıştıktan sonra o günün total_koli'ına +10 kalıcı katkı yapar (shift_end_report temiz silme API yok). Frontend 'Kullanıcılar' sekmesi data-testid'leri: multi-role-indicator-{username}, edit-user-roles-{username}, user-roles-grid, role-toggle-{operator|plan|depo|sofor}, edit-user-roles-grid. Eski iterasyonlardan metrik kartları ve Düşük Stok uyarısı regresyonu etkilenmemiş.",
+  "rca of the issue": "n/a — bug fix doğrulandı. Önceki bug: analytics.py'de 'if job.status == completed: continue' ile tamamlanmayan işlerin shift_end_report.produced_koli'si günlük toplama yansımıyordu. Yeni kod: completed jobs için completed_koli - prior_day_partials ile dedupe + TÜM shift_end_reports o gün produced_koli'yi ekliyor (completed_today olanları skip ederek). Test: pending job'a produced_koli=10 rapor → daily-by-week bugün +10 (diff assertion PASSED)."
+}

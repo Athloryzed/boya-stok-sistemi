@@ -27,28 +27,34 @@ async def get_weekly_analytics():
     ).to_list(1000)
 
     machine_stats = {}
+
+    # 1) Completed jobs: credit completed_koli to completion day's machine,
+    #    subtracting earlier shift_end_reports already attributed to same job to avoid double count.
+    # Here we aggregate weekly (no day split), so we simply sum completed_koli.
+    # To avoid double-count with same-week shift reports, we subtract those reports' produced_koli
+    # that belong to the same completed jobs (those earlier partials are also inside completed_koli).
+    completed_job_ids = {j["id"] for j in completed_jobs}
+    shift_produced_for_completed = {}  # job_id -> sum produced in shift reports within the week
+    for r in shift_reports:
+        jid = r.get("job_id")
+        if jid and jid in completed_job_ids:
+            shift_produced_for_completed[jid] = shift_produced_for_completed.get(jid, 0) + r.get("produced_koli", 0)
+
     for job in completed_jobs:
         machine = job["machine_name"]
         koli = job.get("completed_koli", job.get("koli_count", 0))
-        if machine not in machine_stats:
-            machine_stats[machine] = 0
-        machine_stats[machine] += koli
+        # subtract overlap already captured via shift reports (will be added back via reports below)
+        overlap = shift_produced_for_completed.get(job["id"], 0)
+        credit = max(0, koli - overlap)
+        machine_stats[machine] = machine_stats.get(machine, 0) + credit
 
-    job_ids = [r["job_id"] for r in shift_reports if r.get("job_id")]
-    if job_ids:
-        jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
-        jobs_dict = {j["id"]: j for j in jobs_list}
-        for report in shift_reports:
-            job_id = report.get("job_id")
-            if job_id:
-                job = jobs_dict.get(job_id)
-                if job and job.get("status") != "completed":
-                    machine = report.get("machine_name", "")
-                    koli = report.get("produced_koli", 0)
-                    if machine and koli > 0:
-                        if machine not in machine_stats:
-                            machine_stats[machine] = 0
-                        machine_stats[machine] += koli
+    # 2) All shift_end_reports in the week contribute their produced_koli
+    for report in shift_reports:
+        koli = report.get("produced_koli", 0)
+        if koli > 0:
+            machine = report.get("machine_name", "")
+            if machine:
+                machine_stats[machine] = machine_stats.get(machine, 0) + koli
 
     return {"machine_stats": machine_stats}
 
@@ -66,36 +72,39 @@ async def get_daily_analytics():
             {"_id": 0}
         ).to_list(1000)
 
-        shift_reports = await db.shift_end_reports.find(
+        shift_reports_today = await db.shift_end_reports.find(
             {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
             {"_id": 0}
         ).to_list(1000)
 
-        total_koli = sum(job.get("completed_koli", job.get("koli_count", 0)) for job in jobs)
+        total_koli = 0
         machine_breakdown = {}
 
+        # 1) Completed jobs: subtract earlier shift_end_reports' produced_koli for the same job
+        #    (those partials are already inside completed_koli and will be added via reports below).
         for job in jobs:
             machine = job["machine_name"]
-            if machine not in machine_breakdown:
-                machine_breakdown[machine] = 0
-            machine_breakdown[machine] += job.get("completed_koli", job.get("koli_count", 0))
+            completed_koli = job.get("completed_koli", job.get("koli_count", 0))
+            # Sum all shift_end_reports for this job before end_of_day (i.e., already counted as daily partials)
+            prior_partials = 0
+            prior = await db.shift_end_reports.find(
+                {"job_id": job["id"], "created_at": {"$lt": end_of_day.isoformat()}}, {"_id": 0, "produced_koli": 1}
+            ).to_list(100)
+            for r in prior:
+                prior_partials += r.get("produced_koli", 0)
+            credit = max(0, completed_koli - prior_partials)
+            if credit > 0:
+                machine_breakdown[machine] = machine_breakdown.get(machine, 0) + credit
+                total_koli += credit
 
-        job_ids = [r["job_id"] for r in shift_reports if r.get("job_id")]
-        if job_ids:
-            jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
-            jobs_dict = {j["id"]: j for j in jobs_list}
-            for report in shift_reports:
-                job_id = report.get("job_id")
-                if job_id:
-                    job = jobs_dict.get(job_id)
-                    if job and job.get("status") != "completed":
-                        machine = report.get("machine_name", "")
-                        koli = report.get("produced_koli", 0)
-                        if machine and koli > 0:
-                            if machine not in machine_breakdown:
-                                machine_breakdown[machine] = 0
-                            machine_breakdown[machine] += koli
-                            total_koli += koli
+        # 2) All shift_end_reports created today contribute their produced_koli
+        for report in shift_reports_today:
+            koli = report.get("produced_koli", 0)
+            if koli > 0:
+                machine = report.get("machine_name", "")
+                if machine:
+                    machine_breakdown[machine] = machine_breakdown.get(machine, 0) + koli
+                    total_koli += koli
 
         daily_stats.append({
             "date": start_of_day.strftime("%d %b"),
@@ -174,24 +183,20 @@ async def get_daily_detail_analytics(date: str):
 
     partial_koli = 0
     if shift_reports:
-        job_ids = [r["job_id"] for r in shift_reports if r.get("job_id") and r.get("produced_koli", 0) > 0]
-        if job_ids:
-            jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
-            jobs_dict = {j["id"]: j for j in jobs_list}
-            for report in shift_reports:
-                produced = report.get("produced_koli", 0)
-                if produced > 0:
-                    job_id = report.get("job_id")
-                    if job_id:
-                        job = jobs_dict.get(job_id)
-                        if job and job.get("status") == "completed":
-                            continue
-                    machine = report.get("machine_name", "")
-                    if machine:
-                        if machine not in machine_breakdown:
-                            machine_breakdown[machine] = 0
-                        machine_breakdown[machine] += produced
-                        partial_koli += produced
+        # All shift_end_reports on this day contribute produced_koli, EXCEPT those whose job was completed today.
+        completed_today_ids = {j["id"] for j in completed_jobs}
+        for report in shift_reports:
+            produced = report.get("produced_koli", 0)
+            if produced <= 0:
+                continue
+            job_id = report.get("job_id")
+            if job_id and job_id in completed_today_ids:
+                # Already counted via completed_jobs loop above
+                continue
+            machine = report.get("machine_name", "")
+            if machine:
+                machine_breakdown[machine] = machine_breakdown.get(machine, 0) + produced
+                partial_koli += produced
 
     total_defect_kg = 0.0
     defect_by_machine = {}
@@ -260,28 +265,30 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
         ).to_list(1000)
 
     machine_stats = {}
+
+    # 1) Completed jobs: subtract prior-period shift_reports (if any) not present in 'shift_reports' list
+    #    to avoid double-counting. Here shift_reports already filter to this period,
+    #    so we subtract overlap for the same job.
+    shift_overlap = {}  # job_id -> sum produced_koli within this period
+    for r in shift_reports:
+        jid = r.get("job_id")
+        if jid:
+            shift_overlap[jid] = shift_overlap.get(jid, 0) + r.get("produced_koli", 0)
+
     for job in jobs:
         machine = job["machine_name"]
         koli = job.get("completed_koli", job.get("koli_count", 0))
-        if machine not in machine_stats:
-            machine_stats[machine] = 0
-        machine_stats[machine] += koli
+        overlap = shift_overlap.get(job["id"], 0)
+        credit = max(0, koli - overlap)
+        machine_stats[machine] = machine_stats.get(machine, 0) + credit
 
-    job_ids = [r["job_id"] for r in shift_reports if r.get("job_id")]
-    if job_ids:
-        jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
-        jobs_dict = {j["id"]: j for j in jobs_list}
-        for report in shift_reports:
-            job_id = report.get("job_id")
-            if job_id:
-                job = jobs_dict.get(job_id)
-                if job and job.get("status") != "completed":
-                    machine = report.get("machine_name", "")
-                    koli = report.get("produced_koli", 0)
-                    if machine and koli > 0:
-                        if machine not in machine_stats:
-                            machine_stats[machine] = 0
-                        machine_stats[machine] += koli
+    # 2) All shift_end_reports in this period contribute produced_koli.
+    for report in shift_reports:
+        koli = report.get("produced_koli", 0)
+        if koli > 0:
+            machine = report.get("machine_name", "")
+            if machine:
+                machine_stats[machine] = machine_stats.get(machine, 0) + koli
 
     return {"machine_stats": machine_stats}
 
@@ -306,38 +313,45 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
             {"_id": 0}
         ).to_list(1000)
 
-        shift_reports = await db.shift_end_reports.find(
+        shift_reports_today = await db.shift_end_reports.find(
             {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
             {"_id": 0}
         ).to_list(1000)
 
-        total_koli = sum(job.get("completed_koli", job.get("koli_count", 0)) for job in jobs)
+        total_koli = 0
         machine_breakdown = {}
 
+        # 1) Completed jobs: credit only the final delta (completed_koli - prior shift_end_reports' produced_koli).
         for job in jobs:
             machine = job["machine_name"]
-            if machine not in machine_breakdown:
-                machine_breakdown[machine] = 0
-            machine_breakdown[machine] += job.get("completed_koli", job.get("koli_count", 0))
+            completed_koli = job.get("completed_koli", job.get("koli_count", 0))
+            # Sum all shift_end_reports for this job STRICTLY BEFORE today (prior-day partials).
+            prior_partials = 0
+            prior = await db.shift_end_reports.find(
+                {"job_id": job["id"], "created_at": {"$lt": start_of_day.isoformat()}}, {"_id": 0, "produced_koli": 1}
+            ).to_list(100)
+            for r in prior:
+                prior_partials += r.get("produced_koli", 0)
+            credit = max(0, completed_koli - prior_partials)
+            if credit > 0:
+                machine_breakdown[machine] = machine_breakdown.get(machine, 0) + credit
+                total_koli += credit
 
-        job_ids = [r["job_id"] for r in shift_reports if r.get("job_id") and r.get("produced_koli", 0) > 0]
-        if job_ids:
-            jobs_list = await db.jobs.find({"id": {"$in": job_ids}}, {"_id": 0}).to_list(1000)
-            jobs_dict = {j["id"]: j for j in jobs_list}
-            for report in shift_reports:
-                produced = report.get("produced_koli", 0)
-                if produced > 0:
-                    job_id = report.get("job_id")
-                    if job_id:
-                        job = jobs_dict.get(job_id)
-                        if job and job.get("status") == "completed":
-                            continue
-                    machine = report.get("machine_name", "")
-                    if machine:
-                        if machine not in machine_breakdown:
-                            machine_breakdown[machine] = 0
-                        machine_breakdown[machine] += produced
-                        total_koli += produced
+        # 2) All shift_end_reports created TODAY contribute produced_koli.
+        #    Skip those that belong to a job completed today (already counted in step 1).
+        completed_today_ids = {j["id"] for j in jobs}
+        for report in shift_reports_today:
+            produced = report.get("produced_koli", 0)
+            if produced <= 0:
+                continue
+            job_id = report.get("job_id")
+            # If the job was completed today, completed_koli already includes this partial -> skip.
+            if job_id and job_id in completed_today_ids:
+                continue
+            machine = report.get("machine_name", "")
+            if machine:
+                machine_breakdown[machine] = machine_breakdown.get(machine, 0) + produced
+                total_koli += produced
 
         day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
         daily_stats.append({

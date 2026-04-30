@@ -13,20 +13,35 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 
+VALID_ROLES = ["operator", "plan", "depo", "sofor"]
+
+
 @router.post("/users")
 async def create_user(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    """Yeni kullanıcı oluştur (yetkili)"""
+    """Yeni kullanıcı oluştur (yetkili). 'role' (tek) veya 'roles' (çoklu) kabul eder."""
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    roles_input = data.get("roles")
     role = data.get("role", "")
     display_name = data.get("display_name", username)
     phone = data.get("phone", "")
 
-    if not username or not password or not role:
-        raise HTTPException(status_code=400, detail="Kullanıcı adı, şifre ve rol zorunludur")
+    # Çoklu rol desteği: roles listesi varsa onu kullan, yoksa tek rol fallback
+    if roles_input and isinstance(roles_input, list) and len(roles_input) > 0:
+        roles = [r for r in roles_input if r in VALID_ROLES]
+        if not roles:
+            raise HTTPException(status_code=400, detail="En az bir geçerli rol gerekli")
+        primary_role = roles[0]
+    elif role:
+        if role not in VALID_ROLES:
+            raise HTTPException(status_code=400, detail="Geçersiz rol")
+        roles = [role]
+        primary_role = role
+    else:
+        raise HTTPException(status_code=400, detail="Rol zorunludur")
 
-    if role not in ["operator", "plan", "depo", "sofor"]:
-        raise HTTPException(status_code=400, detail="Geçersiz rol")
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Kullanıcı adı ve şifre zorunludur")
 
     existing = await db.users.find_one({"username": username, "is_active": True})
     if existing:
@@ -34,30 +49,58 @@ async def create_user(data: dict = Body(...), current_user: dict = Depends(get_c
 
     user = User(
         username=username, password=hash_password(password),
-        role=role, display_name=display_name, phone=phone
+        role=primary_role, roles=roles,
+        display_name=display_name, phone=phone
     )
     await db.users.insert_one(user.model_dump())
-    await log_audit(current_user.get("display_name", "Yonetim"), "create", "user", username, f"Rol: {role}")
+    await log_audit(current_user.get("display_name", "Yonetim"), "create", "user", username, f"Roller: {', '.join(roles)}")
 
     user_dict = user.model_dump()
     user_dict.pop("password", None)
     return user_dict
 
 
+@router.patch("/users/{user_id}/roles")
+async def update_user_roles(user_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """Bir kullanıcının rollerini güncelle (yetkili). 'roles' listesi bekler."""
+    roles_input = data.get("roles")
+    if not isinstance(roles_input, list) or len(roles_input) == 0:
+        raise HTTPException(status_code=400, detail="Roller listesi boş olamaz")
+    roles = [r for r in roles_input if r in VALID_ROLES]
+    if not roles:
+        raise HTTPException(status_code=400, detail="En az bir geçerli rol gerekli")
+
+    user = await db.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"roles": roles, "role": roles[0]}}
+    )
+    await log_audit(current_user.get("display_name", "Yonetim"), "update", "user", user["username"], f"Roller: {', '.join(roles)}")
+    return {"success": True, "roles": roles, "role": roles[0]}
+
+
 @router.get("/users")
 async def get_users(role: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    """Kullanıcıları listele (yetkili)"""
+    """Kullanıcıları listele (yetkili). role param'ı roles[] içinde de arar."""
     query = {"is_active": True}
     if role:
-        query["role"] = role
+        # Role bir role veya roles listesi içinde bulunsun
+        query["$or"] = [{"role": role}, {"roles": role}]
     users = await db.users.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).to_list(200)
+    # Eski kullanıcılarda roles boşsa [role] olarak döndür (geriye uyumluluk)
+    for u in users:
+        if not u.get("roles"):
+            u["roles"] = [u.get("role", "")] if u.get("role") else []
     return users
 
 
 @router.post("/users/login")
 @limiter.limit("10/minute")
 async def user_login(request: Request, data: dict = Body(...)):
-    """Kullanıcı girişi - bcrypt + JWT"""
+    """Kullanıcı girişi - bcrypt + JWT. Çoklu rol desteği: role, user.roles içinde olmalı."""
     username = data.get("username", "").strip()
     password = data.get("password", "")
     expected_role = data.get("role")
@@ -70,13 +113,23 @@ async def user_login(request: Request, data: dict = Body(...)):
     if not verify_password(password, user.get("password", "")):
         raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
 
-    if expected_role and user["role"] != expected_role:
-        raise HTTPException(status_code=403, detail=f"Bu sayfaya erişim yetkiniz yok. Yetkiniz: {user['role']}")
+    # Kullanıcının rolleri (roles varsa onu, yoksa [role])
+    user_roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
 
-    token = create_token(user["id"], user["username"], user["role"], user.get("display_name", ""))
+    # expected_role verildiyse: hem tek role hem roles listesinde kontrol et
+    if expected_role and expected_role not in user_roles:
+        raise HTTPException(status_code=403, detail=f"Bu sayfaya erişim yetkiniz yok. Yetkiniz: {', '.join(user_roles)}")
+
+    # Giriş için kullanılan rol (expected_role varsa o, yoksa primary role)
+    login_role = expected_role if expected_role else user.get("role", user_roles[0] if user_roles else "")
+
+    token = create_token(user["id"], user["username"], login_role, user.get("display_name", ""))
 
     user.pop("password", None)
-    return {**user, "token": token}
+    # Frontend için roles garantisi
+    if not user.get("roles"):
+        user["roles"] = user_roles
+    return {**user, "token": token, "login_role": login_role}
 
 
 @router.post("/management/login")

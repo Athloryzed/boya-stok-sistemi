@@ -91,7 +91,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // Kullanıcı yönetimi state'leri
   const [users, setUsers] = useState([]);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
-  const [newUserData, setNewUserData] = useState({ username: "", password: "", role: "", display_name: "", phone: "" });
+  const [newUserData, setNewUserData] = useState({ username: "", password: "", roles: [], display_name: "", phone: "" });
+  const [editingUserRoles, setEditingUserRoles] = useState(null); // { userId, username, roles: [] }
   const [driverLocations, setDriverLocations] = useState([]);
   
   // Dialog states
@@ -429,18 +430,39 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Kullanıcı yönetimi fonksiyonları
   const handleCreateUser = async () => {
-    if (!newUserData.username || !newUserData.password || !newUserData.role) {
-      toast.error("Kullanıcı adı, şifre ve rol zorunludur");
+    if (!newUserData.username || !newUserData.password || newUserData.roles.length === 0) {
+      toast.error("Kullanıcı adı, şifre ve en az bir rol zorunludur");
       return;
     }
     try {
       await axios.post(`${API}/users`, newUserData);
       toast.success("Kullanıcı oluşturuldu!");
       setIsUserDialogOpen(false);
-      setNewUserData({ username: "", password: "", role: "", display_name: "", phone: "" });
+      setNewUserData({ username: "", password: "", roles: [], display_name: "", phone: "" });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Kullanıcı oluşturulamadı");
+    }
+  };
+
+  const toggleUserRole = (role) => {
+    setNewUserData(prev => {
+      const has = prev.roles.includes(role);
+      return { ...prev, roles: has ? prev.roles.filter(r => r !== role) : [...prev.roles, role] };
+    });
+  };
+
+  const handleUpdateUserRoles = async (userId, username, newRoles) => {
+    if (!newRoles || newRoles.length === 0) {
+      toast.error("En az bir rol seçilmelidir");
+      return;
+    }
+    try {
+      await axios.patch(`${API}/users/${userId}/roles`, { roles: newRoles });
+      toast.success(`${username} rolleri güncellendi`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Roller güncellenemedi");
     }
   };
 
@@ -1479,32 +1501,50 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <p className="text-text-secondary text-center py-4">Henüz kullanıcı eklenmemiş</p>
                   ) : (
                     <div className="space-y-3">
-                      {users.map(user => (
-                        <div key={user.id} className="flex justify-between items-center p-3 bg-background rounded-lg border border-border">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getRoleColor(user.role)}`}>
-                              {user.role === "sofor" ? <Truck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                      {users.map(user => {
+                        const userRoles = (user.roles && user.roles.length > 0) ? user.roles : (user.role ? [user.role] : []);
+                        return (
+                        <div key={user.id} className="flex flex-wrap justify-between items-center gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/30 transition-colors" data-testid={`user-row-${user.username}`}>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getRoleColor(userRoles[0] || user.role)}`}>
+                              {userRoles.includes("sofor") ? <Truck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
                             </div>
-                            <div>
-                              <p className="font-semibold">{user.display_name || user.username}</p>
-                              <p className="text-xs text-text-secondary">@{user.username}</p>
+                            <div className="min-w-0">
+                              <p className="font-semibold truncate">{user.display_name || user.username}</p>
+                              <p className="text-xs text-text-secondary truncate">@{user.username}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded text-xs ${getRoleColor(user.role)}`}>
-                              {getRoleLabel(user.role)}
-                            </span>
-                            {user.role === "sofor" && user.current_location_lat && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex flex-wrap gap-1">
+                              {userRoles.map(r => (
+                                <span key={r} className={`px-2 py-0.5 rounded text-[11px] font-semibold ${getRoleColor(r)}`} data-testid={`user-role-badge-${user.username}-${r}`}>
+                                  {getRoleLabel(r)}
+                                </span>
+                              ))}
+                              {userRoles.length > 1 && (
+                                <span className="badge-gold" title="Çoklu rol" data-testid={`multi-role-indicator-${user.username}`}>
+                                  ×{userRoles.length}
+                                </span>
+                              )}
+                            </div>
+                            {userRoles.includes("sofor") && user.current_location_lat && (
                               <span className="text-green-500 text-xs flex items-center gap-1">
                                 <MapPin className="h-3 w-3" /> Aktif
                               </span>
                             )}
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteUser(user.id, user.username)}>
-                              <Trash2 className="h-4 w-4" />
+                            <Button size="sm" variant="outline" className="h-7 px-2 border-border text-text-secondary hover:text-primary hover:border-primary"
+                              onClick={() => setEditingUserRoles({ userId: user.id, username: user.username, roles: [...userRoles] })}
+                              data-testid={`edit-user-roles-${user.username}`}
+                              title="Rolleri düzenle"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="destructive" className="h-7 px-2" onClick={() => handleDeleteUser(user.id, user.username)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   )}
                 </CardContent>
@@ -2706,18 +2746,42 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 />
               </div>
               <div>
-                <Label>Rol *</Label>
-                <Select value={newUserData.role} onValueChange={(value) => setNewUserData({...newUserData, role: value})}>
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue placeholder="Rol seçin" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-surface border-border">
-                    <SelectItem value="operator">Operatör</SelectItem>
-                    <SelectItem value="plan">Planlama</SelectItem>
-                    <SelectItem value="depo">Depo</SelectItem>
-                    <SelectItem value="sofor">Şoför</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="flex items-center gap-2">
+                  Roller * <span className="text-[10px] text-text-muted font-mono">(çoklu seçim)</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-2 mt-2" data-testid="user-roles-grid">
+                  {[
+                    { value: "operator", label: "Operatör", icon: "👷" },
+                    { value: "plan", label: "Planlama", icon: "📋" },
+                    { value: "depo", label: "Depo", icon: "📦" },
+                    { value: "sofor", label: "Şoför", icon: "🚚" },
+                  ].map(r => {
+                    const active = newUserData.roles.includes(r.value);
+                    return (
+                      <button
+                        type="button"
+                        key={r.value}
+                        onClick={() => toggleUserRole(r.value)}
+                        data-testid={`role-toggle-${r.value}`}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all text-left ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background hover:border-primary/40 text-text-secondary"
+                        }`}
+                      >
+                        <span className="text-lg">{r.icon}</span>
+                        <span className="font-semibold text-sm">{r.label}</span>
+                        {active && <Check className="h-4 w-4 ml-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {newUserData.roles.length > 1 && (
+                  <p className="text-xs text-primary/80 mt-2 flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3" />
+                    Çoklu rol: Kullanıcı her panelden giriş yapabilecek.
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Görünen İsim</Label>
@@ -2741,6 +2805,76 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 Kullanıcı Oluştur
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rol Düzenleme Dialog */}
+        <Dialog open={!!editingUserRoles} onOpenChange={(open) => !open && setEditingUserRoles(null)}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">
+                Rolleri Düzenle: {editingUserRoles?.username}
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                Kullanıcının erişebileceği panelleri seçin. En az bir rol seçilmelidir.
+              </DialogDescription>
+            </DialogHeader>
+            {editingUserRoles && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2" data-testid="edit-user-roles-grid">
+                  {[
+                    { value: "operator", label: "Operatör", icon: "👷" },
+                    { value: "plan", label: "Planlama", icon: "📋" },
+                    { value: "depo", label: "Depo", icon: "📦" },
+                    { value: "sofor", label: "Şoför", icon: "🚚" },
+                  ].map(r => {
+                    const active = editingUserRoles.roles.includes(r.value);
+                    return (
+                      <button
+                        type="button"
+                        key={r.value}
+                        onClick={() => {
+                          setEditingUserRoles(prev => ({
+                            ...prev,
+                            roles: prev.roles.includes(r.value)
+                              ? prev.roles.filter(x => x !== r.value)
+                              : [...prev.roles, r.value]
+                          }));
+                        }}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all text-left ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background hover:border-primary/40 text-text-secondary"
+                        }`}
+                      >
+                        <span className="text-lg">{r.icon}</span>
+                        <span className="font-semibold text-sm">{r.label}</span>
+                        {active && <Check className="h-4 w-4 ml-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setEditingUserRoles(null)}
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    className="flex-1 bg-primary hover:bg-primary/90 text-black"
+                    onClick={async () => {
+                      await handleUpdateUserRoles(editingUserRoles.userId, editingUserRoles.username, editingUserRoles.roles);
+                      setEditingUserRoles(null);
+                    }}
+                    data-testid="save-user-roles-btn"
+                  >
+                    Kaydet
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

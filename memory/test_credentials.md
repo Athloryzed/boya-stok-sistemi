@@ -33,6 +33,13 @@
 - Name: Test Şoför
 - Password: 1234
 
+## Multi-Role Test User (Iteration 27+)
+- Username: coklukullanici
+- Password: test123
+- Roles: plan + depo
+- Can log in via /plan AND /bobin. Gets 403 on operator/sofor panels.
+
+
 ## Notes
 - All passwords (users + drivers) are bcrypt hashed in database
 - JWT tokens are automatically managed by frontend Axios interceptor

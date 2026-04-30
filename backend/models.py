@@ -185,7 +185,8 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
     password: str
-    role: str
+    role: str  # Birincil rol (geriye dönük uyumluluk için)
+    roles: List[str] = Field(default_factory=list)  # Tüm atanmış roller (multi-role desteği)
     display_name: Optional[str] = None
     phone: Optional[str] = None
     is_active: bool = True
