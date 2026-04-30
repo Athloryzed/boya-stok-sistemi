@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2 } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -980,6 +980,112 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </motion.div>
         )}
+
+        {/* Operasyon Metrik Kartları */}
+        <div className="mb-6">
+          <div className="section-label">
+            <span>Operasyon Özeti</span>
+            <span className="text-text-muted font-mono text-[10px] ml-auto">Canlı</span>
+          </div>
+          {(() => {
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            const activeJobsCount = jobs.filter(j => j.status === "in_progress").length;
+            const pendingJobsCount = jobs.filter(j => j.status === "pending").length;
+            const completedToday = jobs.filter(j => j.status === "completed" && j.completed_at && new Date(j.completed_at) >= todayStart);
+            const koliToday = completedToday.reduce((s, j) => s + (j.completed_koli || j.koli_count || 0), 0);
+            const workingMachines = machines.filter(m => m.status === "working").length;
+            const maintenanceMachines = machines.filter(m => m.maintenance).length;
+            const pendingApprovals = pendingReports.length;
+            const activeOperators = new Set(jobs.filter(j => j.status === "in_progress").map(j => j.operator_name).filter(Boolean)).size;
+
+            const metrics = [
+              {
+                label: "Bugünkü Üretim",
+                value: koliToday,
+                unit: "koli",
+                sub: `${completedToday.length} iş tamamlandı`,
+                icon: TrendingUp,
+                accent: "#FFBF00",
+                testid: "metric-today-production"
+              },
+              {
+                label: "Aktif İş",
+                value: activeJobsCount,
+                unit: "",
+                sub: `${activeOperators} operatör çalışıyor`,
+                icon: Activity,
+                accent: "#10B981",
+                testid: "metric-active-jobs"
+              },
+              {
+                label: "Bekleyen İş",
+                value: pendingJobsCount,
+                unit: "",
+                sub: "Üretim kuyruğunda",
+                icon: Package,
+                accent: "#3B82F6",
+                testid: "metric-pending-jobs"
+              },
+              {
+                label: "Aktif Makine",
+                value: workingMachines,
+                unit: `/ ${machines.length}`,
+                sub: maintenanceMachines > 0 ? `${maintenanceMachines} bakımda` : "Tümü hazır",
+                icon: Factory,
+                accent: "#A78BFA",
+                testid: "metric-active-machines"
+              },
+              {
+                label: "Onay Bekleyen",
+                value: pendingApprovals,
+                unit: "",
+                sub: pendingApprovals > 0 ? "İncelemeniz gerekli" : "Her şey yolunda",
+                icon: ClipboardCheck,
+                accent: pendingApprovals > 0 ? "#F59E0B" : "#71717A",
+                testid: "metric-pending-approvals"
+              },
+              {
+                label: "Düşük Stok",
+                value: lowStockPaints.length,
+                unit: "",
+                sub: lowStockPaints.length > 0 ? "Boya sipariş gerekli" : "Stok seviyesi iyi",
+                icon: Layers,
+                accent: lowStockPaints.length > 0 ? "#EF4444" : "#71717A",
+                testid: "metric-low-stock"
+              }
+            ];
+
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
+                {metrics.map((m, idx) => (
+                  <motion.div
+                    key={m.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: 0.05 * idx, ease: "easeOut" }}
+                    className="stat-card-industrial"
+                    data-testid={m.testid}
+                    style={{ borderLeftColor: m.accent }}
+                  >
+                    <div className="flex items-start justify-between mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-tight">
+                        {m.label}
+                      </span>
+                      <m.icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: m.accent, opacity: 0.7 }} />
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="metric-display text-3xl md:text-4xl num-tabular" style={{ color: m.accent }}>
+                        {m.value}
+                      </span>
+                      {m.unit && <span className="text-xs text-text-secondary font-mono">{m.unit}</span>}
+                    </div>
+                    <p className="text-[11px] text-text-muted mt-0.5 truncate">{m.sub}</p>
+                  </motion.div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
 
         <Tabs defaultValue="machines" className="space-y-6">
           {/* Mobile: 3-row grid layout, Desktop: horizontal scroll */}
