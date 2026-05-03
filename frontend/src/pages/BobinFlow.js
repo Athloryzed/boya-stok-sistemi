@@ -51,7 +51,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
       try {
         const session = JSON.parse(saved);
         const hours = (Date.now() - (session.login_time || 0)) / (1000 * 60 * 60);
-        if (hours < 24 && session.username && (session.role === "depo" || session.role === "plan")) {
+        const sessionRoles = (session.roles && session.roles.length > 0) ? session.roles : (session.role ? [session.role] : []);
+        const hasAccess = sessionRoles.includes("depo") || sessionRoles.includes("plan");
+        if (hours < 24 && session.username && hasAccess) {
           setUserData(session);
           setAuthenticated(true);
           if (session.token) localStorage.setItem("auth_token", session.token);
@@ -65,12 +67,15 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     try {
       const res = await axios.post(`${API}/users/login`, { username, password });
       const data = res.data;
-      if (data.role !== "depo" && data.role !== "plan") {
-        setLoginError("Bu sayfaya erisim yetkiniz yok. Sadece Depo ve Plan kullanicilari girebilir.");
+      // Çoklu rol desteği: kullanıcının roles[] listesinde depo veya plan varsa erişebilir
+      const userRoles = (data.roles && data.roles.length > 0) ? data.roles : (data.role ? [data.role] : []);
+      const hasAccess = userRoles.includes("depo") || userRoles.includes("plan");
+      if (!hasAccess) {
+        setLoginError("Bu sayfaya erisim yetkiniz yok. Bu modul Depo veya Planlama rolu gerektirir.");
         return;
       }
       if (data.token) localStorage.setItem("auth_token", data.token);
-      const session = { ...data, login_time: Date.now() };
+      const session = { ...data, roles: userRoles, login_time: Date.now() };
       localStorage.setItem("bobin_session", JSON.stringify(session));
       setUserData(session);
       setAuthenticated(true);
