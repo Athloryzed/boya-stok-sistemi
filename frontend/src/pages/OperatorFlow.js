@@ -541,7 +541,15 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
   const fetchMachinesData = async (retryCount = 0) => {
     try {
-      const response = await axios.get(`${API}/machines`);
+      const response = await axios.get(`${API}/machines`, { timeout: 15000 });
+      if (!Array.isArray(response.data)) {
+        // Bozuk response — eski state'i koru, sessiz fail
+        if (retryCount < 2) {
+          await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
+          return fetchMachinesData(retryCount + 1);
+        }
+        return [];
+      }
       const uniqueMachines = response.data.reduce((acc, machine) => {
         if (!acc.find(m => m.id === machine.id)) acc.push(machine);
         return acc;
@@ -566,12 +574,13 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     if (!selectedMachine) return;
     try {
       const [machineJobsRes, pausedJobsRes] = await Promise.all([
-        axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`),
-        axios.get(`${API}/jobs/paused`)
+        axios.get(`${API}/jobs?machine_id=${selectedMachine.id}`, { timeout: 15000 }),
+        axios.get(`${API}/jobs/paused`, { timeout: 15000 })
       ]);
       
-      const machineJobs = machineJobsRes.data;
-      const pausedJobs = pausedJobsRes.data.filter(j => j.machine_id === selectedMachine.id);
+      const machineJobs = Array.isArray(machineJobsRes.data) ? machineJobsRes.data : [];
+      const pausedJobsRaw = Array.isArray(pausedJobsRes.data) ? pausedJobsRes.data : [];
+      const pausedJobs = pausedJobsRaw.filter(j => j.machine_id === selectedMachine.id);
       
       const allJobs = [...machineJobs];
       pausedJobs.forEach(pj => {
@@ -594,8 +603,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const fetchMessages = async () => {
     if (!selectedMachine) return;
     try {
-      const response = await axios.get(`${API}/messages/${selectedMachine.id}`);
-      setMessages(response.data);
+      const response = await axios.get(`${API}/messages/${selectedMachine.id}`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setMessages(response.data);
     } catch (error) {
       console.error("Messages fetch error:", error);
     }
@@ -604,8 +613,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const fetchUnreadCount = async () => {
     if (!selectedMachine) return;
     try {
-      const response = await axios.get(`${API}/messages/${selectedMachine.id}/unread`);
-      setUnreadCount(response.data.unread_count);
+      const response = await axios.get(`${API}/messages/${selectedMachine.id}/unread`, { timeout: 15000 });
+      if (typeof response.data?.unread_count === "number") setUnreadCount(response.data.unread_count);
     } catch (error) {
       console.error("Unread count error:", error);
     }

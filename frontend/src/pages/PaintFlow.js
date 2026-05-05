@@ -97,21 +97,24 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     try {
       await axios.post(`${API}/paints/init`);
       
-      const [paintsRes, machinesRes, movementsRes, analyticsRes, lowStockRes, activePaintsRes] = await Promise.all([
-        axios.get(`${API}/paints`),
-        axios.get(`${API}/machines`),
-        axios.get(`${API}/paints/movements?limit=50`),
-        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`),
-        axios.get(`${API}/paints/low-stock`),
-        axios.get(`${API}/paints/active-on-machines`)
+      const results = await Promise.allSettled([
+        axios.get(`${API}/paints`, { timeout: 15000 }),
+        axios.get(`${API}/machines`, { timeout: 15000 }),
+        axios.get(`${API}/paints/movements?limit=50`, { timeout: 15000 }),
+        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`, { timeout: 15000 }),
+        axios.get(`${API}/paints/low-stock`, { timeout: 15000 }),
+        axios.get(`${API}/paints/active-on-machines`, { timeout: 15000 })
       ]);
-      
-      setPaints(paintsRes.data);
-      setMachines(machinesRes.data);
-      setMovements(movementsRes.data);
-      setAnalytics(analyticsRes.data);
-      setLowStockPaints(lowStockRes.data.low_stock_paints || []);
-      setActivePaintsOnMachines(activePaintsRes.data);
+
+      const safeArr = (r) => r.status === "fulfilled" && Array.isArray(r.value.data) ? r.value.data : null;
+      const safeObj = (r) => r.status === "fulfilled" && r.value.data && typeof r.value.data === "object" ? r.value.data : null;
+
+      const p = safeArr(results[0]); if (p) setPaints(p);
+      const m = safeArr(results[1]); if (m) setMachines(m);
+      const mv = safeArr(results[2]); if (mv) setMovements(mv);
+      const a = safeObj(results[3]); if (a) setAnalytics(a);
+      const ls = safeObj(results[4]); if (ls) setLowStockPaints(Array.isArray(ls.low_stock_paints) ? ls.low_stock_paints : []);
+      const ap = safeArr(results[5]); if (ap) setActivePaintsOnMachines(ap);
     } catch (error) {
       console.error("Data fetch error:", error);
     }

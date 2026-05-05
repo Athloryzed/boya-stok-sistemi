@@ -283,8 +283,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   // Sevkiyat veri çekme fonksiyonları
   const fetchVehicles = async () => {
     try {
-      const response = await axios.get(`${API}/vehicles`);
-      setVehicles(response.data);
+      const response = await axios.get(`${API}/vehicles`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setVehicles(response.data);
     } catch (error) {
       console.error("Araçlar yüklenemedi:", error);
     }
@@ -292,8 +292,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
   const fetchDrivers = async () => {
     try {
-      const response = await axios.get(`${API}/drivers`);
-      setDrivers(response.data);
+      const response = await axios.get(`${API}/drivers`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setDrivers(response.data);
     } catch (error) {
       console.error("Şoförler yüklenemedi:", error);
     }
@@ -301,8 +301,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
   const fetchShipments = async () => {
     try {
-      const response = await axios.get(`${API}/shipments`);
-      setShipments(response.data);
+      const response = await axios.get(`${API}/shipments`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setShipments(response.data);
     } catch (error) {
       console.error("Sevkiyatlar yüklenemedi:", error);
     }
@@ -310,8 +310,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
   const fetchPallets = async () => {
     try {
-      const response = await axios.get(`${API}/pallets?status=in_warehouse`);
-      setPallets(response.data);
+      const response = await axios.get(`${API}/pallets?status=in_warehouse`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setPallets(response.data);
     } catch (error) {
       console.error("Paletler yüklenemedi:", error);
     }
@@ -507,8 +507,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       }
       params.append("status", "pending");
       
-      const response = await axios.get(`${API}/jobs?${params.toString()}`);
-      setJobs(response.data);
+      const response = await axios.get(`${API}/jobs?${params.toString()}`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setJobs(response.data);
     } catch (error) {
       if (retryCount < 3) {
         setTimeout(() => fetchJobs(retryCount + 1), 2000 * (retryCount + 1));
@@ -521,8 +521,10 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   // Tüm işleri çek (makine durumları için - pending + in_progress)
   const fetchAllJobs = async () => {
     try {
-      const response = await axios.get(`${API}/jobs`);
-      setAllJobs(response.data.filter(j => j.status === "pending" || j.status === "in_progress" || j.status === "paused"));
+      const response = await axios.get(`${API}/jobs`, { timeout: 15000 });
+      if (Array.isArray(response.data)) {
+        setAllJobs(response.data.filter(j => j.status === "pending" || j.status === "in_progress" || j.status === "paused"));
+      }
     } catch (error) {
       console.error("Tüm işler yüklenemedi");
     }
@@ -536,8 +538,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         params.append("search", searchQuery);
       }
       
-      const response = await axios.get(`${API}/jobs?${params.toString()}`);
-      setCompletedJobs(response.data);
+      const response = await axios.get(`${API}/jobs?${params.toString()}`, { timeout: 15000 });
+      if (Array.isArray(response.data)) setCompletedJobs(response.data);
     } catch (error) {
       console.error("Completed jobs fetch error:", error);
     }
@@ -545,12 +547,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
 
   const fetchIncomingMessages = async () => {
     try {
-      const [messagesRes, unreadRes] = await Promise.all([
-        axios.get(`${API}/messages/all/incoming`),
-        axios.get(`${API}/messages/all/unread-count`)
+      const results = await Promise.allSettled([
+        axios.get(`${API}/messages/all/incoming`, { timeout: 15000 }),
+        axios.get(`${API}/messages/all/unread-count`, { timeout: 15000 })
       ]);
-      setIncomingMessages(messagesRes.data);
-      setUnreadMessagesCount(unreadRes.data.unread_count);
+      if (results[0].status === "fulfilled" && Array.isArray(results[0].value.data)) {
+        setIncomingMessages(results[0].value.data);
+      }
+      if (results[1].status === "fulfilled" && typeof results[1].value.data?.unread_count === "number") {
+        setUnreadMessagesCount(results[1].value.data.unread_count);
+      }
     } catch (error) {
       console.error("Messages fetch error:", error);
     }
