@@ -26,9 +26,27 @@ const BACKEND_URL = isProxiedSubdomain
   : process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
+// Mobile/slow network detection — adaptive timeout
+// Mobil veride RTT 200-800ms olabiliyor, 17+ paralel istekte cumulative gecikme yaşanır.
+// Bu yüzden mobil cihazlarda timeout'u 2x'e çıkarıyoruz.
+function detectSlowNetwork() {
+  if (typeof navigator === "undefined") return false;
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const isSlowConn = conn && (
+    conn.effectiveType === "slow-2g" ||
+    conn.effectiveType === "2g" ||
+    conn.effectiveType === "3g" ||
+    conn.saveData === true
+  );
+  return isMobile || isSlowConn;
+}
+
+export const IS_SLOW_NETWORK = detectSlowNetwork();
+
 // Global axios timeout - yavaş ağlarda infinite hanging'i önler
-// Mobile veya zayıf bağlantılarda 20 saniye sonra fail olsun, retry yapalım
-axios.defaults.timeout = 20000;
+// Mobil/yavaş ağlarda 35s, masaüstü hızlı ağda 20s
+axios.defaults.timeout = IS_SLOW_NETWORK ? 35000 : 20000;
 
 // Axios interceptor - JWT token'ı her isteğe ekle
 axios.interceptors.request.use((config) => {

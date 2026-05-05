@@ -172,10 +172,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const fetchData = async (retryCount = 0) => {
     try {
       const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
-        axios.get(`${API}/shifts/current`, { timeout: 12000 }),
-        axios.get(`${API}/machines`, { timeout: 12000 }),
-        axios.get(`${API}/jobs`, { timeout: 12000 }),
-        axios.get(`${API}/shifts/status`, { timeout: 12000 })
+        axios.get(`${API}/shifts/current`),
+        axios.get(`${API}/machines`),
+        axios.get(`${API}/jobs`),
+        axios.get(`${API}/shifts/status`)
       ]);
       
       setCurrentShift(shiftRes.data);
@@ -208,9 +208,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   
   const fetchSecondaryData = async () => {
     try {
-      // Batch helper: urls listesi için Promise.allSettled, her biri 15s timeout
+      // Batch helper: urls listesi için Promise.allSettled (axios global timeout'a güveniyoruz)
       const fetchBatch = (urls) =>
-        Promise.allSettled(urls.map((url) => axios.get(url, { timeout: 15000 })));
+        Promise.allSettled(urls.map((url) => axios.get(url)));
 
       // Batch 1 — En kritik veriler (hızlı, mobilde bile çabuk döner)
       const b1 = await fetchBatch([

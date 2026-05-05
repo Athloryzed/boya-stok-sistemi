@@ -97,18 +97,18 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     try {
       // /paints/init opsiyonel — fail olursa diğer fetcher'ları bloklamasın
       try {
-        await axios.post(`${API}/paints/init`, null, { timeout: 8000 });
+        await axios.post(`${API}/paints/init`, null);
       } catch (initErr) {
         console.warn("Paint init skipped (non-blocking):", initErr?.message);
       }
       
       const results = await Promise.allSettled([
-        axios.get(`${API}/paints`, { timeout: 15000 }),
-        axios.get(`${API}/machines`, { timeout: 15000 }),
-        axios.get(`${API}/paints/movements?limit=50`, { timeout: 15000 }),
-        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`, { timeout: 15000 }),
-        axios.get(`${API}/paints/low-stock`, { timeout: 15000 }),
-        axios.get(`${API}/paints/active-on-machines`, { timeout: 15000 })
+        axios.get(`${API}/paints`),
+        axios.get(`${API}/machines`),
+        axios.get(`${API}/paints/movements?limit=50`),
+        axios.get(`${API}/paints/analytics?period=${analyticsPeriod}`),
+        axios.get(`${API}/paints/low-stock`),
+        axios.get(`${API}/paints/active-on-machines`)
       ]);
 
       const safeArr = (r) => r.status === "fulfilled" && Array.isArray(r.value.data) ? r.value.data : null;

@@ -95,9 +95,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const fetchData = useCallback(async () => {
     try {
       const results = await Promise.allSettled([
-        axios.get(`${API}/bobins`, { timeout: 15000 }),
-        axios.get(`${API}/machines`, { timeout: 15000 }),
-        axios.get(`${API}/bobins/movements?limit=100`, { timeout: 15000 }),
+        axios.get(`${API}/bobins`),
+        axios.get(`${API}/machines`),
+        axios.get(`${API}/bobins/movements?limit=100`),
       ]);
       const safe = (r) => r.status === "fulfilled" && Array.isArray(r.value.data) ? r.value.data : null;
       const b = safe(results[0]); if (b) setBobins(b);

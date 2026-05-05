@@ -211,10 +211,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const fetchData = async () => {
     try {
       const results = await Promise.allSettled([
-        axios.get(`${API}/warehouse-requests?status=pending`, { timeout: 15000 }),
-        axios.get(`${API}/pallets`, { timeout: 15000 }),
-        axios.get(`${API}/shipments?status=preparing`, { timeout: 15000 }),
-        axios.get(`${API}/warehouse/shipment-logs`, { timeout: 15000 }),
+        axios.get(`${API}/warehouse-requests?status=pending`),
+        axios.get(`${API}/pallets`),
+        axios.get(`${API}/shipments?status=preparing`),
+        axios.get(`${API}/warehouse/shipment-logs`),
       ]);
       const safeArray = (res) =>
         res.status === "fulfilled" && Array.isArray(res.value.data) ? res.value.data : null;
