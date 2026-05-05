@@ -114,7 +114,27 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 
 ## Upcoming Tasks
 - P1: Sevkiyat & Surucu Modulu enhancements
+- P2: "Rol Degistir" butonu (multi-role users panel switch)
+- P2: Network change listener (Wi-Fi <-> 3G adaptive timeout)
 - P2: Frontend bilesen refactoring (extract common Job/Modal/Table components from ManagementFlow/PlanFlow/OperatorFlow)
-- P2: Overall UI polish pass (user requested holistic visual optimization)
 - P3: Renk Gecis Optimizasyonu
 - P3: Makine Bakim Planlayici
+
+### Feb 2026 (Iteration 36) — Mobile CGNAT Login Fix + Bobin Module v3 (kg-only + Edit + External Destinations)
+**Mobile login (P0 fix):** slowapi rate limit was blocking mobile users behind CGNAT shared IPs.
+- New `/app/backend/rate_limit_utils.py` with `get_real_client_ip` reading CF-Connecting-IP / X-Forwarded-For / X-Real-IP for proxy-aware throttling.
+- Bumped login limits: `/api/users/login` 10→120/min, `/api/drivers/login` 10→120/min, `/api/management/login` and `/api/dashboard/login` 10→60/min.
+- All limiter instances (server.py, users.py, dashboard.py, logistics.py) now use `get_real_client_ip`.
+- Verified: 30 sequential logins with X-Forwarded-For pass without 429.
+
+**Bobin Module v3 (kg-only + Edit + External Destinations):**
+- `/app/backend/routes/bobins.py` refactored: `total_weight_kg` is the primary metric; `quantity` (adet) is optional and defaults to 0. POST/purchase/to-machine/sale all accept `weight_kg` and validate against current stock.
+- New endpoint: `PATCH /api/bobins/{id}` to fix incorrect entries (brand, width, grammage, color, weight, barcode, supplier). Audit-logged.
+- Excel export updated to kg-only columns.
+- `/app/frontend/src/pages/BobinFlow.js` updated:
+  - Adet inputları kaldırıldı; tüm form alanları kg bazlı.
+  - Her bobin kartına "Düzenle" butonu (`bobin-edit-{id}`) + edit dialog.
+  - Stats: 3 kart yerine 2 kart (Bobin Çeşidi + Toplam Ağırlık).
+  - Makineye Ver dropdown'ına 3 harici hedef eklendi: "27 Makine" (ext-27-makine), "SİES 33 Makine" (ext-sies-33-makine), "Deniz Grubu" (ext-deniz-grubu).
+- 14/14 backend pytest passed; frontend dialogs verified via testing agent (iteration_36.json).
+
