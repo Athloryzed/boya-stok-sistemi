@@ -1,19 +1,49 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import axios from "axios";
 import "@/App.css";
-import Home from "./pages/Home";
-import OperatorFlow from "./pages/OperatorFlow";
-import PlanFlow from "./pages/PlanFlow";
-import ManagementFlow from "./pages/ManagementFlow";
-import WarehouseFlow from "./pages/WarehouseFlow";
-import PaintFlow from "./pages/PaintFlow";
-import DriverFlow from "./pages/DriverFlow";
-import LiveDashboard from "./pages/LiveDashboard";
-import TrackingPage from "./pages/TrackingPage";
-import BobinFlow from "./pages/BobinFlow";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
+
+// Code-splitting: Her panel ayrı chunk olarak yükleniyor → ilk yükleme küçük (Home + Auth UI),
+// kullanıcı belirli paneli açtığında o chunk indirilir. Mobil 3G/4G performansı için kritik.
+// Home eager (giriş sayfası ilk açıldığı için, blank screen olmasın)
+import Home from "./pages/Home";
+const OperatorFlow = lazy(() => import("./pages/OperatorFlow"));
+const PlanFlow = lazy(() => import("./pages/PlanFlow"));
+const ManagementFlow = lazy(() => import("./pages/ManagementFlow"));
+const WarehouseFlow = lazy(() => import("./pages/WarehouseFlow"));
+const PaintFlow = lazy(() => import("./pages/PaintFlow"));
+const DriverFlow = lazy(() => import("./pages/DriverFlow"));
+const LiveDashboard = lazy(() => import("./pages/LiveDashboard"));
+const TrackingPage = lazy(() => import("./pages/TrackingPage"));
+const BobinFlow = lazy(() => import("./pages/BobinFlow"));
+
+// Suspense fallback — chunk indirilirken gösterilen yükleyici (industrial tema)
+const RouteLoading = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-12 h-12 mx-auto mb-4 rounded-md bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-black font-black text-xl shadow-gold-glow animate-pulse">
+        B
+      </div>
+      <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary">
+        Buse Kağıt
+      </p>
+      <div className="mt-3 w-32 h-0.5 mx-auto bg-border overflow-hidden rounded-full">
+        <div className="h-full bg-primary animate-loading-bar" style={{
+          animation: "loading-bar 1.2s ease-in-out infinite"
+        }} />
+      </div>
+      <style>{`
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+        .animate-loading-bar { width: 25%; }
+      `}</style>
+    </div>
+  </div>
+);
 
 // Backend URL belirleme:
 // - Eğer alt domain'den geliniyorsa (app.*, panel.*, portal.*) Worker proxy aktif demektir
@@ -143,18 +173,20 @@ function App() {
       <div className={`App ${theme}`}>
         <BrowserRouter>
           <VisitorTracker />
-          <Routes>
-            <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
-            <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-            <Route path="/dashboard" element={<LiveDashboard />} />
-            <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
-          </Routes>
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
+              <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/dashboard" element={<LiveDashboard />} />
+              <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
         <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
       </div>
