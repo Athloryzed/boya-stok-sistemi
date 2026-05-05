@@ -15,7 +15,15 @@ import BobinFlow from "./pages/BobinFlow";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Backend URL belirleme:
+// - Eğer alt domain'den geliniyorsa (app.*, panel.*, portal.*) Worker proxy aktif demektir
+//   → same-origin kullan (Worker arkadan bksistem.space'e proxy yapar)
+// - Aksi durumda .env'deki REACT_APP_BACKEND_URL kullanılır
+const isProxiedSubdomain = typeof window !== "undefined" &&
+  /^(app|panel|portal)\./.test(window.location.hostname);
+const BACKEND_URL = isProxiedSubdomain
+  ? window.location.origin
+  : process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
 // Global axios timeout - yavaş ağlarda infinite hanging'i önler

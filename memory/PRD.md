@@ -52,6 +52,14 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 30) — Cloudflare Worker Proxy + Subdomain Bypass
+- **Frontend hostname auto-detect**: App.js artık alt domain'den geldiğinde (app./panel./portal.) `window.location.origin` kullanıyor. Aksi durumda eski REACT_APP_BACKEND_URL.
+- **Cloudflare Worker kodu hazırlandı**: `/app/cloudflare-worker.js` — `app.bksistem.space` → `bksistem.space` görünmez proxy. WebSocket, API, statik dosyalar. Cookie domain temizleme + 3xx redirect rewrite.
+- **CORS_ORIGINS güncellendi**: app./panel./portal. alt domainleri kabul eder.
+- **Deployment rehberi**: `/app/CLOUDFLARE_WORKER_KURULUM.md` — 7 adımlı kurulum + sorun giderme.
+- **Amaç**: TR ISS'lerin `bksistem.space` ana domain DNS/SNI engellemesini bypass — Worker, Cloudflare ağı içinde origin'e gidiyor.
+- Preview ortamında regresyon test temiz, alt domain pattern eşleşmiyor → eski davranış korundu.
+
 ### Feb 2026 (Iteration 29) — Plan B: Mobile/Slow Network Optimization
 - **Global axios timeout**: 20s default (App.js) — yavaş ağlarda infinite hang'i önler.
 - **ManagementFlow fetchSecondaryData batched**: 17 paralel istek → 5 batch (3-5'erli), her biri 15s timeout. Mobil ağlarda TCP connection limit aşılması ve cascade timeout engellendi.
