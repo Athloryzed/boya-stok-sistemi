@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'buse-kagit-v4';
+const CACHE_NAME = 'buse-kagit-v5';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'
@@ -34,11 +34,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls - always network only
+  // API calls - always network only.
+  // ÖNEMLİ: Offline fallback olarak {error:"offline"} döndürmek tehlikeliydi
+  // çünkü status 200 ile dönüyordu ve axios başarı sanıyordu, dolayısıyla
+  // array bekleyen state'lere obje yazılıyordu (.map crash sebebi).
+  // Şimdi: Network hatası 503 status ile döndür, axios reject etsin ki
+  // app catch block'una düşsün ve state olduğu gibi kalsın (varsayılan []).
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/ws')) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'offline' }), {
+        return new Response(JSON.stringify({ error: 'network_unavailable' }), {
+          status: 503,
+          statusText: 'Service Unavailable',
           headers: { 'Content-Type': 'application/json' }
         });
       })

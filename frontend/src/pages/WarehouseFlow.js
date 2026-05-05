@@ -210,16 +210,18 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      const [requestsRes, palletsRes, shipmentsRes, logsRes] = await Promise.all([
-        axios.get(`${API}/warehouse-requests?status=pending`),
-        axios.get(`${API}/pallets`),
-        axios.get(`${API}/shipments?status=preparing`),
-        axios.get(`${API}/warehouse/shipment-logs`)
+      const results = await Promise.allSettled([
+        axios.get(`${API}/warehouse-requests?status=pending`, { timeout: 15000 }),
+        axios.get(`${API}/pallets`, { timeout: 15000 }),
+        axios.get(`${API}/shipments?status=preparing`, { timeout: 15000 }),
+        axios.get(`${API}/warehouse/shipment-logs`, { timeout: 15000 }),
       ]);
-      setWarehouseRequests(requestsRes.data);
-      setPallets(palletsRes.data);
-      setShipments(shipmentsRes.data);
-      setShipmentLogs(logsRes.data);
+      const safeArray = (res) =>
+        res.status === "fulfilled" && Array.isArray(res.value.data) ? res.value.data : null;
+      const r = safeArray(results[0]); if (r) setWarehouseRequests(r);
+      const p = safeArray(results[1]); if (p) setPallets(p);
+      const s = safeArray(results[2]); if (s) setShipments(s);
+      const l = safeArray(results[3]); if (l) setShipmentLogs(l);
     } catch (error) {
       console.error("Data fetch error:", error);
     }

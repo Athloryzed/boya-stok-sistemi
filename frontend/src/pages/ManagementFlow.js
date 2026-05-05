@@ -179,12 +179,17 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       ]);
       
       setCurrentShift(shiftRes.data);
-      const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
-        if (!acc.find(m => m.id === machine.id)) acc.push(machine);
-        return acc;
-      }, []);
-      setMachines(uniqueMachines);
-      setJobs(jobsRes.data);
+      // Array kontrolü — corrupt response durumlarında .map crash'ini önle
+      if (Array.isArray(machinesRes.data)) {
+        const uniqueMachines = machinesRes.data.reduce((acc, machine) => {
+          if (!acc.find(m => m.id === machine.id)) acc.push(machine);
+          return acc;
+        }, []);
+        setMachines(uniqueMachines);
+      }
+      if (Array.isArray(jobsRes.data)) {
+        setJobs(jobsRes.data);
+      }
       setShiftStatus(shiftStatusRes.data);
     } catch (error) {
       console.error("Primary fetch error:", error);
