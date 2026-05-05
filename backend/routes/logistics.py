@@ -3,13 +3,14 @@ from typing import Optional
 from datetime import datetime, timezone
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from rate_limit_utils import get_real_client_ip
 
 from database import db
 from models import Vehicle, Shipment, Driver
 from auth import get_current_user, hash_password, verify_password, create_token
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_real_client_ip)
 
 
 # ==================== ARAÇ YÖNETİMİ ====================
@@ -153,7 +154,7 @@ async def get_drivers(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/drivers/login")
-@limiter.limit("10/minute")
+@limiter.limit("120/minute")
 async def driver_login(request: Request, data: dict = Body(...)):
     name = data.get("name")
     password = data.get("password")

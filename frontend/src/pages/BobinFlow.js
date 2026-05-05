@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, X, Search, ChevronRight, Weight, Hash, Ruler } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Card, CardContent } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -14,6 +13,14 @@ import axios from "axios";
 import { API } from "../App";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
+
+// Bobin Takip Sistemine eklenmiş harici hedefler (gerçek üretim makineleri değil,
+// fakat bobin transferinde sıkça kullanılan harici grup/makineler).
+const EXTRA_DESTINATIONS = [
+  { id: "ext-27-makine", name: "27 Makine" },
+  { id: "ext-sies-33-makine", name: "SİES 33 Makine" },
+  { id: "ext-deniz-grubu", name: "Deniz Grubu" },
+];
 
 const BobinFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -29,15 +36,16 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const [movements, setMovements] = useState([]);
 
   // Dialogs
-  const [activeDialog, setActiveDialog] = useState(null); // "add" | "purchase" | "machine" | "sale" | "scanner" | "scan-action"
+  const [activeDialog, setActiveDialog] = useState(null); // "add" | "purchase" | "machine" | "sale" | "scanner" | "scan-action" | "edit"
   const [selectedBobin, setSelectedBobin] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Add form
-  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", quantity: "", total_weight_kg: "", supplier: "" });
-  const [machineForm, setMachineForm] = useState({ quantity: "1", machine_id: "" });
-  const [saleForm, setSaleForm] = useState({ quantity: "1", customer_name: "", note: "" });
-  const [purchaseForm, setPurchaseForm] = useState({ quantity: "", weight_kg: "", supplier: "" });
+  // Forms (kg odaklı; adet artık sorulmuyor)
+  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" });
+  const [machineForm, setMachineForm] = useState({ weight_kg: "", machine_id: "" });
+  const [saleForm, setSaleForm] = useState({ weight_kg: "", customer_name: "", note: "" });
+  const [purchaseForm, setPurchaseForm] = useState({ weight_kg: "", supplier: "" });
+  const [editForm, setEditForm] = useState({ brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", barcode: "", supplier: "" });
 
   // Scanner
   const scannerRef = useRef(null);
@@ -67,7 +75,6 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     try {
       const res = await axios.post(`${API}/users/login`, { username, password });
       const data = res.data;
-      // Çoklu rol desteği: kullanıcının roles[] listesinde depo veya plan varsa erişebilir
       const userRoles = (data.roles && data.roles.length > 0) ? data.roles : (data.role ? [data.role] : []);
       const hasAccess = userRoles.includes("depo") || userRoles.includes("plan");
       if (!hasAccess) {
@@ -115,6 +122,12 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   const userName = userData?.display_name || userData?.username || "";
 
+  // Tüm makine seçenekleri: gerçek üretim makineleri + harici hedefler
+  const allMachineOptions = [
+    ...machines.map(m => ({ id: m.id, name: m.name })),
+    ...EXTRA_DESTINATIONS,
+  ];
+
   // ============ SCANNER ============
   const startScanner = (mode) => {
     setScanMode(mode);
@@ -153,11 +166,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   const handleBarcodeScanned = async (code) => {
     if (scanMode === "add") {
-      // Stok ekleme — barkodu form'a yaz
       setAddForm(p => ({ ...p, barcode: code }));
       setActiveDialog("add");
       toast.success(`Barkod okundu: ${code}`);
-      // Mevcut bobin var mi kontrol
       try {
         const res = await axios.get(`${API}/bobins/barcode/${code}`);
         if (res.data) {
@@ -172,9 +183,8 @@ const BobinFlow = ({ theme, toggleTheme }) => {
           }));
           toast.info("Mevcut bobin bulundu — bilgiler dolduruldu");
         }
-      } catch { /* Yeni barkod */ }
+      } catch { /* yeni barkod */ }
     } else {
-      // Makineye ver / Sat akışı — barkodla bobin bul
       try {
         const res = await axios.get(`${API}/bobins/barcode/${code}`);
         setSelectedBobin(res.data);
@@ -190,58 +200,96 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   // ============ ACTIONS ============
   const handleAddBobin = async () => {
     const color = addForm.color === "Diger" ? addForm.customColor.trim() : addForm.color;
-    if (!addForm.brand || !addForm.width_cm || !addForm.grammage || !addForm.quantity || !addForm.total_weight_kg || !color) {
-      toast.error("Tum zorunlu alanlari doldurun"); return;
+    if (!addForm.brand || !addForm.width_cm || !addForm.grammage || !addForm.total_weight_kg || !color) {
+      toast.error("Marka, genislik, gramaj, renk ve toplam agirlik zorunludur"); return;
     }
     try {
       const res = await axios.post(`${API}/bobins`, {
         barcode: addForm.barcode, brand: addForm.brand.trim(),
         width_cm: parseFloat(addForm.width_cm), grammage: parseFloat(addForm.grammage),
-        color, quantity: parseInt(addForm.quantity),
-        total_weight_kg: parseFloat(addForm.total_weight_kg),
+        color, total_weight_kg: parseFloat(addForm.total_weight_kg),
         supplier: addForm.supplier, user_name: userName
       });
       toast.success(res.data.message);
       setActiveDialog(null);
-      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", quantity: "", total_weight_kg: "", supplier: "" });
+      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" });
       fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
 
   const handlePurchase = async () => {
-    if (!purchaseForm.quantity || !purchaseForm.weight_kg) { toast.error("Adet ve agirlik zorunlu"); return; }
+    if (!purchaseForm.weight_kg) { toast.error("Agirlik (kg) zorunlu"); return; }
     try {
       const res = await axios.post(`${API}/bobins/${selectedBobin.id}/purchase`, {
-        quantity: parseInt(purchaseForm.quantity), weight_kg: parseFloat(purchaseForm.weight_kg),
+        weight_kg: parseFloat(purchaseForm.weight_kg),
         supplier: purchaseForm.supplier, user_name: userName
       });
       toast.success(res.data.message);
-      setActiveDialog(null); setPurchaseForm({ quantity: "", weight_kg: "", supplier: "" }); fetchData();
+      setActiveDialog(null); setPurchaseForm({ weight_kg: "", supplier: "" }); fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
 
   const handleToMachine = async () => {
-    if (!machineForm.machine_id || !machineForm.quantity) { toast.error("Makine ve adet secin"); return; }
-    const machine = machines.find(m => m.id === machineForm.machine_id);
+    if (!machineForm.machine_id || !machineForm.weight_kg) { toast.error("Makine ve agirlik (kg) secin"); return; }
+    const machine = allMachineOptions.find(m => m.id === machineForm.machine_id);
     try {
       const res = await axios.post(`${API}/bobins/${selectedBobin.id}/to-machine`, {
-        quantity: parseInt(machineForm.quantity), machine_id: machineForm.machine_id,
+        weight_kg: parseFloat(machineForm.weight_kg),
+        machine_id: machineForm.machine_id,
         machine_name: machine?.name || "", user_name: userName
       });
       toast.success(res.data.message);
-      setActiveDialog(null); setMachineForm({ quantity: "1", machine_id: "" }); fetchData();
+      setActiveDialog(null); setMachineForm({ weight_kg: "", machine_id: "" }); fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
 
   const handleSale = async () => {
-    if (!saleForm.customer_name || !saleForm.quantity) { toast.error("Musteri ve adet zorunlu"); return; }
+    if (!saleForm.customer_name || !saleForm.weight_kg) { toast.error("Musteri ve agirlik (kg) zorunlu"); return; }
     try {
       const res = await axios.post(`${API}/bobins/${selectedBobin.id}/sale`, {
-        quantity: parseInt(saleForm.quantity), customer_name: saleForm.customer_name,
+        weight_kg: parseFloat(saleForm.weight_kg),
+        customer_name: saleForm.customer_name,
         note: saleForm.note, user_name: userName
       });
       toast.success(res.data.message);
-      setActiveDialog(null); setSaleForm({ quantity: "1", customer_name: "", note: "" }); fetchData();
+      setActiveDialog(null); setSaleForm({ weight_kg: "", customer_name: "", note: "" }); fetchData();
+    } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
+  };
+
+  const openEditDialog = (b) => {
+    setSelectedBobin(b);
+    setEditForm({
+      brand: b.brand || "",
+      width_cm: String(b.width_cm || ""),
+      grammage: String(b.grammage || ""),
+      color: COLOR_OPTIONS.includes(b.color) ? b.color : "Diger",
+      customColor: COLOR_OPTIONS.includes(b.color) ? "" : (b.color || ""),
+      total_weight_kg: String(b.total_weight_kg ?? ""),
+      barcode: b.barcode || "",
+      supplier: b.supplier || "",
+    });
+    setActiveDialog("edit");
+  };
+
+  const handleEditSubmit = async () => {
+    const color = editForm.color === "Diger" ? editForm.customColor.trim() : editForm.color;
+    if (!editForm.brand || !editForm.width_cm || !editForm.grammage || !color) {
+      toast.error("Marka, genislik, gramaj ve renk zorunludur"); return;
+    }
+    try {
+      const res = await axios.patch(`${API}/bobins/${selectedBobin.id}`, {
+        brand: editForm.brand.trim(),
+        width_cm: parseFloat(editForm.width_cm),
+        grammage: parseFloat(editForm.grammage),
+        color,
+        total_weight_kg: editForm.total_weight_kg !== "" ? parseFloat(editForm.total_weight_kg) : undefined,
+        barcode: editForm.barcode,
+        supplier: editForm.supplier,
+        user_name: userName,
+      });
+      toast.success(res.data.message || "Guncellendi");
+      setActiveDialog(null);
+      fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
 
@@ -265,7 +313,6 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const typeLabel = (t) => ({ purchase: "Alis", to_machine: "Makineye", sale: "Satis" }[t] || t);
   const typeBg = (t) => ({ purchase: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", to_machine: "bg-sky-500/10 text-sky-400 border-sky-500/20", sale: "bg-amber-500/10 text-amber-400 border-amber-500/20" }[t] || "bg-zinc-500/10 text-zinc-400");
 
-  const totalQty = bobins.reduce((s, b) => s + (b.quantity || 0), 0);
   const totalWt = bobins.reduce((s, b) => s + (b.total_weight_kg || 0), 0);
 
   // ============ LOGIN SCREEN ============
@@ -341,23 +388,21 @@ const BobinFlow = ({ theme, toggleTheme }) => {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Bobin Cesidi", value: bobins.length, color: "text-white" },
-            { label: "Toplam Adet", value: totalQty, color: "text-emerald-400" },
-            { label: "Toplam Agirlik", value: `${totalWt.toFixed(0)} kg`, color: "text-sky-400" },
-          ].map((s, i) => (
-            <div key={i} className="bg-[#1a1f2e]/60 border border-white/[0.06] rounded-xl p-4 text-center">
-              <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{s.label}</p>
-              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
+        {/* Stats — kg odakli */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-[#1a1f2e]/60 border border-white/[0.06] rounded-xl p-4 text-center">
+            <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Bobin Cesidi</p>
+            <p className="text-2xl font-bold mt-1 text-white">{bobins.length}</p>
+          </div>
+          <div className="bg-[#1a1f2e]/60 border border-white/[0.06] rounded-xl p-4 text-center">
+            <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Toplam Agirlik</p>
+            <p className="text-2xl font-bold mt-1 text-sky-400">{totalWt.toFixed(0)} kg</p>
+          </div>
         </div>
 
         {/* Action buttons */}
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => { setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", quantity: "", total_weight_kg: "", supplier: "" }); setActiveDialog("add"); }}
+          <Button onClick={() => { setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" }); setActiveDialog("add"); }}
             className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5" data-testid="bobin-add-btn">
             <Plus className="h-4 w-4" /> Stoga Ekle
           </Button>
@@ -408,29 +453,32 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                         <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{b.color}</span>
                         {b.barcode && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 font-mono">{b.barcode}</span>}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500 flex-wrap">
                         <span className="flex items-center gap-1"><Ruler className="h-3 w-3" /> {b.width_cm} cm</span>
                         <span className="flex items-center gap-1"><Hash className="h-3 w-3" /> {b.grammage} gr</span>
-                        <span className="flex items-center gap-1 text-emerald-400 font-medium"><Layers className="h-3 w-3" /> {b.quantity} adet</span>
-                        <span className="flex items-center gap-1 text-sky-400"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
-                        <span className="text-zinc-600">({b.weight_per_piece_kg?.toFixed(1)} kg/adet)</span>
+                        <span className="flex items-center gap-1 text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 flex-shrink-0">
+                    <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
                       <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10"
                         data-testid={`bobin-purchase-${b.id}`}
-                        onClick={() => { setSelectedBobin(b); setPurchaseForm({ quantity: "", weight_kg: "", supplier: "" }); setActiveDialog("purchase"); }}>
+                        onClick={() => { setSelectedBobin(b); setPurchaseForm({ weight_kg: "", supplier: "" }); setActiveDialog("purchase"); }}>
                         <Plus className="h-3.5 w-3.5 mr-1" /> Ekle
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-sky-400 hover:bg-sky-500/10"
                         data-testid={`bobin-machine-${b.id}`}
-                        onClick={() => { setSelectedBobin(b); setMachineForm({ quantity: "1", machine_id: "" }); setActiveDialog("machine"); }}>
+                        onClick={() => { setSelectedBobin(b); setMachineForm({ weight_kg: "", machine_id: "" }); setActiveDialog("machine"); }}>
                         <Factory className="h-3.5 w-3.5 mr-1" /> Makine
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-amber-400 hover:bg-amber-500/10"
                         data-testid={`bobin-sale-${b.id}`}
-                        onClick={() => { setSelectedBobin(b); setSaleForm({ quantity: "1", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
+                        onClick={() => { setSelectedBobin(b); setSaleForm({ weight_kg: "", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
                         <ShoppingCart className="h-3.5 w-3.5 mr-1" /> Sat
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-zinc-400 hover:bg-zinc-500/10"
+                        data-testid={`bobin-edit-${b.id}`}
+                        onClick={() => openEditDialog(b)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Duzenle
                       </Button>
                     </div>
                   </div>
@@ -455,8 +503,8 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                     </span>
                     <span className="text-sm text-zinc-300 truncate">{m.bobin_label}</span>
                   </div>
-                  <div className="flex gap-3 mt-1 text-[11px] text-zinc-600">
-                    <span>{m.movement_type === "purchase" ? "+" : "-"}{m.quantity} adet / {m.weight_kg?.toFixed(1)}kg</span>
+                  <div className="flex gap-3 mt-1 text-[11px] text-zinc-600 flex-wrap">
+                    <span>{m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg</span>
                     {m.machine_name && <span className="text-sky-400/60">Makine: {m.machine_name}</span>}
                     {m.customer_name && <span className="text-amber-400/60">Musteri: {m.customer_name}</span>}
                     <span>Kullanici: {m.user_name || "-"}</span>
@@ -484,24 +532,24 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         </DialogContent>
       </Dialog>
 
-      {/* SCAN ACTION — Barkod okunduktan sonra: Makineye mi Sat mı? */}
+      {/* SCAN ACTION */}
       <Dialog open={activeDialog === "scan-action"} onOpenChange={() => setActiveDialog(null)}>
         <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Bobin Bulundu</DialogTitle>
             <DialogDescription>
-              {selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr ${selectedBobin.color} — ${selectedBobin.quantity} adet (${selectedBobin.total_weight_kg?.toFixed(1)}kg)`}
+              {selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr ${selectedBobin.color} — ${selectedBobin.total_weight_kg?.toFixed(1)} kg stokta`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 mt-2">
             <Button className="bg-sky-500 hover:bg-sky-600 text-white h-14 text-sm gap-2"
               data-testid="scan-to-machine"
-              onClick={() => { setMachineForm({ quantity: "1", machine_id: "" }); setActiveDialog("machine"); }}>
+              onClick={() => { setMachineForm({ weight_kg: "", machine_id: "" }); setActiveDialog("machine"); }}>
               <Factory className="h-5 w-5" /> Makineye Ver
             </Button>
             <Button className="bg-amber-500 hover:bg-amber-600 text-white h-14 text-sm gap-2"
               data-testid="scan-to-sale"
-              onClick={() => { setSaleForm({ quantity: "1", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
+              onClick={() => { setSaleForm({ weight_kg: "", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
               <ShoppingCart className="h-5 w-5" /> Sat
             </Button>
           </div>
@@ -513,7 +561,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         <DialogContent className="max-w-md bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Stoga Bobin Ekle</DialogTitle>
-            <DialogDescription>Yeni bobin turu veya mevcut stoga ekleyin</DialogDescription>
+            <DialogDescription>Yeni bobin turu veya mevcut stoga ekleyin (kg bazli)</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {addForm.barcode && (
@@ -562,23 +610,12 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   className="mt-2 bg-white/[0.04] border-white/[0.08] text-white" />
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-zinc-400">Adet *</Label>
-                <Input data-testid="add-bobin-qty" type="number" placeholder="4" value={addForm.quantity}
-                  onChange={e => setAddForm(p => ({...p, quantity: e.target.value}))}
-                  className="bg-white/[0.04] border-white/[0.08] text-white" />
-              </div>
-              <div>
-                <Label className="text-zinc-400">Toplam Agirlik (kg) *</Label>
-                <Input data-testid="add-bobin-weight" type="number" placeholder="500" value={addForm.total_weight_kg}
-                  onChange={e => setAddForm(p => ({...p, total_weight_kg: e.target.value}))}
-                  className="bg-white/[0.04] border-white/[0.08] text-white" />
-              </div>
+            <div>
+              <Label className="text-zinc-400">Toplam Agirlik (kg) *</Label>
+              <Input data-testid="add-bobin-weight" type="number" step="0.01" placeholder="500" value={addForm.total_weight_kg}
+                onChange={e => setAddForm(p => ({...p, total_weight_kg: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
             </div>
-            {addForm.quantity && addForm.total_weight_kg && (
-              <p className="text-xs text-zinc-500">Adet basi: {(parseFloat(addForm.total_weight_kg) / parseInt(addForm.quantity || 1)).toFixed(1)} kg</p>
-            )}
             <div>
               <Label className="text-zinc-400">Tedarikci</Label>
               <Input data-testid="add-bobin-supplier" placeholder="Tedarikci" value={addForm.supplier}
@@ -598,11 +635,18 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr ${selectedBobin.color}`}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-zinc-400">Adet *</Label><Input data-testid="purchase-qty" type="number" value={purchaseForm.quantity} onChange={e => setPurchaseForm(p => ({...p, quantity: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
-              <div><Label className="text-zinc-400">Agirlik (kg) *</Label><Input data-testid="purchase-weight" type="number" value={purchaseForm.weight_kg} onChange={e => setPurchaseForm(p => ({...p, weight_kg: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
+            <div>
+              <Label className="text-zinc-400">Agirlik (kg) *</Label>
+              <Input data-testid="purchase-weight" type="number" step="0.01" value={purchaseForm.weight_kg}
+                onChange={e => setPurchaseForm(p => ({...p, weight_kg: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
             </div>
-            <div><Label className="text-zinc-400">Tedarikci</Label><Input data-testid="purchase-supplier" value={purchaseForm.supplier} onChange={e => setPurchaseForm(p => ({...p, supplier: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
+            <div>
+              <Label className="text-zinc-400">Tedarikci</Label>
+              <Input data-testid="purchase-supplier" value={purchaseForm.supplier}
+                onChange={e => setPurchaseForm(p => ({...p, supplier: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
+            </div>
             <Button data-testid="purchase-submit" onClick={handlePurchase} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11">Stok Ekle</Button>
           </div>
         </DialogContent>
@@ -613,25 +657,27 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Makineye Ver</DialogTitle>
-            <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr — Stok: ${selectedBobin.quantity} adet`}</DialogDescription>
+            <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr — Stok: ${selectedBobin.total_weight_kg?.toFixed(1)} kg`}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label className="text-zinc-400">Makine *</Label>
               <Select value={machineForm.machine_id} onValueChange={v => setMachineForm(p => ({...p, machine_id: v}))}>
                 <SelectTrigger data-testid="machine-select" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue placeholder="Makine secin" /></SelectTrigger>
-                <SelectContent>{machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  {EXTRA_DESTINATIONS.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-zinc-400">Adet *</Label>
-              <Input data-testid="machine-qty" type="number" min="1" max={selectedBobin?.quantity || 1} value={machineForm.quantity}
-                onChange={e => setMachineForm(p => ({...p, quantity: e.target.value}))}
+              <Label className="text-zinc-400">Agirlik (kg) *</Label>
+              <Input data-testid="machine-weight" type="number" step="0.01" min="0.01"
+                max={selectedBobin?.total_weight_kg || 0}
+                value={machineForm.weight_kg}
+                onChange={e => setMachineForm(p => ({...p, weight_kg: e.target.value}))}
                 className="bg-white/[0.04] border-white/[0.08] text-white" />
             </div>
-            {selectedBobin && machineForm.quantity && (
-              <p className="text-xs text-zinc-500">Cikarilacak agirlik: {(selectedBobin.weight_per_piece_kg * parseInt(machineForm.quantity || 0)).toFixed(1)} kg</p>
-            )}
             <Button data-testid="machine-submit" onClick={handleToMachine} className="w-full bg-sky-500 hover:bg-sky-600 text-white h-11">Makineye Ver</Button>
           </div>
         </DialogContent>
@@ -642,13 +688,77 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Musteriye Sat</DialogTitle>
-            <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm — Stok: ${selectedBobin.quantity} adet`}</DialogDescription>
+            <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm — Stok: ${selectedBobin.total_weight_kg?.toFixed(1)} kg`}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div><Label className="text-zinc-400">Musteri Adi *</Label><Input data-testid="sale-customer" value={saleForm.customer_name} onChange={e => setSaleForm(p => ({...p, customer_name: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
-            <div><Label className="text-zinc-400">Adet *</Label><Input data-testid="sale-qty" type="number" min="1" value={saleForm.quantity} onChange={e => setSaleForm(p => ({...p, quantity: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
+            <div><Label className="text-zinc-400">Agirlik (kg) *</Label><Input data-testid="sale-weight" type="number" step="0.01" min="0.01" max={selectedBobin?.total_weight_kg || 0} value={saleForm.weight_kg} onChange={e => setSaleForm(p => ({...p, weight_kg: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
             <div><Label className="text-zinc-400">Not</Label><Input data-testid="sale-note" value={saleForm.note} onChange={e => setSaleForm(p => ({...p, note: e.target.value}))} className="bg-white/[0.04] border-white/[0.08] text-white" /></div>
             <Button data-testid="sale-submit" onClick={handleSale} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-11">Sat</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DUZENLE */}
+      <Dialog open={activeDialog === "edit"} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-md bg-[#1a1f2e] border-white/[0.08]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Bobin Bilgilerini Duzenle</DialogTitle>
+            <DialogDescription>Yanlis girilmis alanlari guncelleyin</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-zinc-400">Barkod</Label>
+              <Input data-testid="edit-bobin-barcode" placeholder="Barkod" value={editForm.barcode}
+                onChange={e => setEditForm(p => ({...p, barcode: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white font-mono" />
+            </div>
+            <div>
+              <Label className="text-zinc-400">Marka *</Label>
+              <Input data-testid="edit-bobin-brand" value={editForm.brand}
+                onChange={e => setEditForm(p => ({...p, brand: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-zinc-400">Genislik (cm) *</Label>
+                <Input data-testid="edit-bobin-width" type="number" value={editForm.width_cm}
+                  onChange={e => setEditForm(p => ({...p, width_cm: e.target.value}))}
+                  className="bg-white/[0.04] border-white/[0.08] text-white" />
+              </div>
+              <div>
+                <Label className="text-zinc-400">Gramaj (gr) *</Label>
+                <Input data-testid="edit-bobin-grammage" type="number" value={editForm.grammage}
+                  onChange={e => setEditForm(p => ({...p, grammage: e.target.value}))}
+                  className="bg-white/[0.04] border-white/[0.08] text-white" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-zinc-400">Renk *</Label>
+              <Select value={editForm.color} onValueChange={v => setEditForm(p => ({...p, color: v, customColor: v === "Diger" ? p.customColor : ""}))}>
+                <SelectTrigger data-testid="edit-bobin-color" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>{COLOR_OPTIONS.map(c => <SelectItem key={c} value={c}>{c === "Diger" ? "Diger..." : c}</SelectItem>)}</SelectContent>
+              </Select>
+              {editForm.color === "Diger" && (
+                <Input data-testid="edit-bobin-custom-color" placeholder="Renk girin..." value={editForm.customColor}
+                  onChange={e => setEditForm(p => ({...p, customColor: e.target.value}))}
+                  className="mt-2 bg-white/[0.04] border-white/[0.08] text-white" />
+              )}
+            </div>
+            <div>
+              <Label className="text-zinc-400">Toplam Agirlik (kg)</Label>
+              <Input data-testid="edit-bobin-weight" type="number" step="0.01" placeholder="Yanlissa duzeltin" value={editForm.total_weight_kg}
+                onChange={e => setEditForm(p => ({...p, total_weight_kg: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
+              <p className="text-[10px] text-zinc-600 mt-1">Bu deger toplam stoku dogrudan degistirir; dikkatli kullanin.</p>
+            </div>
+            <div>
+              <Label className="text-zinc-400">Tedarikci</Label>
+              <Input data-testid="edit-bobin-supplier" value={editForm.supplier}
+                onChange={e => setEditForm(p => ({...p, supplier: e.target.value}))}
+                className="bg-white/[0.04] border-white/[0.08] text-white" />
+            </div>
+            <Button data-testid="edit-bobin-submit" onClick={handleEditSubmit} className="w-full bg-zinc-200 hover:bg-white text-zinc-900 h-11 font-medium">Kaydet</Button>
           </div>
         </DialogContent>
       </Dialog>

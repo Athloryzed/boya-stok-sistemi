@@ -17,8 +17,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
+from rate_limit_utils import get_real_client_ip
+
+# Rate limiter (CGNAT/proxy-aware: gerçek client IP'sini header'dan okur)
+limiter = Limiter(key_func=get_real_client_ip)
 
 # Core modules
 from database import client, db

@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from rate_limit_utils import get_real_client_ip
 
 from database import db
 from models import User
@@ -10,7 +11,7 @@ from auth import hash_password, verify_password, create_token, get_current_user,
 from services.audit import log_audit
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_real_client_ip)
 
 
 VALID_ROLES = ["operator", "plan", "depo", "sofor"]
@@ -98,7 +99,7 @@ async def get_users(role: Optional[str] = None, current_user: dict = Depends(get
 
 
 @router.post("/users/login")
-@limiter.limit("10/minute")
+@limiter.limit("120/minute")
 async def user_login(request: Request, data: dict = Body(...)):
     """Kullanıcı girişi - bcrypt + JWT. Çoklu rol desteği: role, user.roles içinde olmalı."""
     username = data.get("username", "").strip()
@@ -133,7 +134,7 @@ async def user_login(request: Request, data: dict = Body(...)):
 
 
 @router.post("/management/login")
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")
 async def management_login(request: Request, data: dict = Body(...)):
     """Yönetim paneli girişi - JWT"""
     password = data.get("password", "")

@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 36 backend+frontend verification: rate-limit raise (CGNAT-friendly), kg-only Bobin refactor, PATCH /bobins/{id}, and 3 external machine destinations. 14/14 backend pytest tests passed; frontend dialogs verified (no Adet inputs, edit dialog complete, external destinations all present in Makineye select).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bobin_kg_refactor.py",
+    "/app/test_reports/pytest/iteration36_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "rate_limit_utils.get_real_client_ip is correctly wired into both /api/users/login (120/min), /api/management/login (60/min), and /api/dashboard/login (60/min) with X-Forwarded-For/CF-Connecting-IP/X-Real-IP fallbacks - good fix for CGNAT.",
+    "POST /api/bobins still computes weight_per_piece_kg only when quantity>0 (line 60); kg-only flow stores 0 for it, which is correct. PATCH endpoint also recomputes wpp safely.",
+    "Edit dialog on frontend has all required fields (brand, width, grammage, color, weight, barcode, supplier) with proper data-testid attributes.",
+    "EXTRA_DESTINATIONS (ext-27-makine, ext-sies-33-makine, ext-deniz-grubu) are appended to real machine list and visible in Makineye select dropdown.",
+    "Minor: BobinFlow.js label uses 'Toplam Agirlik (kg) *' for add and 'Agirlik (kg) *' for machine/sale - all 'Adet' inputs successfully removed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bobin_kg_refactor.py (NEW - 14 tests)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100%"},
+  "test_credentials": "depo1/depo123 (depo), management buse11993, dashboard buse4",
+  "seed_data_creation": "Test creates a TestE2E{ts} bobin then deletes it after zeroing weight (auto-cleanup).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test file /app/backend/tests/test_bobin_kg_refactor.py fully covers: rate-limit (30 sequential logins with X-Forwarded-For), all 3 login endpoints, kg-only POST /bobins, zero-weight rejection, PATCH /bobins/{id}, purchase, to-machine with ext-27-makine, sale, movements list, xlsx export, delete-blocked-when-stocked, delete-after-zeroing. Frontend Playwright already verified: add/machine/sale dialogs have no Adet, edit dialog complete, EXTRA_DESTINATIONS visible in machine-select.",
+  "rca of the issue": "N/A - all features working"
+}
