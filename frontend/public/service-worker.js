@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'buse-kagit-v3';
+const CACHE_NAME = 'buse-kagit-v4';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'

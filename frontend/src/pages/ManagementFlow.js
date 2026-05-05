@@ -1971,7 +1971,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <CardContent>
                   {defectWeeklyAnalytics?.machine_defects && Object.keys(defectWeeklyAnalytics.machine_defects).length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={prepareChartData(defectWeeklyAnalytics.machine_defects, "Defo")}>
+                      <BarChart data={prepareChartData(defectWeeklyAnalytics?.machine_defects, "Defo")}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                         <XAxis dataKey="name" stroke="#888" fontSize={12} />
                         <YAxis stroke="#888" unit=" kg" />
@@ -2022,7 +2022,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <CardContent>
                   {defectMonthlyAnalytics?.machine_defects && Object.keys(defectMonthlyAnalytics.machine_defects).length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={prepareChartData(defectMonthlyAnalytics.machine_defects, "Defo")}>
+                      <BarChart data={prepareChartData(defectMonthlyAnalytics?.machine_defects, "Defo")}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                         <XAxis dataKey="name" stroke="#888" fontSize={12} />
                         <YAxis stroke="#888" unit=" kg" />
