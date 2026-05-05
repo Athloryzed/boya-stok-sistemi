@@ -18,6 +18,10 @@ import { Toaster } from "./components/ui/sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
+// Global axios timeout - yavaş ağlarda infinite hanging'i önler
+// Mobile veya zayıf bağlantılarda 20 saniye sonra fail olsun, retry yapalım
+axios.defaults.timeout = 20000;
+
 // Axios interceptor - JWT token'ı her isteğe ekle
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("auth_token");

@@ -172,10 +172,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const fetchData = async (retryCount = 0) => {
     try {
       const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
-        axios.get(`${API}/shifts/current`),
-        axios.get(`${API}/machines`),
-        axios.get(`${API}/jobs`),
-        axios.get(`${API}/shifts/status`)
+        axios.get(`${API}/shifts/current`, { timeout: 12000 }),
+        axios.get(`${API}/machines`, { timeout: 12000 }),
+        axios.get(`${API}/jobs`, { timeout: 12000 }),
+        axios.get(`${API}/shifts/status`, { timeout: 12000 })
       ]);
       
       setCurrentShift(shiftRes.data);
@@ -189,61 +189,86 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     } catch (error) {
       console.error("Primary fetch error:", error);
       if (retryCount < 2) {
+        // Exponential backoff: 3s, 6s
         setTimeout(() => fetchData(retryCount + 1), 3000 * (retryCount + 1));
       } else {
-        toast.error("Sunucuya bağlanılamadı. Lütfen ağ bağlantınızı kontrol edin.");
+        // Sessiz başarısızlık — kullanıcı toast yerine sonraki polling ile dener
+        // Agresif toast, kullanıcıyı rahatsız eder; sadece ilk yüklemede göster
+        if (jobs.length === 0 && machines.length === 0) {
+          toast.error("Sunucu yavaş yanıt veriyor. Tekrar deneniyor...", { duration: 3000 });
+        }
       }
     }
   };
   
   const fetchSecondaryData = async () => {
     try {
-      const endpoints = [
+      // Batch helper: urls listesi için Promise.allSettled, her biri 15s timeout
+      const fetchBatch = (urls) =>
+        Promise.allSettled(urls.map((url) => axios.get(url, { timeout: 15000 })));
+
+      // Batch 1 — En kritik veriler (hızlı, mobilde bile çabuk döner)
+      const b1 = await fetchBatch([
+        `${API}/shifts/pending-reports`,
+        `${API}/paints/low-stock`,
+        `${API}/messages/all/unread-count`,
+      ]);
+      if (b1[0].status === "fulfilled") setPendingReports(b1[0].value.data);
+      if (b1[1].status === "fulfilled") setLowStockPaints(b1[1].value.data.low_stock_paints || []);
+      if (b1[2].status === "fulfilled") setUnreadMessagesCount(b1[2].value.data.unread_count);
+
+      // Batch 2 — Analitik (orta ağırlık)
+      const b2 = await fetchBatch([
         `${API}/analytics/weekly`,
         `${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`,
         `${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`,
+      ]);
+      if (b2[0].status === "fulfilled") setWeeklyAnalytics(b2[0].value.data);
+      if (b2[1].status === "fulfilled") setMonthlyAnalytics(b2[1].value.data);
+      if (b2[2].status === "fulfilled") setDailyAnalytics(b2[2].value.data);
+
+      // Batch 3 — Kaynaklar
+      const b3 = await fetchBatch([
         `${API}/maintenance-logs`,
         `${API}/paints`,
-        `${API}/paints/low-stock`,
-        `${API}/messages/all/incoming`,
-        `${API}/messages/all/unread-count`,
-        `${API}/visitors?limit=50`,
-        `${API}/visitors/stats`,
         `${API}/users`,
-        `${API}/users/drivers/locations`,
+      ]);
+      if (b3[0].status === "fulfilled") setMaintenanceLogs(b3[0].value.data);
+      if (b3[1].status === "fulfilled") setPaints(b3[1].value.data);
+      if (b3[2].status === "fulfilled") setUsers(b3[2].value.data);
+
+      // Batch 4 — Defo analitikleri
+      const b4 = await fetchBatch([
         `${API}/defects/analytics/weekly`,
         `${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`,
         `${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`,
-        `${API}/shifts/pending-reports`,
-        `${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`
-      ];
-      const results = await Promise.allSettled(endpoints.map(url => axios.get(url)));
-      const [weeklyRes, monthlyRes, dailyRes, logsRes, paintsRes, lowStockRes, messagesRes, unreadRes, visitorsRes, visitorStatsRes, usersRes, driversRes, defectWeeklyRes, defectMonthlyRes, defectDailyRes, pendingRes, auditRes] = results;
+      ]);
+      if (b4[0].status === "fulfilled") setDefectWeeklyAnalytics(b4[0].value.data);
+      if (b4[1].status === "fulfilled") setDefectMonthlyAnalytics(b4[1].value.data);
+      if (b4[2].status === "fulfilled") setDefectDailyAnalytics(b4[2].value.data);
 
-      if (weeklyRes.status === "fulfilled") setWeeklyAnalytics(weeklyRes.value.data);
-      if (monthlyRes.status === "fulfilled") setMonthlyAnalytics(monthlyRes.value.data);
-      if (dailyRes.status === "fulfilled") setDailyAnalytics(dailyRes.value.data);
-      if (logsRes.status === "fulfilled") setMaintenanceLogs(logsRes.value.data);
-      if (paintsRes.status === "fulfilled") setPaints(paintsRes.value.data);
-      if (lowStockRes.status === "fulfilled") setLowStockPaints(lowStockRes.value.data.low_stock_paints || []);
-      if (messagesRes.status === "fulfilled") setIncomingMessages(messagesRes.value.data);
-      if (unreadRes.status === "fulfilled") setUnreadMessagesCount(unreadRes.value.data.unread_count);
-      if (visitorsRes.status === "fulfilled") setVisitors(visitorsRes.value.data);
-      if (visitorStatsRes.status === "fulfilled") setVisitorStats(visitorStatsRes.value.data);
-      if (usersRes.status === "fulfilled") setUsers(usersRes.value.data);
-      if (driversRes.status === "fulfilled") setDriverLocations(driversRes.value.data);
-      if (defectWeeklyRes.status === "fulfilled") setDefectWeeklyAnalytics(defectWeeklyRes.value.data);
-      if (defectMonthlyRes.status === "fulfilled") setDefectMonthlyAnalytics(defectMonthlyRes.value.data);
-      if (defectDailyRes.status === "fulfilled") setDefectDailyAnalytics(defectDailyRes.value.data);
-      if (pendingRes.status === "fulfilled") setPendingReports(pendingRes.value.data);
-      if (auditRes.status === "fulfilled") {
-        setAuditLogs(auditRes.value.data.logs || []);
-        setAuditLogTotal(auditRes.value.data.total || 0);
+      // Batch 5 — Daha az kritik ikincil veriler (geç yüklenebilir)
+      const b5 = await fetchBatch([
+        `${API}/messages/all/incoming`,
+        `${API}/visitors?limit=50`,
+        `${API}/visitors/stats`,
+        `${API}/users/drivers/locations`,
+        `${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`,
+      ]);
+      if (b5[0].status === "fulfilled") setIncomingMessages(b5[0].value.data);
+      if (b5[1].status === "fulfilled") setVisitors(b5[1].value.data);
+      if (b5[2].status === "fulfilled") setVisitorStats(b5[2].value.data);
+      if (b5[3].status === "fulfilled") setDriverLocations(b5[3].value.data);
+      if (b5[4].status === "fulfilled") {
+        setAuditLogs(b5[4].value.data.logs || []);
+        setAuditLogTotal(b5[4].value.data.total || 0);
       }
     } catch (error) {
       console.error("Secondary data fetch error:", error);
     }
   };
+
+  const wsRetryCountRef = useRef(0);
 
   // WebSocket bağlantısı - Yönetici bildirimleri için
   const connectWebSocket = useCallback((mgrId) => {
@@ -254,6 +279,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     
     ws.onopen = () => {
       console.log("Manager WebSocket connected");
+      wsRetryCountRef.current = 0; // reset retry counter
       // Ping gönder (bağlantıyı canlı tut)
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -293,9 +319,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     ws.onclose = () => {
       console.log("Manager WebSocket disconnected");
       if (ws.pingInterval) clearInterval(ws.pingInterval);
-      // Yeniden bağlan
-      if (authenticated && managerId) {
-        reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(mgrId), 3000);
+      // Exponential backoff ile yeniden bağlan (3s, 6s, 12s, 24s, max 60s)
+      // 5 başarısız denemeden sonra pes et — veriler zaten polling ile geliyor
+      if (authenticated && managerId && wsRetryCountRef.current < 5) {
+        const delay = Math.min(3000 * Math.pow(2, wsRetryCountRef.current), 60000);
+        wsRetryCountRef.current += 1;
+        reconnectTimeoutRef.current = setTimeout(() => connectWebSocket(mgrId), delay);
+      } else if (wsRetryCountRef.current >= 5) {
+        console.warn("WebSocket: 5 deneme başarısız — polling moduna geçildi");
       }
     };
     

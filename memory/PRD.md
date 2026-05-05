@@ -52,6 +52,13 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - MongoDB Indexes: 46+ custom indexes across all collections
 - PWA, WebSocket, Excel export, QR Code, Drag & Drop, Customer tracking
 
+### Feb 2026 (Iteration 29) — Plan B: Mobile/Slow Network Optimization
+- **Global axios timeout**: 20s default (App.js) — yavaş ağlarda infinite hang'i önler.
+- **ManagementFlow fetchSecondaryData batched**: 17 paralel istek → 5 batch (3-5'erli), her biri 15s timeout. Mobil ağlarda TCP connection limit aşılması ve cascade timeout engellendi.
+- **fetchData primary**: 12s timeout, retry max 2x exponential backoff, agresif toast kaldırıldı.
+- **WebSocket exponential backoff**: 3s→6s→12s→24s→max 60s, 5 deneme sonrası pes (polling yedek).
+- **BobinFlow multi-role fix** (Iter 28): roles[] içinde plan veya depo varsa girebilir.
+
 ### Feb 2026 (Iteration 27) — Multi-Role Users + Analytics Bug Fix (TESTED 14/14 ✅)
 - **BUG FIX (Critical)**: Vardiya bitirildiğinde `produced_koli` analytics'te kayboluyordu. `analytics.py` daily + daily-by-week + weekly + monthly + daily-detail endpoint'leri: `status != 'completed'` dışlaması kaldırıldı; yeni logic: completed jobs için `completed_koli - prior_partials` = gerçek gün katkısı, tüm `shift_end_reports` o gün `produced_koli` katkı sağlıyor (completed-today olanlar hariç — double-count engel).
 - **NEW FEATURE — Multi-Role Users**: Tek kullanıcı adı birden fazla rol alabilir (plan+depo, operator+depo vb.).
