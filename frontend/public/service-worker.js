@@ -46,7 +46,10 @@ self.addEventListener('fetch', (event) => {
         return new Response(JSON.stringify({ error: 'network_unavailable' }), {
           status: 503,
           statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'application/json' }
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
+          }
         });
       })
     );

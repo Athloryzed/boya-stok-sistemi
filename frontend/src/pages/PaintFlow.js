@@ -95,7 +95,12 @@ const PaintFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      await axios.post(`${API}/paints/init`);
+      // /paints/init opsiyonel — fail olursa diğer fetcher'ları bloklamasın
+      try {
+        await axios.post(`${API}/paints/init`, null, { timeout: 8000 });
+      } catch (initErr) {
+        console.warn("Paint init skipped (non-blocking):", initErr?.message);
+      }
       
       const results = await Promise.allSettled([
         axios.get(`${API}/paints`, { timeout: 15000 }),
