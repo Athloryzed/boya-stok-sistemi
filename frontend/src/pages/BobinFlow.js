@@ -46,6 +46,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLayers, setFilterLayers] = useState("all"); // all | 1 | 2 | 3plus
   const [filterColor, setFilterColor] = useState("all"); // all | Beyaz | Kraft | other
+  const [filterWidth, setFilterWidth] = useState("all"); // all | <width_cm number>
 
   // Forms (kg odaklı; adet artık sorulmuyor)
   const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
@@ -388,12 +389,17 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     if (filterColor === "Beyaz" && b.color !== "Beyaz") return false;
     if (filterColor === "Kraft" && b.color !== "Kraft") return false;
     if (filterColor === "other" && (b.color === "Beyaz" || b.color === "Kraft")) return false;
+    // Genislik filtre
+    if (filterWidth !== "all" && Number(b.width_cm) !== Number(filterWidth)) return false;
     // Search
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
     return (b.brand?.toLowerCase().includes(s) || b.barcode?.toLowerCase().includes(s) ||
       String(b.width_cm).includes(s) || String(b.grammage).includes(s) || b.color?.toLowerCase().includes(s));
   });
+
+  // Dinamik genislik listesi (kucukten buyuge)
+  const availableWidths = Array.from(new Set(bobins.map(b => Number(b.width_cm)).filter(w => w > 0))).sort((a, b) => a - b);
 
   const typeLabel = (t) => ({ purchase: "Alis", to_machine: "Makineye", sale: "Satis" }[t] || t);
   const typeBg = (t) => ({ purchase: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", to_machine: "bg-sky-500/10 text-sky-400 border-sky-500/20", sale: "bg-amber-500/10 text-amber-400 border-amber-500/20" }[t] || "bg-zinc-500/10 text-zinc-400");
@@ -557,6 +563,25 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                     }`}>{o.label}</button>
                 ))}
               </div>
+              {availableWidths.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-600 mr-1">Genislik:</span>
+                  <button onClick={() => setFilterWidth("all")} data-testid="filter-width-all"
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                      filterWidth === "all"
+                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+                    }`}>Hepsi</button>
+                  {availableWidths.map(w => (
+                    <button key={w} onClick={() => setFilterWidth(String(w))} data-testid={`filter-width-${w}`}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                        Number(filterWidth) === w
+                          ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                          : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+                      }`}>{Number.isInteger(w) ? w : w.toFixed(1)} cm</button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               {filteredBobins.length === 0 && (
