@@ -446,39 +446,39 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                 <motion.div key={b.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="bg-[#1a1f2e]/60 border border-white/[0.06] rounded-xl p-4 hover:border-white/[0.12] transition-colors"
                   data-testid={`bobin-card-${b.id}`}>
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-white text-sm">{b.brand}</h3>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{b.color}</span>
                         {b.barcode && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 font-mono">{b.barcode}</span>}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500 flex-wrap">
-                        <span className="flex items-center gap-1"><Ruler className="h-3 w-3" /> {b.width_cm} cm</span>
-                        <span className="flex items-center gap-1"><Hash className="h-3 w-3" /> {b.grammage} gr</span>
-                        <span className="flex items-center gap-1 text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
+                      <div className="flex items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500 flex-wrap">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap"><Ruler className="h-3 w-3" /> {b.width_cm} cm</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap"><Hash className="h-3 w-3" /> {b.grammage} gr</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
                       </div>
                     </div>
-                    <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
-                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10"
+                    <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-shrink-0 sm:flex-wrap sm:justify-end border-t border-white/[0.04] pt-3 sm:border-t-0 sm:pt-0">
+                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-purchase-${b.id}`}
                         onClick={() => { setSelectedBobin(b); setPurchaseForm({ weight_kg: "", supplier: "" }); setActiveDialog("purchase"); }}>
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Ekle
+                        <Plus className="h-3.5 w-3.5" /> <span>Ekle</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-sky-400 hover:bg-sky-500/10"
+                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-sky-400 hover:bg-sky-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-machine-${b.id}`}
                         onClick={() => { setSelectedBobin(b); setMachineForm({ weight_kg: "", machine_id: "" }); setActiveDialog("machine"); }}>
-                        <Factory className="h-3.5 w-3.5 mr-1" /> Makine
+                        <Factory className="h-3.5 w-3.5" /> <span>Makine</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-amber-400 hover:bg-amber-500/10"
+                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-amber-400 hover:bg-amber-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-sale-${b.id}`}
                         onClick={() => { setSelectedBobin(b); setSaleForm({ weight_kg: "", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
-                        <ShoppingCart className="h-3.5 w-3.5 mr-1" /> Sat
+                        <ShoppingCart className="h-3.5 w-3.5" /> <span>Sat</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 px-2 text-xs text-zinc-400 hover:bg-zinc-500/10"
+                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-zinc-400 hover:bg-zinc-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-edit-${b.id}`}
                         onClick={() => openEditDialog(b)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Duzenle
+                        <Pencil className="h-3.5 w-3.5" /> <span>Duzenle</span>
                       </Button>
                     </div>
                   </div>
@@ -523,7 +523,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* SCANNER */}
       <Dialog open={activeDialog === "scanner"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Barkod Okut</DialogTitle>
             <DialogDescription>{scanMode === "add" ? "Stoga eklemek icin barkod okutun" : "Makineye vermek veya satmak icin barkod okutun"}</DialogDescription>
@@ -534,7 +534,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* SCAN ACTION */}
       <Dialog open={activeDialog === "scan-action"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Bobin Bulundu</DialogTitle>
             <DialogDescription>
@@ -558,7 +558,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* STOGA EKLE */}
       <Dialog open={activeDialog === "add"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-md bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Stoga Bobin Ekle</DialogTitle>
             <DialogDescription>Yeni bobin turu veya mevcut stoga ekleyin (kg bazli)</DialogDescription>
@@ -602,7 +602,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               <Label className="text-zinc-400">Renk *</Label>
               <Select value={addForm.color} onValueChange={v => setAddForm(p => ({...p, color: v, customColor: v === "Diger" ? p.customColor : ""}))}>
                 <SelectTrigger data-testid="add-bobin-color" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
-                <SelectContent>{COLOR_OPTIONS.map(c => <SelectItem key={c} value={c}>{c === "Diger" ? "Diger..." : c}</SelectItem>)}</SelectContent>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">{COLOR_OPTIONS.map(c => <SelectItem key={c} value={c}>{c === "Diger" ? "Diger..." : c}</SelectItem>)}</SelectContent>
               </Select>
               {addForm.color === "Diger" && (
                 <Input data-testid="add-bobin-custom-color" placeholder="Renk girin..." value={addForm.customColor}
@@ -629,7 +629,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* STOK EKLE */}
       <Dialog open={activeDialog === "purchase"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Stok Ekle</DialogTitle>
             <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr ${selectedBobin.color}`}</DialogDescription>
@@ -654,7 +654,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* MAKİNEYE VER */}
       <Dialog open={activeDialog === "machine"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Makineye Ver</DialogTitle>
             <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm ${selectedBobin.grammage}gr — Stok: ${selectedBobin.total_weight_kg?.toFixed(1)} kg`}</DialogDescription>
@@ -664,7 +664,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               <Label className="text-zinc-400">Makine *</Label>
               <Select value={machineForm.machine_id} onValueChange={v => setMachineForm(p => ({...p, machine_id: v}))}>
                 <SelectTrigger data-testid="machine-select" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue placeholder="Makine secin" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">
                   {machines.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                   {EXTRA_DESTINATIONS.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
@@ -685,7 +685,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* SATIŞ */}
       <Dialog open={activeDialog === "sale"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-sm bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Musteriye Sat</DialogTitle>
             <DialogDescription>{selectedBobin && `${selectedBobin.brand} ${selectedBobin.width_cm}cm — Stok: ${selectedBobin.total_weight_kg?.toFixed(1)} kg`}</DialogDescription>
@@ -701,7 +701,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
       {/* DUZENLE */}
       <Dialog open={activeDialog === "edit"} onOpenChange={() => setActiveDialog(null)}>
-        <DialogContent className="max-w-md bg-[#1a1f2e] border-white/[0.08]">
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
           <DialogHeader>
             <DialogTitle className="text-white">Bobin Bilgilerini Duzenle</DialogTitle>
             <DialogDescription>Yanlis girilmis alanlari guncelleyin</DialogDescription>
@@ -737,7 +737,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               <Label className="text-zinc-400">Renk *</Label>
               <Select value={editForm.color} onValueChange={v => setEditForm(p => ({...p, color: v, customColor: v === "Diger" ? p.customColor : ""}))}>
                 <SelectTrigger data-testid="edit-bobin-color" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
-                <SelectContent>{COLOR_OPTIONS.map(c => <SelectItem key={c} value={c}>{c === "Diger" ? "Diger..." : c}</SelectItem>)}</SelectContent>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">{COLOR_OPTIONS.map(c => <SelectItem key={c} value={c}>{c === "Diger" ? "Diger..." : c}</SelectItem>)}</SelectContent>
               </Select>
               {editForm.color === "Diger" && (
                 <Input data-testid="edit-bobin-custom-color" placeholder="Renk girin..." value={editForm.customColor}

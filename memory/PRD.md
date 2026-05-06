@@ -138,3 +138,9 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
   - Makineye Ver dropdown'ına 3 harici hedef eklendi: "27 Makine" (ext-27-makine), "SİES 33 Makine" (ext-sies-33-makine), "Deniz Grubu" (ext-deniz-grubu).
 - 14/14 backend pytest passed; frontend dialogs verified via testing agent (iteration_36.json).
 
+### Feb 2026 (Iteration 37) — Bobin Mobile UI Fix
+- Bobin kartı: `flex flex-col sm:flex-row` ile mobilde info ve aksiyon butonları dikey stack; butonlar 4-kolon grid (Ekle/Makine/Sat/Düzenle simgeleriyle).
+- Metadata span'larına `whitespace-nowrap` eklendi (artık "21 cm" "16 gr" tek satırda).
+- Tüm Bobin dialog'larına `w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto` — küçük ekranlarda dialog viewport'a sığar ve içerik scroll edilir.
+- Makineye Ver ve Renk SelectContent'leri: `max-h-[50vh]` + dark popover tema (`bg-[#1a1f2e] border-white/[0.08] text-white`) — dropdown formu boğmuyor, butonların üstüne gelmiyor.
+
