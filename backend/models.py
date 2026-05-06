@@ -324,6 +324,7 @@ class Bobin(BaseModel):
     width_cm: float  # Genişlik (cm) - 24, 30, 33, 40
     grammage: float  # Gramaj (gr) - 17, 20, vs.
     color: str = "Beyaz"  # Kağıt rengi
+    layers: int = 1  # Kat sayısı (1=TEK, 2=ÇİFT, 3+=DİĞER)
     quantity: int = 0  # Adet (depodaki)
     total_weight_kg: float = 0.0  # Toplam ağırlık (kg)
     weight_per_piece_kg: float = 0.0  # Adet başı ağırlık (kg)

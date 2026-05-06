@@ -13,6 +13,11 @@ import axios from "axios";
 import { API } from "../App";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
+const LAYER_OPTIONS = [
+  { value: "1", label: "TEK" },
+  { value: "2", label: "CIFT" },
+  { value: "other", label: "Diger..." },
+];
 
 // Bobin Takip Sistemine eklenmiş harici hedefler (gerçek üretim makineleri değil,
 // fakat bobin transferinde sıkça kullanılan harici grup/makineler).
@@ -41,11 +46,11 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Forms (kg odaklı; adet artık sorulmuyor)
-  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" });
+  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
   const [machineForm, setMachineForm] = useState({ weight_kg: "", machine_id: "" });
   const [saleForm, setSaleForm] = useState({ weight_kg: "", customer_name: "", note: "" });
   const [purchaseForm, setPurchaseForm] = useState({ weight_kg: "", supplier: "" });
-  const [editForm, setEditForm] = useState({ brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", barcode: "", supplier: "" });
+  const [editForm, setEditForm] = useState({ brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", barcode: "", supplier: "" });
 
   // Scanner
   const scannerRef = useRef(null);
@@ -180,6 +185,8 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             grammage: String(res.data.grammage || ""),
             color: COLOR_OPTIONS.includes(res.data.color) ? res.data.color : "Diger",
             customColor: COLOR_OPTIONS.includes(res.data.color) ? "" : res.data.color,
+            layers: (res.data.layers === 1 || res.data.layers === 2) ? String(res.data.layers) : "other",
+            customLayers: (res.data.layers && res.data.layers > 2) ? String(res.data.layers) : "",
           }));
           toast.info("Mevcut bobin bulundu — bilgiler dolduruldu");
         }
@@ -203,16 +210,23 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     if (!addForm.brand || !addForm.width_cm || !addForm.grammage || !addForm.total_weight_kg || !color) {
       toast.error("Marka, genislik, gramaj, renk ve toplam agirlik zorunludur"); return;
     }
+    let layers = 1;
+    if (addForm.layers === "other") {
+      layers = parseInt(addForm.customLayers || "0");
+      if (!layers || layers < 1) { toast.error("Kat sayisi gecerli olmali"); return; }
+    } else {
+      layers = parseInt(addForm.layers || "1");
+    }
     try {
       const res = await axios.post(`${API}/bobins`, {
         barcode: addForm.barcode, brand: addForm.brand.trim(),
         width_cm: parseFloat(addForm.width_cm), grammage: parseFloat(addForm.grammage),
-        color, total_weight_kg: parseFloat(addForm.total_weight_kg),
+        color, layers, total_weight_kg: parseFloat(addForm.total_weight_kg),
         supplier: addForm.supplier, user_name: userName
       });
       toast.success(res.data.message);
       setActiveDialog(null);
-      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" });
+      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
       fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
@@ -258,12 +272,15 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   const openEditDialog = (b) => {
     setSelectedBobin(b);
+    const lyr = b.layers || 1;
     setEditForm({
       brand: b.brand || "",
       width_cm: String(b.width_cm || ""),
       grammage: String(b.grammage || ""),
       color: COLOR_OPTIONS.includes(b.color) ? b.color : "Diger",
       customColor: COLOR_OPTIONS.includes(b.color) ? "" : (b.color || ""),
+      layers: (lyr === 1 || lyr === 2) ? String(lyr) : "other",
+      customLayers: lyr > 2 ? String(lyr) : "",
       total_weight_kg: String(b.total_weight_kg ?? ""),
       barcode: b.barcode || "",
       supplier: b.supplier || "",
@@ -276,12 +293,20 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     if (!editForm.brand || !editForm.width_cm || !editForm.grammage || !color) {
       toast.error("Marka, genislik, gramaj ve renk zorunludur"); return;
     }
+    let layers = 1;
+    if (editForm.layers === "other") {
+      layers = parseInt(editForm.customLayers || "0");
+      if (!layers || layers < 1) { toast.error("Kat sayisi gecerli olmali"); return; }
+    } else {
+      layers = parseInt(editForm.layers || "1");
+    }
     try {
       const res = await axios.patch(`${API}/bobins/${selectedBobin.id}`, {
         brand: editForm.brand.trim(),
         width_cm: parseFloat(editForm.width_cm),
         grammage: parseFloat(editForm.grammage),
         color,
+        layers,
         total_weight_kg: editForm.total_weight_kg !== "" ? parseFloat(editForm.total_weight_kg) : undefined,
         barcode: editForm.barcode,
         supplier: editForm.supplier,
@@ -402,7 +427,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
         {/* Action buttons */}
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => { setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", total_weight_kg: "", supplier: "" }); setActiveDialog("add"); }}
+          <Button onClick={() => { setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" }); setActiveDialog("add"); }}
             className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5" data-testid="bobin-add-btn">
             <Plus className="h-4 w-4" /> Stoga Ekle
           </Button>
@@ -451,6 +476,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-white text-sm">{b.brand}</h3>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{b.color}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                          {b.layers === 1 || !b.layers ? "TEK" : b.layers === 2 ? "CIFT" : `${b.layers} KAT`}
+                        </span>
                         {b.barcode && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 font-mono">{b.barcode}</span>}
                       </div>
                       <div className="flex items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500 flex-wrap">
@@ -611,6 +639,21 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               )}
             </div>
             <div>
+              <Label className="text-zinc-400">Kat *</Label>
+              <Select value={addForm.layers} onValueChange={v => setAddForm(p => ({...p, layers: v, customLayers: v === "other" ? p.customLayers : ""}))}>
+                <SelectTrigger data-testid="add-bobin-layers" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">
+                  {LAYER_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {addForm.layers === "other" && (
+                <Input data-testid="add-bobin-custom-layers" type="number" min="3" placeholder="Kat sayisi (3, 4, ...)"
+                  value={addForm.customLayers}
+                  onChange={e => setAddForm(p => ({...p, customLayers: e.target.value}))}
+                  className="mt-2 bg-white/[0.04] border-white/[0.08] text-white" />
+              )}
+            </div>
+            <div>
               <Label className="text-zinc-400">Toplam Agirlik (kg) *</Label>
               <Input data-testid="add-bobin-weight" type="number" step="0.01" placeholder="500" value={addForm.total_weight_kg}
                 onChange={e => setAddForm(p => ({...p, total_weight_kg: e.target.value}))}
@@ -742,6 +785,21 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               {editForm.color === "Diger" && (
                 <Input data-testid="edit-bobin-custom-color" placeholder="Renk girin..." value={editForm.customColor}
                   onChange={e => setEditForm(p => ({...p, customColor: e.target.value}))}
+                  className="mt-2 bg-white/[0.04] border-white/[0.08] text-white" />
+              )}
+            </div>
+            <div>
+              <Label className="text-zinc-400">Kat *</Label>
+              <Select value={editForm.layers} onValueChange={v => setEditForm(p => ({...p, layers: v, customLayers: v === "other" ? p.customLayers : ""}))}>
+                <SelectTrigger data-testid="edit-bobin-layers" className="bg-white/[0.04] border-white/[0.08] text-white"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">
+                  {LAYER_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {editForm.layers === "other" && (
+                <Input data-testid="edit-bobin-custom-layers" type="number" min="3" placeholder="Kat sayisi"
+                  value={editForm.customLayers}
+                  onChange={e => setEditForm(p => ({...p, customLayers: e.target.value}))}
                   className="mt-2 bg-white/[0.04] border-white/[0.08] text-white" />
               )}
             </div>

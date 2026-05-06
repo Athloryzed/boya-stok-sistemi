@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def bobin_label(b: dict) -> str:
-    return f"{b.get('brand', '')} {b.get('width_cm', '')}cm {b.get('grammage', '')}gr {b.get('color', '')}"
+    layers = int(b.get('layers', 1) or 1)
+    layer_str = "TEK" if layers == 1 else "CIFT" if layers == 2 else f"{layers} KAT"
+    return f"{b.get('brand', '')} {b.get('width_cm', '')}cm {b.get('grammage', '')}gr {b.get('color', '')} {layer_str}"
 
 
 # ==================== BOBİN CRUD ====================
@@ -45,6 +47,9 @@ async def create_bobin(data: dict = Body(...)):
     width_cm = float(data.get("width_cm", 0))
     grammage = float(data.get("grammage", 0))
     color = data.get("color", "Beyaz").strip()
+    layers = int(data.get("layers", 1) or 1)
+    if layers < 1:
+        layers = 1
     quantity = int(data.get("quantity", 0) or 0)
     total_weight_kg = float(data.get("total_weight_kg", 0) or 0)
     supplier = data.get("supplier", "")
@@ -64,11 +69,12 @@ async def create_bobin(data: dict = Body(...)):
     if barcode:
         existing = await db.bobins.find_one({"barcode": barcode}, {"_id": 0})
 
-    # Barkod yoksa marka/olcu/gramaj/renk ile ara
+    # Barkod yoksa marka/olcu/gramaj/renk/kat ile ara
     if not existing:
         existing = await db.bobins.find_one({
             "brand": brand, "width_cm": width_cm,
-            "grammage": grammage, "color": color
+            "grammage": grammage, "color": color,
+            "layers": layers
         }, {"_id": 0})
 
     if existing:
@@ -100,6 +106,7 @@ async def create_bobin(data: dict = Body(...)):
     else:
         bobin = Bobin(
             barcode=barcode, brand=brand, width_cm=width_cm, grammage=grammage, color=color,
+            layers=layers,
             quantity=quantity, total_weight_kg=round(total_weight_kg, 2),
             weight_per_piece_kg=weight_per_piece, supplier=supplier, notes=notes
         )
@@ -129,7 +136,7 @@ async def update_bobin(bobin_id: str, data: dict = Body(...)):
     update_fields = {}
     allowed_str = ["brand", "color", "barcode", "supplier", "notes"]
     allowed_num = ["width_cm", "grammage", "total_weight_kg"]
-    allowed_int = ["quantity"]
+    allowed_int = ["quantity", "layers"]
 
     for k in allowed_str:
         if k in data:
@@ -376,32 +383,35 @@ async def export_bobins(data: dict = Depends(get_current_user)):
 
     ws1 = wb.active
     ws1.title = "Bobin Stok"
-    ws1.merge_cells("A1:F1")
+    ws1.merge_cells("A1:G1")
     t = ws1.cell(row=1, column=1, value=f"BUSE KAGIT - Bobin Stok Durumu ({datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')})")
     t.font = title_font
     t.fill = title_fill
     t.alignment = center_align
     ws1.row_dimensions[1].height = 30
 
-    headers = ["Barkod", "Marka", "Genislik (cm)", "Gramaj (gr)", "Renk", "Toplam Agirlik (kg)"]
+    headers = ["Barkod", "Marka", "Genislik (cm)", "Gramaj (gr)", "Renk", "Kat", "Toplam Agirlik (kg)"]
     for col, h in enumerate(headers, 1):
         ws1.cell(row=3, column=col, value=h)
-    style_header(ws1, 3, 6)
+    style_header(ws1, 3, 7)
 
     for idx, b in enumerate(bobins):
         row = 4 + idx
+        layers = int(b.get("layers", 1) or 1)
+        layer_str = "TEK" if layers == 1 else "CIFT" if layers == 2 else f"{layers} KAT"
         ws1.cell(row=row, column=1, value=b.get("barcode", ""))
         ws1.cell(row=row, column=2, value=b.get("brand", ""))
         ws1.cell(row=row, column=3, value=b.get("width_cm", 0)).alignment = center_align
         ws1.cell(row=row, column=4, value=b.get("grammage", 0)).alignment = center_align
         ws1.cell(row=row, column=5, value=b.get("color", ""))
-        ws1.cell(row=row, column=6, value=round(b.get("total_weight_kg", 0), 2)).alignment = center_align
+        ws1.cell(row=row, column=6, value=layer_str).alignment = center_align
+        ws1.cell(row=row, column=7, value=round(b.get("total_weight_kg", 0), 2)).alignment = center_align
 
     total_row = 4 + len(bobins)
     ws1.cell(row=total_row, column=1, value="TOPLAM").font = Font(bold=True)
-    ws1.cell(row=total_row, column=6, value=round(sum(b.get("total_weight_kg", 0) for b in bobins), 2)).alignment = center_align
-    ws1.cell(row=total_row, column=6).font = Font(bold=True)
-    auto_width(ws1, 6)
+    ws1.cell(row=total_row, column=7, value=round(sum(b.get("total_weight_kg", 0) for b in bobins), 2)).alignment = center_align
+    ws1.cell(row=total_row, column=7).font = Font(bold=True)
+    auto_width(ws1, 7)
 
     ws2 = wb.create_sheet("Hareket Gecmisi")
     ws2.merge_cells("A1:G1")
