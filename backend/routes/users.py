@@ -14,7 +14,9 @@ router = APIRouter()
 limiter = Limiter(key_func=get_real_client_ip)
 
 
-VALID_ROLES = ["operator", "plan", "depo", "sofor"]
+VALID_ROLES = ["operator", "plan", "depo", "sofor", "yonetim"]
+# yonetim rolune sahip kullanicilar tum panellere erisebilsin (otomatik expand)
+ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim"]
 
 
 @router.post("/users")
@@ -117,19 +119,22 @@ async def user_login(request: Request, data: dict = Body(...)):
     # Kullanıcının rolleri (roles varsa onu, yoksa [role])
     user_roles = user.get("roles") or ([user.get("role")] if user.get("role") else [])
 
-    # expected_role verildiyse: hem tek role hem roles listesinde kontrol et
-    if expected_role and expected_role not in user_roles:
+    # YONETIM rolu: tum panellere erisim (otomatik expand)
+    is_admin = "yonetim" in user_roles
+    effective_roles = list(set(user_roles + ALL_PANEL_ROLES)) if is_admin else user_roles
+
+    # expected_role verildiyse: yonetim ise bypass; degilse roles listesinde kontrol et
+    if expected_role and not is_admin and expected_role not in user_roles:
         raise HTTPException(status_code=403, detail=f"Bu sayfaya erişim yetkiniz yok. Yetkiniz: {', '.join(user_roles)}")
 
-    # Giriş için kullanılan rol (expected_role varsa o, yoksa primary role)
-    login_role = expected_role if expected_role else user.get("role", user_roles[0] if user_roles else "")
+    # Giriş için kullanılan rol
+    login_role = expected_role if expected_role else (user.get("role") or (user_roles[0] if user_roles else ""))
 
     token = create_token(user["id"], user["username"], login_role, user.get("display_name", ""))
 
     user.pop("password", None)
-    # Frontend için roles garantisi
-    if not user.get("roles"):
-        user["roles"] = user_roles
+    # Frontend için roles garantisi (yonetim ise tum panellere erisim)
+    user["roles"] = effective_roles
     return {**user, "token": token, "login_role": login_role}
 
 

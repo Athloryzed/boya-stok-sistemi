@@ -44,6 +44,8 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const [activeDialog, setActiveDialog] = useState(null); // "add" | "purchase" | "machine" | "sale" | "scanner" | "scan-action" | "edit"
   const [selectedBobin, setSelectedBobin] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterLayers, setFilterLayers] = useState("all"); // all | 1 | 2 | 3plus
+  const [filterColor, setFilterColor] = useState("all"); // all | Beyaz | Kraft | other
 
   // Forms (kg odaklı; adet artık sorulmuyor)
   const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
@@ -329,6 +331,16 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   };
 
   const filteredBobins = bobins.filter(b => {
+    // Kat filtre
+    const lyr = b.layers || 1;
+    if (filterLayers === "1" && lyr !== 1) return false;
+    if (filterLayers === "2" && lyr !== 2) return false;
+    if (filterLayers === "3plus" && lyr < 3) return false;
+    // Renk filtre
+    if (filterColor === "Beyaz" && b.color !== "Beyaz") return false;
+    if (filterColor === "Kraft" && b.color !== "Kraft") return false;
+    if (filterColor === "other" && (b.color === "Beyaz" || b.color === "Kraft")) return false;
+    // Search
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
     return (b.brand?.toLowerCase().includes(s) || b.barcode?.toLowerCase().includes(s) ||
@@ -453,11 +465,46 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
           {/* STOK */}
           <TabsContent value="stock" className="mt-4">
-            <div className="mb-4">
+            <div className="mb-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <Input placeholder="Marka, barkod, olcu ara..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                   className="pl-9 bg-[#1a1f2e]/60 border-white/[0.06] text-white placeholder:text-zinc-600" data-testid="bobin-search" />
+              </div>
+            </div>
+            {/* Filtre Chip'leri */}
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-zinc-600 mr-1">Kat:</span>
+                {[
+                  { v: "all", label: "Hepsi" },
+                  { v: "1", label: "TEK" },
+                  { v: "2", label: "CIFT" },
+                  { v: "3plus", label: "3+ KAT" },
+                ].map(o => (
+                  <button key={o.v} onClick={() => setFilterLayers(o.v)} data-testid={`filter-layers-${o.v}`}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                      filterLayers === o.v
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+                    }`}>{o.label}</button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-zinc-600 mr-1">Renk:</span>
+                {[
+                  { v: "all", label: "Hepsi" },
+                  { v: "Beyaz", label: "Beyaz" },
+                  { v: "Kraft", label: "Kraft" },
+                  { v: "other", label: "Diger" },
+                ].map(o => (
+                  <button key={o.v} onClick={() => setFilterColor(o.v)} data-testid={`filter-color-${o.v}`}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                      filterColor === o.v
+                        ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                        : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+                    }`}>{o.label}</button>
+                ))}
               </div>
             </div>
             <div className="space-y-2">

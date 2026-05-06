@@ -138,9 +138,20 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
   - Makineye Ver dropdown'ına 3 harici hedef eklendi: "27 Makine" (ext-27-makine), "SİES 33 Makine" (ext-sies-33-makine), "Deniz Grubu" (ext-deniz-grubu).
 - 14/14 backend pytest passed; frontend dialogs verified via testing agent (iteration_36.json).
 
-### Feb 2026 (Iteration 37) — Bobin Mobile UI Fix
-- Bobin kartı: `flex flex-col sm:flex-row` ile mobilde info ve aksiyon butonları dikey stack; butonlar 4-kolon grid (Ekle/Makine/Sat/Düzenle simgeleriyle).
-- Metadata span'larına `whitespace-nowrap` eklendi (artık "21 cm" "16 gr" tek satırda).
-- Tüm Bobin dialog'larına `w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto` — küçük ekranlarda dialog viewport'a sığar ve içerik scroll edilir.
-- Makineye Ver ve Renk SelectContent'leri: `max-h-[50vh]` + dark popover tema (`bg-[#1a1f2e] border-white/[0.08] text-white`) — dropdown formu boğmuyor, butonların üstüne gelmiyor.
+### Feb 2026 (Iteration 38) — Bobin Kat (TEK/CIFT/N) + Filtre Chip'leri + "Yonetim" Rolü
+**Bobin Kat:**
+- `Bobin` modeline `layers: int = 1` eklendi.
+- Frontend Stoğa Ekle ve Düzenle dialog'larında "Kat *" Select: TEK / CIFT / Diger... (Diger için custom sayı kutusu).
+- Aynı marka/ölçü/gramaj/renk **farklı kat** ayrı kayıt olarak gidiyor; aynı kat tekrar eklenince mevcut bobine merge oluyor.
+- Bobin kartında yeşil rozet: TEK / CIFT / N KAT.
+- Excel export'a "Kat" sütunu.
+
+**Bobin Filtre Chip'leri:**
+- BobinFlow stok sekmesine Kat filtreleri (Hepsi / TEK / CIFT / 3+ KAT) ve Renk filtreleri (Hepsi / Beyaz / Kraft / Diger) eklendi. Search bar ile birlikte AND filtresi olarak çalışıyor.
+
+**"Yonetim" Rolü (P1):**
+- `VALID_ROLES`'a `"yonetim"` eklendi (`/app/backend/routes/users.py`).
+- Login mantığı (`POST /api/users/login`): yonetim rolüne sahip kullanıcının `roles` array'i otomatik `[operator, plan, depo, sofor, yonetim]` olarak expand ediliyor; expected_role check'i yonetim için bypass'lanıyor.
+- Frontend ManagementFlow kullanıcı oluşturma/düzenleme dialog'larında "Yönetim" rol seçeneği (👑) eklendi.
+- Sonuç: Yonetim user'ı her panele (operator, plan, depo/bobin, sofor) tek hesapla giriş yapabiliyor — test edildi.
 
