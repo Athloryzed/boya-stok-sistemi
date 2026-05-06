@@ -14,6 +14,7 @@ import { API } from "../App";
 import { requestNotificationPermission, showNotification, registerServiceWorker } from "../utils/notifications";
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
+import { notifyAlert } from "../utils/notify";
 
 // Geçen gün sayısını hesapla
 const calculateDaysElapsed = (dateString) => {
@@ -466,6 +467,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               }
               
               toast.warning("Vardiya sonu bildirimi geldi!", { duration: 10000 });
+              notifyAlert("urgent");
             }
           }
           
@@ -487,6 +489,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               }
               
               toast.info(`Yeni mesaj: ${msgData.message.substring(0, 50)}...`, { duration: 5000 });
+              notifyAlert("default");
             }
           }
         } catch (e) {

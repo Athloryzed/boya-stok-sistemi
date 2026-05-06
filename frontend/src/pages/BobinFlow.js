@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil, Archive, Calendar, ChevronRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
@@ -58,6 +58,15 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
   const [scanMode, setScanMode] = useState("add"); // "add" | "action"
+
+  // Archive (aylık arşiv)
+  const [archiveMonths, setArchiveMonths] = useState([]);
+  const [archiveMonth, setArchiveMonth] = useState("");
+
+  // Detail Drawer
+  const [drawerBobin, setDrawerBobin] = useState(null);
+  const [drawerMovements, setDrawerMovements] = useState([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   // ============ SESSION ============
   useEffect(() => {
@@ -320,14 +329,53 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (month = null) => {
     try {
-      const res = await axios.get(`${API}/bobins/export`, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement("a"); a.href = url;
-      a.download = `bobin_stok_${new Date().toISOString().slice(0,10)}.xlsx`; a.click();
-      window.URL.revokeObjectURL(url); toast.success("Excel indirildi");
+      const url = month ? `${API}/bobins/export?month=${month}` : `${API}/bobins/export`;
+      const res = await axios.get(url, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = blobUrl;
+      a.download = month
+        ? `bobin_arsiv_${month}.xlsx`
+        : `bobin_stok_${new Date().toISOString().slice(0,10)}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success(month ? `${month} arşivi indirildi` : "Excel indirildi");
     } catch { toast.error("Excel hatasi"); }
+  };
+
+  const openArchive = async () => {
+    setActiveDialog("archive");
+    setArchiveMonth("");
+    try {
+      const res = await axios.get(`${API}/bobins/archive/months`);
+      const months = Array.isArray(res.data) ? res.data : [];
+      // Şu anki ay yoksa en başa ekle
+      const cm = new Date().toISOString().slice(0, 7);
+      if (!months.includes(cm)) months.unshift(cm);
+      setArchiveMonths(months);
+    } catch { setArchiveMonths([]); }
+  };
+
+  const openDrawer = async (b) => {
+    setDrawerBobin(b);
+    setDrawerLoading(true);
+    setDrawerMovements([]);
+    try {
+      const res = await axios.get(`${API}/bobins/movements?bobin_id=${b.id}&limit=50`);
+      setDrawerMovements(Array.isArray(res.data) ? res.data : []);
+    } catch { /* sessiz */ }
+    setDrawerLoading(false);
+  };
+  const closeDrawer = () => { setDrawerBobin(null); setDrawerMovements([]); };
+
+  const monthLabel = (ym) => {
+    const TR = ["Ocak", "Subat", "Mart", "Nisan", "Mayis", "Haziran",
+                "Temmuz", "Agustos", "Eylul", "Ekim", "Kasim", "Aralik"];
+    if (!ym || !ym.includes("-")) return ym;
+    const [y, m] = ym.split("-");
+    const idx = parseInt(m) - 1;
+    return `${TR[idx] || m} ${y}`;
   };
 
   const filteredBobins = bobins.filter(b => {
@@ -411,7 +459,10 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" onClick={handleExport} className="text-zinc-400 hover:text-white" data-testid="bobin-export-btn">
+            <Button variant="ghost" size="sm" onClick={openArchive} className="text-zinc-400 hover:text-white" data-testid="bobin-archive-btn" title="Aylık Arşiv">
+              <Archive className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => handleExport()} className="text-zinc-400 hover:text-white" data-testid="bobin-export-btn">
               <Download className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={toggleTheme} className="text-zinc-400 hover:text-white">
@@ -519,7 +570,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   className="bg-[#1a1f2e]/60 border border-white/[0.06] rounded-xl p-4 hover:border-white/[0.12] transition-colors"
                   data-testid={`bobin-card-${b.id}`}>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                    <div className="min-w-0 flex-1">
+                    <button onClick={() => openDrawer(b)} type="button"
+                      data-testid={`bobin-detail-${b.id}`}
+                      className="min-w-0 flex-1 text-left -mx-1 px-1 py-1 rounded-md hover:bg-white/[0.02] transition-colors">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-white text-sm">{b.brand}</h3>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{b.color}</span>
@@ -527,13 +580,14 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                           {b.layers === 1 || !b.layers ? "TEK" : b.layers === 2 ? "CIFT" : `${b.layers} KAT`}
                         </span>
                         {b.barcode && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500 font-mono">{b.barcode}</span>}
+                        <ChevronRight className="h-3 w-3 text-zinc-600 ml-auto sm:hidden" />
                       </div>
                       <div className="flex items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500 flex-wrap">
                         <span className="inline-flex items-center gap-1 whitespace-nowrap"><Ruler className="h-3 w-3" /> {b.width_cm} cm</span>
                         <span className="inline-flex items-center gap-1 whitespace-nowrap"><Hash className="h-3 w-3" /> {b.grammage} gr</span>
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
                       </div>
-                    </div>
+                    </button>
                     <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-shrink-0 sm:flex-wrap sm:justify-end border-t border-white/[0.04] pt-3 sm:border-t-0 sm:pt-0">
                       <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-purchase-${b.id}`}
@@ -867,6 +921,121 @@ const BobinFlow = ({ theme, toggleTheme }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ARŞİV DIALOG */}
+      <Dialog open={activeDialog === "archive"} onOpenChange={() => setActiveDialog(null)}>
+        <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-[#1a1f2e] border-white/[0.08]">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Archive className="h-4 w-4 text-emerald-400" /> Aylik Arsiv
+            </DialogTitle>
+            <DialogDescription>
+              Gecmis aylarin kapsamli Excel raporu (ay basi/sonu stok, hareketler, makine dagilimi, musteri satislari).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label className="text-zinc-400">Ay Sec</Label>
+              <Select value={archiveMonth} onValueChange={setArchiveMonth}>
+                <SelectTrigger data-testid="archive-month-select" className="bg-white/[0.04] border-white/[0.08] text-white">
+                  <SelectValue placeholder="Bir ay secin..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-[50vh] bg-[#1a1f2e] border-white/[0.08] text-white">
+                  {archiveMonths.length === 0 && <div className="px-3 py-2 text-xs text-zinc-500">Henuz arsiv kaydi yok</div>}
+                  {archiveMonths.map(m => (
+                    <SelectItem key={m} value={m}>{monthLabel(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              data-testid="archive-download-btn"
+              disabled={!archiveMonth}
+              onClick={async () => { await handleExport(archiveMonth); setActiveDialog(null); }}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white h-11 gap-2">
+              <Download className="h-4 w-4" /> {archiveMonth ? `${monthLabel(archiveMonth)} Arsivini Indir` : "Once ay secin"}
+            </Button>
+            <div className="text-[10px] text-zinc-600 space-y-0.5 leading-relaxed pt-2 border-t border-white/[0.04]">
+              <p>Excel icerigi:</p>
+              <p>• Sayfa 1 — <span className="text-zinc-400">Ozet</span> (ay basi/sonu stok, net degisim, hareket sayisi)</p>
+              <p>• Sayfa 2 — <span className="text-zinc-400">Hareketler</span> (kronolojik tum islemler)</p>
+              <p>• Sayfa 3 — <span className="text-zinc-400">Makine Dagilimi</span> (her makinede kac kg)</p>
+              <p>• Sayfa 4 — <span className="text-zinc-400">Musteri Satislari</span> (her musteriye kac kg)</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DETAY DRAWER (bobin kartına tıklayınca) */}
+      <AnimatePresence>
+        {drawerBobin && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="fixed inset-0 bg-black/60 z-50"
+              onClick={closeDrawer}
+              data-testid="bobin-drawer-overlay"
+            />
+            <motion.div
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 260 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1f2e] border-t border-white/[0.08] rounded-t-2xl max-h-[85vh] overflow-y-auto"
+              data-testid="bobin-drawer"
+            >
+              <div className="sticky top-0 bg-[#1a1f2e] border-b border-white/[0.06] px-5 pt-4 pb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-semibold text-white truncate">{drawerBobin.brand}</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{drawerBobin.color}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                      {drawerBobin.layers === 1 || !drawerBobin.layers ? "TEK" : drawerBobin.layers === 2 ? "CIFT" : `${drawerBobin.layers} KAT`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {drawerBobin.width_cm}cm · {drawerBobin.grammage}gr · <span className="text-sky-400">{drawerBobin.total_weight_kg?.toFixed(1)} kg stokta</span>
+                  </p>
+                  {drawerBobin.barcode && <p className="text-[10px] font-mono text-zinc-600 mt-0.5">{drawerBobin.barcode}</p>}
+                </div>
+                <button onClick={closeDrawer} className="text-zinc-500 hover:text-white text-2xl leading-none -mt-1" data-testid="bobin-drawer-close">×</button>
+              </div>
+              <div className="px-5 py-3 mx-auto w-12 -mt-2">
+                <div className="h-1 bg-white/[0.08] rounded-full" />
+              </div>
+              <div className="px-5 pb-6">
+                <h4 className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2 mt-2">Son Hareketler</h4>
+                {drawerLoading && <p className="text-xs text-zinc-500 py-3">Yukleniyor...</p>}
+                {!drawerLoading && drawerMovements.length === 0 && (
+                  <p className="text-xs text-zinc-600 py-6 text-center">Bu bobine ait hareket kaydi yok.</p>
+                )}
+                <div className="space-y-1.5">
+                  {drawerMovements.map(m => (
+                    <div key={m.id} className="bg-[#0f1422]/60 border border-white/[0.04] rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${typeBg(m.movement_type)}`}>
+                          {typeLabel(m.movement_type)}
+                        </span>
+                        <span className="text-[10px] text-zinc-600 whitespace-nowrap">
+                          {m.created_at ? new Date(m.created_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1.5 text-[11px]">
+                        <span className={m.movement_type === "purchase" ? "text-emerald-400 font-medium" : "text-zinc-300 font-medium"}>
+                          {m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg
+                        </span>
+                        {m.machine_name && <span className="text-sky-400/80">→ {m.machine_name}</span>}
+                        {m.customer_name && <span className="text-amber-400/80">→ {m.customer_name}</span>}
+                        <span className="text-zinc-600 ml-auto">{m.user_name || "-"}</span>
+                      </div>
+                      {m.note && <p className="text-[10px] text-zinc-600 mt-1 italic">{m.note}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

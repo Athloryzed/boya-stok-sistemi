@@ -155,3 +155,31 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Frontend ManagementFlow kullanıcı oluşturma/düzenleme dialog'larında "Yönetim" rol seçeneği (👑) eklendi.
 - Sonuç: Yonetim user'ı her panele (operator, plan, depo/bobin, sofor) tek hesapla giriş yapabiliyor — test edildi.
 
+### Feb 2026 (Iteration 39) — Yonetim Hızlı Panel + Bobin Detay Drawer + Arşiv + Sesli Bildirim
+
+**Yonetim Hızlı Panel Geçişi:**
+- `Home.js`: Yonetim rolüne sahip kullanıcı (herhangi bir local session'da `roles.includes("yonetim")`) için Ana Sayfa'da floating altın FAB (`👑 Hızlı Panel`).
+- Tıklanınca açılan bottom-sheet'te 6 panel kartı (Yönetim/Plan/Operatör/Depo/Bobin/Canlı TV) — tek dokunuşla ilgili sayfaya gidiyor.
+
+**Bobin Aylık Arşiv (kapsamlı Excel):**
+- `GET /api/bobins/archive/months`: Geçmiş hareketlerin olduğu ayların listesi (YYYY-MM, son 36 ay).
+- `GET /api/bobins/export?month=YYYY-MM`: O ayın **4 sayfalı** Excel arşivi:
+  1. **Özet**: Bobin başına ay başı stok / ay içi giriş / ay içi makineye / ay içi satış / ay sonu stok / net değişim / hareket sayısı / aktif mi.
+  2. **Hareketler**: Kronolojik tüm işlemler.
+  3. **Makine Dağılımı**: Her makineye o ay verilen toplam kg + ortalama.
+  4. **Müşteri Satışları**: Her müşteriye o ay satılan toplam kg.
+- `GET /api/bobins/export` (paramsız) anlık snapshot — yine 4 sayfalı zenginleştirildi.
+- Frontend BobinFlow header'da `Archive` butonu → ay seçici dialog → "İndir".
+
+**Bobin Detay Drawer:**
+- BobinFlow stok kartında bobin info bölümüne tıklayınca alt yarıdan açılan slide-up drawer.
+- `GET /api/bobins/movements?bobin_id=...&limit=50` ile o bobinin son 50 hareketi (alış/makineye/satış renkli rozetlerle, tarih+kg+hedef+kullanıcı).
+- Mobil için optimal: backdrop click ile kapanır, sticky header bobin özetini gösterir.
+
+**Sesli + Titreşimli Bildirim (Operatör):**
+- Yeni helper: `/app/frontend/src/utils/notify.js` — Web Audio API ile bip + `navigator.vibrate` titreşimi. 3 mod: `urgent`, `default`, `subtle`.
+- OperatorFlow WebSocket olaylarına bağlandı:
+  - Vardiya sonu bildirimi → `urgent` (3'lü uyarı + uzun titreşim).
+  - Yeni mesaj → `default` (ding-dong + kısa titreşim).
+- Tarayıcı autoplay kısıtlaması için ilk dokunuşta AudioContext otomatik resume oluyor.
+

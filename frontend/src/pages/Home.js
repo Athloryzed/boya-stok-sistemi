@@ -124,10 +124,28 @@ const modules = [
 const Home = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
+  const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
+  const [isYonetimUser, setIsYonetimUser] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
-    return () => clearInterval(t);
+    // Yonetim kullanicisi mi kontrol et (herhangi bir panele kayitli session)
+    const checkYonetim = () => {
+      const keys = ["bobin_session", "operator_session", "plan_session", "depo_session", "warehouse_session", "yonetim_master"];
+      for (const k of keys) {
+        try {
+          const s = JSON.parse(localStorage.getItem(k) || "null");
+          if (s && Array.isArray(s.roles) && s.roles.includes("yonetim")) {
+            setIsYonetimUser(true);
+            return;
+          }
+        } catch {}
+      }
+      setIsYonetimUser(false);
+    };
+    checkYonetim();
+    window.addEventListener("storage", checkYonetim);
+    return () => { clearInterval(t); window.removeEventListener("storage", checkYonetim); };
   }, []);
 
   const hour = time.getHours();
@@ -408,6 +426,73 @@ const Home = ({ theme, toggleTheme }) => {
           ))}
         </div>
       </div>
+
+      {/* YONETIM HIZLI PANEL */}
+      {isYonetimUser && (
+        <>
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 250 }}
+            onClick={() => setYonetimSheetOpen(true)}
+            data-testid="yonetim-quick-fab"
+            className="fixed bottom-5 right-5 z-50 h-14 px-5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-xl shadow-amber-500/30 flex items-center gap-2 text-zinc-900 font-semibold text-sm hover:scale-105 active:scale-95 transition-transform"
+            aria-label="Yonetim Hizli Panel Gecisi"
+          >
+            <span className="text-lg">👑</span>
+            <span className="hidden sm:inline">Hızlı Panel</span>
+            <span className="sm:hidden">Panel</span>
+          </motion.button>
+
+          {yonetimSheetOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                onClick={() => setYonetimSheetOpen(false)}
+                className="fixed inset-0 bg-black/70 z-50" />
+              <motion.div
+                initial={{ y: "100%" }} animate={{ y: 0 }}
+                transition={{ type: "spring", damping: 26, stiffness: 260 }}
+                className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1f2e] border-t border-white/[0.08] rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto"
+                data-testid="yonetim-quick-sheet"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                      <span>👑</span> Yönetim Hızlı Panel
+                    </h3>
+                    <p className="text-xs text-zinc-500 mt-0.5">İstediğiniz panele tek dokunuşla geçin</p>
+                  </div>
+                  <button onClick={() => setYonetimSheetOpen(false)} className="text-zinc-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { path: "/management", label: "Yönetim", icon: "📊", color: "from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300" },
+                    { path: "/plan", label: "Planlama", icon: "📋", color: "from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-300" },
+                    { path: "/operator", label: "Operatör", icon: "👷", color: "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300" },
+                    { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300" },
+                    { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300" },
+                    { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300" },
+                  ].map(p => (
+                    <button
+                      key={p.path}
+                      onClick={() => { setYonetimSheetOpen(false); navigate(p.path); }}
+                      data-testid={`yonetim-quick-${p.path.slice(1)}`}
+                      className={`bg-gradient-to-br ${p.color} border rounded-xl p-4 flex flex-col items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-transform`}
+                    >
+                      <span className="text-2xl">{p.icon}</span>
+                      <span className="text-sm font-medium">{p.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-600 mt-4 text-center leading-relaxed">
+                  Yonetim rolune sahip oldugunuz icin tum panellere erisebilirsiniz.<br/>
+                  Ilk girisinizde sifrenizle giris yapmaniz istenebilir; sonrasinda 24 saat boyunca otomatik kalir.
+                </p>
+              </motion.div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 };
