@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWaGmpYp5u7pyxnGvLPu_53ZhLOFWVWTA",
@@ -11,50 +11,58 @@ const firebaseConfig = {
   measurementId: "G-4T4BB8ECEC"
 };
 
-// Initialize Firebase
+// Initialize Firebase (her zaman güvenli)
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Cloud Messaging
+// Initialize Firebase Cloud Messaging — sadece tarayıcı destekliyorsa
+// (desteklenmeyen tarayıcılarda console'u kirletmemek için sessizce skip)
 let messaging = null;
-try {
-  messaging = getMessaging(app);
-} catch (error) {
-  console.log("Firebase messaging not supported:", error);
-}
+let _supportPromise = null;
+
+const _initMessaging = async () => {
+  try {
+    const supported = await isSupported();
+    if (!supported) {
+      // Bu tarayıcıda FCM desteklenmiyor (desktop Safari, gizli sekme, eski tarayıcı vs.) — sessizce çık
+      return null;
+    }
+    messaging = getMessaging(app);
+    return messaging;
+  } catch {
+    return null;
+  }
+};
+
+// İlk çağrıda lazy init
+const _ensureMessaging = () => {
+  if (messaging) return Promise.resolve(messaging);
+  if (!_supportPromise) _supportPromise = _initMessaging();
+  return _supportPromise;
+};
 
 const VAPID_KEY = "BAVL2mjQoYMisRDBY6Hq1QC9XQ7jjnK2novEVfelCigP5Hte9UiSZUuejcZJkqQGTv5r3WNdYAk3eXD5C6XD3CA";
 
 // Request notification permission and get FCM token
 export const requestNotificationPermission = async () => {
-  if (!messaging) {
-    console.log("Messaging not available");
-    return null;
-  }
+  const m = await _ensureMessaging();
+  if (!m) return null;
 
   try {
     const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-      console.log("FCM Token:", token);
-      return token;
-    } else {
-      console.log("Notification permission denied");
-      return null;
-    }
-  } catch (error) {
-    console.error("Error getting FCM token:", error);
+    if (permission !== "granted") return null;
+    const token = await getToken(m, { vapidKey: VAPID_KEY });
+    return token;
+  } catch {
     return null;
   }
 };
 
 // Listen for foreground messages
 export const onMessageListener = () => {
-  if (!messaging) return Promise.resolve(null);
-  
-  return new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      console.log("Foreground message received:", payload);
-      resolve(payload);
+  return _ensureMessaging().then((m) => {
+    if (!m) return null;
+    return new Promise((resolve) => {
+      onMessage(m, (payload) => resolve(payload));
     });
   });
 };

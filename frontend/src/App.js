@@ -5,6 +5,35 @@ import "@/App.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { Toaster } from "./components/ui/sonner";
 
+// ResizeObserver loop uyarısını bastır.
+// Bu, Radix Select / Dialog gibi bileşenlerin layout sırasında
+// browser'in verdigi "benign" (zararsız) bir uyari olup uygulamayi etkilemez.
+// React-error-overlay ve console'da gozukmesini engelleyelim.
+if (typeof window !== "undefined") {
+  const RO_MSG = "ResizeObserver loop";
+  // Browser-level error events
+  window.addEventListener("error", (e) => {
+    if (e?.message && typeof e.message === "string" && e.message.includes(RO_MSG)) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const msg = e?.reason?.message || "";
+    if (typeof msg === "string" && msg.includes(RO_MSG)) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  });
+  // Console.error filtrele (CRA dev overlay bu mesajı buradan da yakalar)
+  const _origConsoleError = console.error;
+  console.error = (...args) => {
+    const first = args[0];
+    if (typeof first === "string" && first.includes(RO_MSG)) return;
+    _origConsoleError.apply(console, args);
+  };
+}
+
 // Code-splitting: Her panel ayrı chunk olarak yükleniyor → ilk yükleme küçük (Home + Auth UI),
 // kullanıcı belirli paneli açtığında o chunk indirilir. Mobil 3G/4G performansı için kritik.
 // Home eager (giriş sayfası ilk açıldığı için, blank screen olmasın)
