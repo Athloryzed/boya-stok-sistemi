@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -42,6 +42,58 @@ const getDaysElapsedColor = (days) => {
   if (days <= 5) return "text-yellow-500";
   if (days <= 10) return "text-orange-500";
   return "text-red-500";
+};
+
+// VERİ SENKRONU ROZETİ
+// Son senkron zamanı + tazelik durumu (yeşil/sarı/kırmızı) + manuel yenile butonu.
+// Mobil veride çalışan kullanıcı verinin güncel mi yoksa eski mi olduğunu görsün.
+const SyncBadge = ({ lastSyncAt, syncing, onRefresh }) => {
+  const [, forceTick] = useState(0);
+  // 30 saniyede bir relative-time'ı güncelle (örn. "2dk once")
+  useEffect(() => {
+    const t = setInterval(() => forceTick((n) => n + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const fmtRelative = () => {
+    if (!lastSyncAt) return "Henuz yok";
+    const diffSec = Math.floor((Date.now() - lastSyncAt.getTime()) / 1000);
+    if (diffSec < 5) return "az once";
+    if (diffSec < 60) return `${diffSec}sn once`;
+    const m = Math.floor(diffSec / 60);
+    if (m < 60) return `${m}dk once`;
+    const h = Math.floor(m / 60);
+    return `${h}sa once`;
+  };
+
+  const ageMs = lastSyncAt ? Date.now() - lastSyncAt.getTime() : Infinity;
+  const tone = !lastSyncAt
+    ? "border-zinc-600/40 text-zinc-500"
+    : ageMs < 90 * 1000
+      ? "border-emerald-500/40 text-emerald-400"
+      : ageMs < 5 * 60 * 1000
+        ? "border-yellow-500/40 text-yellow-400"
+        : "border-red-500/40 text-red-400";
+
+  const titleText = lastSyncAt
+    ? `Son senkron: ${lastSyncAt.toLocaleString("tr-TR")}`
+    : "Henuz veri cekilmedi";
+
+  return (
+    <button
+      type="button"
+      onClick={onRefresh}
+      disabled={syncing}
+      title={titleText}
+      data-testid="sync-badge"
+      className={`hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-md border bg-surface/60 hover:bg-surface-highlight transition-colors disabled:opacity-60 ${tone}`}
+    >
+      <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+      <span className="text-[11px] font-mono uppercase tracking-wider">
+        {syncing ? "Senkron..." : fmtRelative()}
+      </span>
+    </button>
+  );
 };
 
 const ManagementFlow = ({ theme, toggleTheme }) => {
@@ -142,6 +194,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Tab kontrolü (metrik kartından tıklayınca açılacak tab)
   const [activeTab, setActiveTab] = useState("machines");
+  const [lastSyncAt, setLastSyncAt] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   
   // İş Durdurma
   const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
@@ -207,6 +261,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
   
   const fetchSecondaryData = async (tabFilter = "all") => {
+    setSyncing(true);
     try {
       // Batch helper: urls listesi için Promise.allSettled (axios global timeout'a güveniyoruz)
       const fetchBatch = (urls) =>
@@ -295,8 +350,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           }
         });
       }
+      setLastSyncAt(new Date());
     } catch (error) {
       console.error("Secondary data fetch error:", error);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -1051,6 +1109,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <span className="hidden md:inline">Vardiya Başlat</span>
               </Button>
             )}
+            {/* VERİ SENKRONU rozeti */}
+            <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
