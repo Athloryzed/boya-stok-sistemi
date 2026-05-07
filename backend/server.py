@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, Request
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -311,6 +312,11 @@ async def ensure_indexes():
         logger.info("MongoDB indexes ensured for all collections")
     except Exception as e:
         logger.error(f"Index creation error: {e}")
+
+# ==================== Compression Middleware (Mobil Veri Optimizasyonu) ====================
+# JSON yanıtları gzip ile sıkıştırır (>500B). Mobil bağlantılarda yanıt boyutunu %70-85 düşürür.
+# Bu sadece taşıma katmanını değiştirir — saklanan veride sıfır değişiklik.
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 
 # ==================== CORS Middleware ====================
 

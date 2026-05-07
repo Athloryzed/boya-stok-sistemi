@@ -206,7 +206,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
   
-  const fetchSecondaryData = async () => {
+  const fetchSecondaryData = async (tabFilter = "all") => {
     try {
       // Batch helper: urls listesi için Promise.allSettled (axios global timeout'a güveniyoruz)
       const fetchBatch = (urls) =>
@@ -215,7 +215,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       // Defansif array helper — Service Worker offline `{error}` dönerse crash'i önler
       const arr = (v) => Array.isArray(v) ? v : [];
 
-      // Batch 1 — En kritik veriler (hızlı, mobilde bile çabuk döner)
+      // Hangi tab'ların yüklü kalması lazım — mobil veri için kritik optimizasyon
+      const needsB2 = tabFilter === "all" || ["machines", "analytics"].includes(tabFilter);
+      const needsB3 = tabFilter === "all" || ["users", "paints", "maintenance"].includes(tabFilter);
+      const needsB4 = tabFilter === "all" || tabFilter === "defects";
+      const needsB5Visitors = tabFilter === "all" || tabFilter === "visitors";
+      const needsB5Messages = tabFilter === "all" || tabFilter === "messages";
+      const needsB5Audit = tabFilter === "all" || tabFilter === "audit";
+      const needsB5Drivers = tabFilter === "all" || tabFilter === "users";
+
+      // Batch 1 — Daima yüklenir (header uyarıları: bekleyen rapor, düşük stok, okunmamış mesaj)
       const b1 = await fetchBatch([
         `${API}/shifts/pending-reports`,
         `${API}/paints/low-stock`,
@@ -225,51 +234,66 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       if (b1[1].status === "fulfilled") setLowStockPaints(arr(b1[1].value.data?.low_stock_paints));
       if (b1[2].status === "fulfilled") setUnreadMessagesCount(b1[2].value.data?.unread_count || 0);
 
-      // Batch 2 — Analitik (orta ağırlık)
-      const b2 = await fetchBatch([
-        `${API}/analytics/weekly`,
-        `${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`,
-        `${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`,
-      ]);
-      if (b2[0].status === "fulfilled") setWeeklyAnalytics(b2[0].value.data);
-      if (b2[1].status === "fulfilled") setMonthlyAnalytics(b2[1].value.data);
-      if (b2[2].status === "fulfilled") setDailyAnalytics(b2[2].value.data);
+      // Batch 2 — Analitik (orta ağırlık) — yalnızca ilgili tab'larda
+      if (needsB2) {
+        const b2 = await fetchBatch([
+          `${API}/analytics/weekly`,
+          `${API}/analytics/monthly?year=${selectedYear}&month=${selectedMonth}`,
+          `${API}/analytics/daily-by-week?week_offset=${dailyWeekOffset}`,
+        ]);
+        if (b2[0].status === "fulfilled") setWeeklyAnalytics(b2[0].value.data);
+        if (b2[1].status === "fulfilled") setMonthlyAnalytics(b2[1].value.data);
+        if (b2[2].status === "fulfilled") setDailyAnalytics(b2[2].value.data);
+      }
 
-      // Batch 3 — Kaynaklar
-      const b3 = await fetchBatch([
-        `${API}/maintenance-logs`,
-        `${API}/paints`,
-        `${API}/users`,
-      ]);
-      if (b3[0].status === "fulfilled") setMaintenanceLogs(arr(b3[0].value.data));
-      if (b3[1].status === "fulfilled") setPaints(arr(b3[1].value.data));
-      if (b3[2].status === "fulfilled") setUsers(arr(b3[2].value.data));
+      // Batch 3 — Kaynaklar (kullanıcı/boya/bakım) — yalnızca ilgili tab'larda
+      if (needsB3) {
+        const b3 = await fetchBatch([
+          `${API}/maintenance-logs`,
+          `${API}/paints`,
+          `${API}/users`,
+        ]);
+        if (b3[0].status === "fulfilled") setMaintenanceLogs(arr(b3[0].value.data));
+        if (b3[1].status === "fulfilled") setPaints(arr(b3[1].value.data));
+        if (b3[2].status === "fulfilled") setUsers(arr(b3[2].value.data));
+      }
 
-      // Batch 4 — Defo analitikleri
-      const b4 = await fetchBatch([
-        `${API}/defects/analytics/weekly`,
-        `${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`,
-        `${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`,
-      ]);
-      if (b4[0].status === "fulfilled") setDefectWeeklyAnalytics(b4[0].value.data);
-      if (b4[1].status === "fulfilled") setDefectMonthlyAnalytics(b4[1].value.data);
-      if (b4[2].status === "fulfilled") setDefectDailyAnalytics(b4[2].value.data);
+      // Batch 4 — Defo analitikleri (ağır) — yalnızca defects tab'ında
+      if (needsB4) {
+        const b4 = await fetchBatch([
+          `${API}/defects/analytics/weekly`,
+          `${API}/defects/analytics/monthly?year=${defectYear}&month=${defectMonth}`,
+          `${API}/defects/analytics/daily-by-week?week_offset=${defectWeekOffset}`,
+        ]);
+        if (b4[0].status === "fulfilled") setDefectWeeklyAnalytics(b4[0].value.data);
+        if (b4[1].status === "fulfilled") setDefectMonthlyAnalytics(b4[1].value.data);
+        if (b4[2].status === "fulfilled") setDefectDailyAnalytics(b4[2].value.data);
+      }
 
-      // Batch 5 — Daha az kritik ikincil veriler (geç yüklenebilir)
-      const b5 = await fetchBatch([
-        `${API}/messages/all/incoming`,
-        `${API}/visitors?limit=50`,
-        `${API}/visitors/stats`,
-        `${API}/users/drivers/locations`,
-        `${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`,
-      ]);
-      if (b5[0].status === "fulfilled") setIncomingMessages(arr(b5[0].value.data));
-      if (b5[1].status === "fulfilled") setVisitors(arr(b5[1].value.data));
-      if (b5[2].status === "fulfilled") setVisitorStats(b5[2].value.data);
-      if (b5[3].status === "fulfilled") setDriverLocations(arr(b5[3].value.data));
-      if (b5[4].status === "fulfilled") {
-        setAuditLogs(arr(b5[4].value.data?.logs));
-        setAuditLogTotal(b5[4].value.data?.total || 0);
+      // Batch 5 — Tab-spesifik (her biri farklı tab içindi, ayrı ayrı koşullu çek)
+      // İlgili tab açılmazsa hiç çekilmez — mobil veri için büyük tasarruf
+      const b5Urls = [];
+      const b5Map = [];
+      if (needsB5Messages) { b5Urls.push(`${API}/messages/all/incoming`); b5Map.push("incoming"); }
+      if (needsB5Visitors) { b5Urls.push(`${API}/visitors?limit=50`); b5Map.push("visitors"); }
+      if (needsB5Visitors) { b5Urls.push(`${API}/visitors/stats`); b5Map.push("visitor_stats"); }
+      if (needsB5Drivers) { b5Urls.push(`${API}/users/drivers/locations`); b5Map.push("drivers"); }
+      if (needsB5Audit) { b5Urls.push(`${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`); b5Map.push("audit"); }
+      if (b5Urls.length > 0) {
+        const b5 = await fetchBatch(b5Urls);
+        b5.forEach((res, idx) => {
+          if (res.status !== "fulfilled") return;
+          const key = b5Map[idx];
+          const data = res.value.data;
+          if (key === "incoming") setIncomingMessages(arr(data));
+          else if (key === "visitors") setVisitors(arr(data));
+          else if (key === "visitor_stats") setVisitorStats(data);
+          else if (key === "drivers") setDriverLocations(arr(data));
+          else if (key === "audit") {
+            setAuditLogs(arr(data?.logs));
+            setAuditLogTotal(data?.total || 0);
+          }
+        });
       }
     } catch (error) {
       console.error("Secondary data fetch error:", error);
@@ -416,9 +440,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   useEffect(() => {
     if (authenticated) {
       fetchData();
-      fetchSecondaryData(); // İlk yüklemede ikincil verileri de al
+      // İlk yüklemede sadece hafif b1+b2+b3 (ana ekran için yeter); ağır olanlar tab açılınca
+      fetchSecondaryData("machines");
       const primaryInterval = setInterval(fetchData, 30000); // 30 saniyede bir kritik veriler
-      const secondaryInterval = setInterval(fetchSecondaryData, 120000); // 2 dakikada bir ikincil veriler
+      // 2dk'da bir aktif tab'ın verisini tazele (hafif kalsın)
+      const secondaryInterval = setInterval(() => fetchSecondaryData(activeTab), 120000);
       return () => {
         clearInterval(primaryInterval);
         clearInterval(secondaryInterval);
@@ -426,6 +452,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset, auditLogPage]);
+
+  // Tab değişiminde ağır verileri lazy çek (mobil veri optimizasyonu)
+  useEffect(() => {
+    if (authenticated && activeTab) {
+      fetchSecondaryData(activeTab);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authenticated]);
 
   const handleLogin = async () => {
     try {
