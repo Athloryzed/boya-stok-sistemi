@@ -212,15 +212,18 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       const fetchBatch = (urls) =>
         Promise.allSettled(urls.map((url) => axios.get(url)));
 
+      // Defansif array helper — Service Worker offline `{error}` dönerse crash'i önler
+      const arr = (v) => Array.isArray(v) ? v : [];
+
       // Batch 1 — En kritik veriler (hızlı, mobilde bile çabuk döner)
       const b1 = await fetchBatch([
         `${API}/shifts/pending-reports`,
         `${API}/paints/low-stock`,
         `${API}/messages/all/unread-count`,
       ]);
-      if (b1[0].status === "fulfilled") setPendingReports(b1[0].value.data);
-      if (b1[1].status === "fulfilled") setLowStockPaints(b1[1].value.data.low_stock_paints || []);
-      if (b1[2].status === "fulfilled") setUnreadMessagesCount(b1[2].value.data.unread_count);
+      if (b1[0].status === "fulfilled") setPendingReports(arr(b1[0].value.data));
+      if (b1[1].status === "fulfilled") setLowStockPaints(arr(b1[1].value.data?.low_stock_paints));
+      if (b1[2].status === "fulfilled") setUnreadMessagesCount(b1[2].value.data?.unread_count || 0);
 
       // Batch 2 — Analitik (orta ağırlık)
       const b2 = await fetchBatch([
@@ -238,9 +241,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         `${API}/paints`,
         `${API}/users`,
       ]);
-      if (b3[0].status === "fulfilled") setMaintenanceLogs(b3[0].value.data);
-      if (b3[1].status === "fulfilled") setPaints(b3[1].value.data);
-      if (b3[2].status === "fulfilled") setUsers(b3[2].value.data);
+      if (b3[0].status === "fulfilled") setMaintenanceLogs(arr(b3[0].value.data));
+      if (b3[1].status === "fulfilled") setPaints(arr(b3[1].value.data));
+      if (b3[2].status === "fulfilled") setUsers(arr(b3[2].value.data));
 
       // Batch 4 — Defo analitikleri
       const b4 = await fetchBatch([
@@ -260,13 +263,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         `${API}/users/drivers/locations`,
         `${API}/audit-logs?limit=100&skip=${auditLogPage * 100}`,
       ]);
-      if (b5[0].status === "fulfilled") setIncomingMessages(b5[0].value.data);
-      if (b5[1].status === "fulfilled") setVisitors(b5[1].value.data);
+      if (b5[0].status === "fulfilled") setIncomingMessages(arr(b5[0].value.data));
+      if (b5[1].status === "fulfilled") setVisitors(arr(b5[1].value.data));
       if (b5[2].status === "fulfilled") setVisitorStats(b5[2].value.data);
-      if (b5[3].status === "fulfilled") setDriverLocations(b5[3].value.data);
+      if (b5[3].status === "fulfilled") setDriverLocations(arr(b5[3].value.data));
       if (b5[4].status === "fulfilled") {
-        setAuditLogs(b5[4].value.data.logs || []);
-        setAuditLogTotal(b5[4].value.data.total || 0);
+        setAuditLogs(arr(b5[4].value.data?.logs));
+        setAuditLogTotal(b5[4].value.data?.total || 0);
       }
     } catch (error) {
       console.error("Secondary data fetch error:", error);
