@@ -82,16 +82,23 @@ async def get_daily_analytics():
 
         # 1) Completed jobs: subtract earlier shift_end_reports' produced_koli for the same job
         #    (those partials are already inside completed_koli and will be added via reports below).
+        # PERFORMANS: N+1 query yerine tek $in batch sorgusu
+        job_ids = [j["id"] for j in jobs]
+        prior_partials_by_job = {}
+        if job_ids:
+            all_priors = await db.shift_end_reports.find(
+                {"job_id": {"$in": job_ids}, "created_at": {"$lt": end_of_day.isoformat()}},
+                {"_id": 0, "job_id": 1, "produced_koli": 1}
+            ).to_list(10000)
+            for r in all_priors:
+                jid = r.get("job_id")
+                if jid:
+                    prior_partials_by_job[jid] = prior_partials_by_job.get(jid, 0) + r.get("produced_koli", 0)
+
         for job in jobs:
             machine = job["machine_name"]
             completed_koli = job.get("completed_koli", job.get("koli_count", 0))
-            # Sum all shift_end_reports for this job before end_of_day (i.e., already counted as daily partials)
-            prior_partials = 0
-            prior = await db.shift_end_reports.find(
-                {"job_id": job["id"], "created_at": {"$lt": end_of_day.isoformat()}}, {"_id": 0, "produced_koli": 1}
-            ).to_list(100)
-            for r in prior:
-                prior_partials += r.get("produced_koli", 0)
+            prior_partials = prior_partials_by_job.get(job["id"], 0)
             credit = max(0, completed_koli - prior_partials)
             if credit > 0:
                 machine_breakdown[machine] = machine_breakdown.get(machine, 0) + credit
@@ -322,16 +329,23 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
         machine_breakdown = {}
 
         # 1) Completed jobs: credit only the final delta (completed_koli - prior shift_end_reports' produced_koli).
+        # PERFORMANS: N+1 query yerine tek $in batch sorgusu
+        job_ids = [j["id"] for j in jobs]
+        prior_partials_by_job = {}
+        if job_ids:
+            all_priors = await db.shift_end_reports.find(
+                {"job_id": {"$in": job_ids}, "created_at": {"$lt": start_of_day.isoformat()}},
+                {"_id": 0, "job_id": 1, "produced_koli": 1}
+            ).to_list(10000)
+            for r in all_priors:
+                jid = r.get("job_id")
+                if jid:
+                    prior_partials_by_job[jid] = prior_partials_by_job.get(jid, 0) + r.get("produced_koli", 0)
+
         for job in jobs:
             machine = job["machine_name"]
             completed_koli = job.get("completed_koli", job.get("koli_count", 0))
-            # Sum all shift_end_reports for this job STRICTLY BEFORE today (prior-day partials).
-            prior_partials = 0
-            prior = await db.shift_end_reports.find(
-                {"job_id": job["id"], "created_at": {"$lt": start_of_day.isoformat()}}, {"_id": 0, "produced_koli": 1}
-            ).to_list(100)
-            for r in prior:
-                prior_partials += r.get("produced_koli", 0)
+            prior_partials = prior_partials_by_job.get(job["id"], 0)
             credit = max(0, completed_koli - prior_partials)
             if credit > 0:
                 machine_breakdown[machine] = machine_breakdown.get(machine, 0) + credit
