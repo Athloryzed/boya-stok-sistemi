@@ -276,7 +276,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       const needsB4 = tabFilter === "all" || tabFilter === "defects";
       const needsB5Visitors = tabFilter === "all" || tabFilter === "visitors";
       const needsB5Messages = tabFilter === "all" || tabFilter === "messages";
-      const needsB5Audit = tabFilter === "all" || tabFilter === "audit";
+      const needsB5Audit = tabFilter === "all" || tabFilter === "audit-logs";
       const needsB5Drivers = tabFilter === "all" || tabFilter === "users";
 
       // Batch 1 — Daima yüklenir (header uyarıları: bekleyen rapor, düşük stok, okunmamış mesaj)
