@@ -44,38 +44,25 @@ android-sdk/
 backend/firebase-service-account.json
 frontend/node_modules/.cache/default-development/10.pack
 frontend/node_modules/.cache/default-development/8.pack
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/7.pack
--e 
 # Environment files
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/1.pack
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/13.pack
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/2.pack
 frontend/node_modules/.cache/default-development/5.pack
--e 
 # Environment files
--e 
 # Environment files
--e 
 # Environment files
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/9.pack
--e 
 # Environment files
--e 
 # Environment files
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/0.pack
--e 
 # Environment files
 frontend/node_modules/.cache/default-development/3.pack
 frontend/node_modules/.cache/default-development/11.pack
@@ -83,76 +70,67 @@ frontend/node_modules/.cache/default-development/4.pack
 frontend/node_modules/.cache/default-development/4.pack
 frontend/node_modules/.cache/default-development/4.pack
 frontend/node_modules/.cache/default-development/6.pack
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
 frontend/node_modules/.cache/default-development/12.pack
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
--e 
 # Environment and credential files
 credentials.json
 *.pem
 *.key
 .credentials
+
+# Hassas test credentials (production'a girmemeli)
+memory/test_credentials.md
