@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import axios from "axios";
 import "@/App.css";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ConnectionBanner from "./components/ConnectionBanner";
 import { Toaster } from "./components/ui/sonner";
 
 // ResizeObserver loop uyarısını bastır.
@@ -116,13 +117,55 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-// 401 hatası alınca token temizle
+// 401 hatası alınca token temizle + Otomatik RETRY (mobile blokaj/timeout için)
 axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response) => {
+    // Başarılı yanıt geldi → bağlantı durumu "online" olarak işaretle
+    if (typeof window !== "undefined") {
+      window.__apiOnline = true;
+      window.dispatchEvent(new CustomEvent("api-online"));
+    }
+    return response;
+  },
+  async (error) => {
     if (error.response?.status === 401 && !error.config.url?.includes("/login")) {
       localStorage.removeItem("auth_token");
+      return Promise.reject(error);
     }
+
+    // Network hatası / timeout retry — mobil ISP blokajına karşı dayanıklılık
+    const cfg = error.config || {};
+    const isNetworkError =
+      !error.response ||
+      error.code === "ECONNABORTED" ||
+      error.code === "ERR_NETWORK" ||
+      error.message === "Network Error";
+    const isGetRequest = (cfg.method || "get").toLowerCase() === "get";
+    const isLoginRequest = (cfg.url || "").includes("/login");
+    cfg.__retryCount = cfg.__retryCount || 0;
+    const MAX_RETRIES = isLoginRequest ? 1 : 3;
+
+    if (isNetworkError && isGetRequest && cfg.__retryCount < MAX_RETRIES) {
+      cfg.__retryCount += 1;
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = Math.min(1000 * Math.pow(2, cfg.__retryCount - 1), 4000);
+
+      // İlk retry'da kullanıcıya banner göster
+      if (cfg.__retryCount === 1 && typeof window !== "undefined") {
+        window.__apiOnline = false;
+        window.dispatchEvent(new CustomEvent("api-offline"));
+      }
+
+      await new Promise((r) => setTimeout(r, delay));
+      return axios(cfg);
+    }
+
+    // Tüm retry'lar tükendi → kullanıcıya bildir
+    if (isNetworkError && typeof window !== "undefined") {
+      window.__apiOnline = false;
+      window.dispatchEvent(new CustomEvent("api-offline"));
+    }
+
     return Promise.reject(error);
   }
 );
@@ -200,6 +243,7 @@ function App() {
   return (
     <ErrorBoundary>
       <div className={`App ${theme}`}>
+        <ConnectionBanner />
         <BrowserRouter>
           <VisitorTracker />
           <Suspense fallback={<RouteLoading />}>
