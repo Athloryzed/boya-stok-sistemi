@@ -217,3 +217,22 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - `WarehouseFlow.js` login formuna `data-testid="warehouse-remember-me"` checkbox eklendi (PlanFlow/OperatorFlow ile aynı UX).
 - Checked iken `localStorage.depo_remember = {username, password}` kayıt; sayfa açılışında pre-fill.
 - 24 saatlik oturum kalıcılığı korundu (depo_session — token tabanlı, ayrı bir mekanizma).
+
+
+### Feb 2026 (Iteration 42) — Genişletilmiş Görsel Desteği + Bekleyen İşlerde Görsel Önizleme
+
+**Backend — Tüm yaygın resim formatları kabul ediliyor:**
+- `POST /api/upload/image` (`/app/backend/routes/jobs.py`) genişletildi:
+  - Eski: jpg, jpeg, png, gif, webp (5MB)
+  - Yeni: jpg/jpeg/jfif/pjpeg, png/apng, gif, webp, avif, bmp/dib, svg/svgz, tif/tiff, heic/heif/heics/heifs, ico/cur (10MB)
+  - Bilinmeyen uzantı olsa bile `content-type` "image/*" ise kabul ediyor.
+  - Doğru MIME tipi ile data URL'e dönüştürülüyor.
+- Test edildi: BMP, SVG, TIFF dosyaları başarıyla yüklenip data URL olarak depolanıyor.
+
+**Frontend — Görselin "büyütülebilir" gösterimi:**
+- **OperatorFlow** bekleyen iş kartlarında: Görsel artık küçük ikon butonu yerine **16×16 (mobil) / 20×20 (masaüstü) thumbnail** olarak iş kartının solunda gösteriliyor. Üzerine basınca tam ekran dialog ile büyüyor. Drag-and-drop ile çakışmasın diye `onMouseDown`/`onTouchStart` propagation engellendi.
+- **OperatorFlow** aktif iş thumbnail'i: `window.open` yerine artık aynı dialog'u açıyor (tutarlı UX).
+- **OperatorFlow** Görsel Önizleme Dialog: max-w-3xl → max-w-4xl, data URL desteği eklendi (önceden `${API}` prefix data URL'i bozuyordu).
+- **ManagementFlow** Bekleyen İşler listesi: Her bekleyen işin yanına 12×12 thumbnail eklendi → tıklanınca yeni eklenen "Görsel Önizleme Dialog"u açıyor.
+- **ManagementFlow** Aktif İş thumbnail'i: `window.open` yerine artık dialog kullanıyor; thumbnail büyütüldü (12×12 → 14×14) ve hover scale animasyonu eklendi.
+- **ManagementFlow**'a yeni state: `selectedJobImage`, `isImagePreviewOpen`, `openImagePreview` helper + max-w-4xl Image Preview Dialog.

@@ -1222,10 +1222,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                     {currentJobOnMachine.image_url && (
                       <div 
                         className="cursor-pointer flex-shrink-0"
-                        onClick={() => window.open(currentJobOnMachine.image_url, '_blank')}
+                        onClick={() => openImagePreview(currentJobOnMachine.image_url)}
+                        data-testid="active-job-image-thumb"
                       >
                         <img 
-                          src={currentJobOnMachine.image_url} 
+                          src={currentJobOnMachine.image_url?.startsWith('data:') || currentJobOnMachine.image_url?.startsWith('http') ? currentJobOnMachine.image_url : `${API.replace('/api', '')}${currentJobOnMachine.image_url}`}
                           alt={currentJobOnMachine.name}
                           className="w-24 h-24 object-cover rounded-lg border-2 border-success hover:opacity-80 transition-opacity"
                         />
@@ -1369,13 +1370,35 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       onDragEnd={handleDragEnd}
                     >
                       <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-start gap-3">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
                             <div className="flex flex-col items-center justify-center pt-1">
                               <GripVertical className="h-5 w-5 text-text-secondary" />
                               <span className="text-xs text-text-secondary mt-1">#{index + 1}</span>
                             </div>
-                            <div>
+                            {job.image_url && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openImagePreview(job.image_url); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
+                                draggable={false}
+                                className="relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-secondary/40 hover:border-secondary hover:scale-105 transition-all bg-background group"
+                                data-testid={`job-image-thumb-${job.id}`}
+                                aria-label="Görseli büyüt"
+                              >
+                                <img
+                                  src={job.image_url?.startsWith('data:') || job.image_url?.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
+                                  alt={job.name}
+                                  draggable={false}
+                                  className="w-full h-full object-cover pointer-events-none"
+                                />
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                                  <Image className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </span>
+                              </button>
+                            )}
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="text-xl font-heading font-bold text-text-primary">{job.name}</h3>
                                 {job.format && <span className="px-2 py-1 bg-secondary/20 text-secondary text-xs font-mono rounded">{job.format}</span>}
@@ -1386,16 +1409,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                                 )}
                                 {job.remaining_koli > 0 && job.remaining_koli < job.koli_count && (
                                   <span className="px-2 py-1 bg-warning/20 text-warning text-xs font-bold rounded">DEVAM</span>
-                                )}
-                                {job.image_url && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => { e.stopPropagation(); openImagePreview(job.image_url); }}
-                                    className="text-secondary border-secondary/50 h-7 px-2"
-                                  >
-                                    <Image className="h-4 w-4" />
-                                  </Button>
                                 )}
                               </div>
                               {job.remaining_koli > 0 && job.remaining_koli < job.koli_count ? (
@@ -1411,7 +1424,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                             </div>
                           </div>
                           {!currentJobOnMachine && (
-                            <Button onClick={() => handleStartJob(job)} disabled={loading} className="bg-secondary text-white hover:bg-secondary/90">
+                            <Button onClick={() => handleStartJob(job)} disabled={loading} className="bg-secondary text-white hover:bg-secondary/90 shrink-0">
                               <Play className="mr-2 h-4 w-4" /> Başlat
                             </Button>
                           )}
@@ -1427,7 +1440,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
 
         {/* Görsel Önizleme Dialog */}
         <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
-          <DialogContent className="bg-surface border-border max-w-3xl">
+          <DialogContent className="bg-surface border-border max-w-4xl">
             <DialogHeader>
               <DialogTitle className="text-xl font-heading flex items-center gap-2">
                 <Image className="h-5 w-5" /> İş Görseli
@@ -1436,9 +1449,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             {selectedJobImage && (
               <div className="flex justify-center">
                 <img 
-                  src={`${API.replace('/api', '')}${selectedJobImage}`} 
+                  src={selectedJobImage?.startsWith('data:') || selectedJobImage?.startsWith('http') ? selectedJobImage : `${API.replace('/api', '')}${selectedJobImage}`} 
                   alt="İş Görseli" 
-                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  data-testid="operator-image-preview-img"
                 />
               </div>
             )}

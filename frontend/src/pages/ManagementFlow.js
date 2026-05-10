@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -197,6 +197,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState("machines");
   const [lastSyncAt, setLastSyncAt] = useState(null);
   const [syncing, setSyncing] = useState(false);
+
+  // Görsel önizleme
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [selectedJobImage, setSelectedJobImage] = useState(null);
+  const openImagePreview = (imageUrl) => {
+    setSelectedJobImage(imageUrl);
+    setIsImagePreviewOpen(true);
+  };
 
   // Yemek Menüsü
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
@@ -1545,10 +1553,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             </div>
                             {currentJob.image_url && (
                               <img 
-                                src={currentJob.image_url} 
+                                src={currentJob.image_url?.startsWith('data:') || currentJob.image_url?.startsWith('http') ? currentJob.image_url : `${API.replace('/api', '')}${currentJob.image_url}`}
                                 alt={currentJob.name}
-                                className="w-12 h-12 object-cover rounded border border-success cursor-pointer"
-                                onClick={(e) => { e.stopPropagation(); window.open(currentJob.image_url, '_blank'); }}
+                                className="w-14 h-14 object-cover rounded border-2 border-success cursor-pointer hover:scale-105 transition-transform"
+                                onClick={(e) => { e.stopPropagation(); openImagePreview(currentJob.image_url); }}
+                                data-testid={`mgmt-active-job-image-${currentJob.id}`}
                               />
                             )}
                             <div className="flex flex-col gap-1">
@@ -1613,22 +1622,33 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       {upcomingJobs.length > 0 && (
                         <div>
                           <p className="text-sm font-semibold text-text-primary mb-2">Bekleyen İşler: {upcomingJobs.length}</p>
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                          <div className="space-y-2 max-h-56 overflow-y-auto">
                             {upcomingJobs.slice(0, 5).map(uj => (
-                              <div key={uj.id} className="p-2 bg-background/50 rounded border border-border/50">
-                                <div className="flex items-center gap-2 text-xs text-text-secondary flex-wrap">
-                                  <span className="font-medium text-text-primary">{uj.name}</span>
-                                  {uj.format && <span className="text-secondary px-1 bg-secondary/10 rounded">({uj.format})</span>}
-                                  <span className="text-text-secondary">📦 {uj.koli_count}</span>
-                                  {uj.queued_at && (
-                                    <span className={`${getDaysElapsedColor(calculateDaysElapsed(uj.queued_at))}`}>
-                                      📅 {calculateDaysElapsed(uj.queued_at)}g
-                                    </span>
+                              <div key={uj.id} className="p-2 bg-background/50 rounded border border-border/50 flex items-start gap-2">
+                                {uj.image_url && (
+                                  <img
+                                    src={uj.image_url?.startsWith('data:') || uj.image_url?.startsWith('http') ? uj.image_url : `${API.replace('/api', '')}${uj.image_url}`}
+                                    alt={uj.name}
+                                    className="w-12 h-12 object-cover rounded border border-border cursor-pointer hover:scale-105 transition-transform shrink-0"
+                                    onClick={(e) => { e.stopPropagation(); openImagePreview(uj.image_url); }}
+                                    data-testid={`mgmt-pending-job-image-${uj.id}`}
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 text-xs text-text-secondary flex-wrap">
+                                    <span className="font-medium text-text-primary">{uj.name}</span>
+                                    {uj.format && <span className="text-secondary px-1 bg-secondary/10 rounded">({uj.format})</span>}
+                                    <span className="text-text-secondary">📦 {uj.koli_count}</span>
+                                    {uj.queued_at && (
+                                      <span className={`${getDaysElapsedColor(calculateDaysElapsed(uj.queued_at))}`}>
+                                        📅 {calculateDaysElapsed(uj.queued_at)}g
+                                      </span>
+                                    )}
+                                  </div>
+                                  {uj.notes && (
+                                    <p className="text-xs text-info mt-1">📝 {uj.notes}</p>
                                   )}
                                 </div>
-                                {uj.notes && (
-                                  <p className="text-xs text-info mt-1">📝 {uj.notes}</p>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -3435,6 +3455,27 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Görsel Önizleme Dialog */}
+        <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+          <DialogContent className="bg-surface border-border max-w-4xl" data-testid="mgmt-image-preview-dialog">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" /> İş Görseli
+              </DialogTitle>
+            </DialogHeader>
+            {selectedJobImage && (
+              <div className="flex justify-center">
+                <img
+                  src={selectedJobImage?.startsWith('data:') || selectedJobImage?.startsWith('http') ? selectedJobImage : `${API.replace('/api', '')}${selectedJobImage}`}
+                  alt="İş Görseli"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  data-testid="mgmt-image-preview-img"
+                />
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

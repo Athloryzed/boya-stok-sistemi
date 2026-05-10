@@ -23,24 +23,45 @@ router = APIRouter()
 # Dosya Yükleme Endpoint'i
 @router.post("/upload/image")
 async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
-    """Görsel yükle ve Base64 olarak MongoDB'ye kaydet"""
+    """Görsel yükle ve Base64 olarak MongoDB'ye kaydet — tüm yaygın resim formatlarını destekler"""
     try:
-        allowed_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+        allowed_extensions = [
+            ".jpg", ".jpeg", ".jfif", ".pjpeg", ".pjp",
+            ".png", ".apng",
+            ".gif", ".webp", ".avif",
+            ".bmp", ".dib",
+            ".svg", ".svgz",
+            ".tif", ".tiff",
+            ".heic", ".heif", ".heics", ".heifs",
+            ".ico", ".cur"
+        ]
         file_ext = Path(file.filename).suffix.lower()
-        if file_ext not in allowed_extensions:
-            raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, jpeg, png, gif, webp)")
+        # Bilinmeyen uzantı ama content-type "image/*" ise yine de kabul et
+        ct = (file.content_type or "").lower()
+        if file_ext not in allowed_extensions and not ct.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir")
 
         content = await file.read()
-        if len(content) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="Dosya boyutu 5MB'dan küçük olmalı")
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Dosya boyutu 10MB'dan küçük olmalı")
 
         base64_data = base64.b64encode(content).decode('utf-8')
 
         mime_types = {
-            ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-            ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"
+            ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".jfif": "image/jpeg",
+            ".pjpeg": "image/jpeg", ".pjp": "image/jpeg",
+            ".png": "image/png", ".apng": "image/apng",
+            ".gif": "image/gif",
+            ".webp": "image/webp", ".avif": "image/avif",
+            ".bmp": "image/bmp", ".dib": "image/bmp",
+            ".svg": "image/svg+xml", ".svgz": "image/svg+xml",
+            ".tif": "image/tiff", ".tiff": "image/tiff",
+            ".heic": "image/heic", ".heif": "image/heif",
+            ".heics": "image/heic-sequence", ".heifs": "image/heif-sequence",
+            ".ico": "image/x-icon", ".cur": "image/x-icon"
         }
-        mime_type = mime_types.get(file_ext, "image/jpeg")
+        # Once uzantidan deneyelim, sonra content-type fallback
+        mime_type = mime_types.get(file_ext) or ct or "image/jpeg"
         data_url = f"data:{mime_type};base64,{base64_data}"
 
         image_id = str(uuid.uuid4())
