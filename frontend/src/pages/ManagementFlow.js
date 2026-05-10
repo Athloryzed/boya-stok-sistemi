@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -196,6 +196,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState("machines");
   const [lastSyncAt, setLastSyncAt] = useState(null);
   const [syncing, setSyncing] = useState(false);
+
+  // Yemek Menüsü
+  const [menuDialogOpen, setMenuDialogOpen] = useState(false);
+  const [menuDate, setMenuDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [menuItems, setMenuItems] = useState([""]);
+  const [menuNotes, setMenuNotes] = useState("");
+  const [menuLoading, setMenuLoading] = useState(false);
   
   // İş Durdurma
   const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
@@ -512,12 +519,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   }, [authenticated, selectedYear, selectedMonth, weekOffset, dailyWeekOffset, defectYear, defectMonth, defectWeekOffset, auditLogPage]);
 
   // Tab değişiminde ağır verileri lazy çek (mobil veri optimizasyonu)
+  // auditLogPage değişimi de buraya bağlı (audit-logs tab açıkken sayfa değişimi yeniden çeker)
   useEffect(() => {
     if (authenticated && activeTab) {
       fetchSecondaryData(activeTab);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, authenticated]);
+  }, [activeTab, authenticated, auditLogPage]);
 
   const handleLogin = async () => {
     try {
@@ -558,6 +566,60 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     setManagerId(null);
     toast.success("Çıkış yapıldı");
   };
+
+  // ========== Yemek Menüsü ==========
+  const _loadMenuForDate = async (date) => {
+    setMenuLoading(true);
+    try {
+      const res = await axios.get(`${API}/menu?date=${date}`);
+      const m = res.data;
+      if (m && m.exists) {
+        setMenuItems(m.items?.length ? m.items : [""]);
+        setMenuNotes(m.notes || "");
+      } else {
+        setMenuItems([""]);
+        setMenuNotes("");
+      }
+    } catch {
+      setMenuItems([""]);
+      setMenuNotes("");
+    }
+    setMenuLoading(false);
+  };
+
+  const openMenuDialog = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    setMenuDate(today);
+    setMenuDialogOpen(true);
+    await _loadMenuForDate(today);
+  };
+
+  const handleMenuSave = async () => {
+    const cleaned = menuItems.map(s => (s || "").trim()).filter(Boolean);
+    if (cleaned.length === 0) { toast.error("En az bir yemek girmelisiniz"); return; }
+    try {
+      await axios.post(`${API}/menu`, {
+        date: menuDate, items: cleaned, notes: menuNotes.trim() || null
+      });
+      toast.success(`${menuDate} menüsü kaydedildi`);
+      setMenuDialogOpen(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Menü kaydedilemedi");
+    }
+  };
+
+  const handleMenuDelete = async () => {
+    if (!window.confirm(`${menuDate} menüsü silinecek. Emin misiniz?`)) return;
+    try {
+      await axios.delete(`${API}/menu/${menuDate}`);
+      toast.success("Menü silindi");
+      setMenuItems([""]);
+      setMenuNotes("");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Silinemedi");
+    }
+  };
+
 
   // Kullanıcı yönetimi fonksiyonları
   const handleCreateUser = async () => {
@@ -1109,6 +1171,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <span className="hidden md:inline">Vardiya Başlat</span>
               </Button>
             )}
+            {/* YEMEK MENÜSÜ butonu */}
+            <Button variant="outline" size="sm" onClick={openMenuDialog} data-testid="menu-edit-btn"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 h-9 gap-1.5">
+              <UtensilsCrossed className="h-4 w-4" />
+              <span className="hidden md:inline text-xs">Menü</span>
+            </Button>
             {/* VERİ SENKRONU rozeti */}
             <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
@@ -3255,6 +3323,87 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </Button>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* YEMEK MENÜSÜ DIALOG */}
+        <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
+          <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UtensilsCrossed className="h-4 w-4 text-amber-400" /> Yemek Menüsü
+              </DialogTitle>
+              <DialogDescription>
+                Tüm çalışanlar Ana Sayfa'da görür. Tarih seç, yemekleri ekle ve kaydet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Tarih</Label>
+                <Input
+                  type="date"
+                  value={menuDate}
+                  onChange={(e) => { setMenuDate(e.target.value); _loadMenuForDate(e.target.value); }}
+                  className="bg-background"
+                  data-testid="menu-date-input"
+                />
+              </div>
+              <div>
+                <Label>Yemekler</Label>
+                {menuLoading ? (
+                  <p className="text-xs text-text-secondary py-2">Yükleniyor...</p>
+                ) : (
+                  <div className="space-y-2">
+                    {menuItems.map((it, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <Input
+                          placeholder={`Örn: ${["Mercimek Çorbası","Tavuk Sote","Pilav","Cacık","Sütlaç"][idx] || "Yemek adı"}`}
+                          value={it}
+                          onChange={(e) => {
+                            const next = [...menuItems];
+                            next[idx] = e.target.value;
+                            setMenuItems(next);
+                          }}
+                          className="bg-background"
+                          data-testid={`menu-item-${idx}`}
+                        />
+                        {menuItems.length > 1 && (
+                          <Button type="button" variant="outline" size="icon"
+                            onClick={() => setMenuItems(menuItems.filter((_, i) => i !== idx))}
+                            className="border-error/40 text-error hover:bg-error/10 h-9 w-9 flex-shrink-0">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm"
+                      onClick={() => setMenuItems([...menuItems, ""])}
+                      data-testid="menu-add-item"
+                      className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                      + Yemek Ekle
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label>Not (opsiyonel)</Label>
+                <Input
+                  placeholder="örn. Vejetaryen seçenek mevcut"
+                  value={menuNotes}
+                  onChange={(e) => setMenuNotes(e.target.value)}
+                  className="bg-background"
+                  data-testid="menu-notes-input"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleMenuSave} className="flex-1 bg-amber-500 hover:bg-amber-600 text-zinc-900" data-testid="menu-save-btn">
+                  Kaydet
+                </Button>
+                <Button onClick={handleMenuDelete} variant="outline" className="border-error/40 text-error hover:bg-error/10" data-testid="menu-delete-btn">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

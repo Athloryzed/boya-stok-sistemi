@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers } from "lucide-react";
+import axios from "axios";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed } from "lucide-react";
+import { API } from "../App";
 
 // Dalgalanan Türk Bayrağı bileşeni
 const WavingFlag = () => (
@@ -126,9 +128,14 @@ const Home = ({ theme, toggleTheme }) => {
   const [time, setTime] = useState(new Date());
   const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
   const [isYonetimUser, setIsYonetimUser] = useState(false);
+  const [todayMenu, setTodayMenu] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
+    // Bugünün yemek menüsü (auth gerekmez, herkese açık)
+    axios.get(`${API}/menu/today`)
+      .then(res => setTodayMenu(res.data))
+      .catch(() => setTodayMenu(null));
     // Yonetim kullanicisi mi kontrol et (herhangi bir panele kayitli session)
     const checkYonetim = () => {
       const keys = ["bobin_session", "operator_session", "plan_session", "depo_session", "warehouse_session", "yonetim_master"];
@@ -401,6 +408,40 @@ const Home = ({ theme, toggleTheme }) => {
             {time.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
           </p>
         </motion.div>
+
+        {/* Bugünün Yemek Menüsü — tüm çalışanlara açık */}
+        {todayMenu && todayMenu.exists && Array.isArray(todayMenu.items) && todayMenu.items.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="w-full max-w-xl mb-5"
+            data-testid="home-today-menu"
+          >
+            <div className="bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 border border-amber-500/25 rounded-2xl px-5 py-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <UtensilsCrossed className="h-4 w-4 text-amber-400" />
+                <h3 className="text-sm font-semibold text-amber-200 tracking-wide">BUGÜNÜN YEMEK MENÜSÜ</h3>
+                <span className="ml-auto text-[10px] text-amber-200/60 font-mono">
+                  {new Date(todayMenu.date).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", weekday: "long" })}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {todayMenu.items.map((it, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm text-zinc-100">
+                    <span className="text-amber-400/60">•</span>
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+              {todayMenu.notes && (
+                <p className="text-[11px] text-amber-200/70 italic mt-2 pt-2 border-t border-amber-500/15">
+                  {todayMenu.notes}
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+
 
         {/* Module cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full">

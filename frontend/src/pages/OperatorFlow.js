@@ -711,6 +711,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         console.error("FCM setup error:", fcmError);
       }
       
+      // Makineleri çek (ilk session check'te boş kalmış olabilir)
+      await fetchMachinesData();
       setStep(2);
     } catch (error) {
       toast.error(error.response?.data?.detail || "Giriş başarısız");

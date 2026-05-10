@@ -334,6 +334,20 @@ class Bobin(BaseModel):
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+# ==================== DAILY MENU (Günlük Yemek Menüsü) ====================
+
+class DailyMenu(BaseModel):
+    """Günlük yemek menüsü — tüm çalışanlar için."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    date: str  # YYYY-MM-DD formatında (gün anahtarı)
+    items: List[str] = Field(default_factory=list)  # Yemek listesi (çorba, ana yemek, salata, tatlı...)
+    notes: Optional[str] = None  # Ek not (örn. "vejetaryen seçenek mevcut")
+    created_by: Optional[str] = None  # Menüyü ekleyen
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 class BobinMovement(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
