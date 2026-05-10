@@ -250,22 +250,49 @@ async def end_shift_with_report(data: dict = Body(...)):
         target_koli = report.get("target_koli", 0)
         produced_koli = report.get("produced_koli", 0)
         defect_kg = float(report.get("defect_kg", 0))
-        remaining_koli = target_koli - produced_koli
+
+        # remaining_koli for THIS shift's report record (display purposes)
+        shift_remaining = max(0, target_koli - produced_koli)
 
         shift_report = ShiftEndReport(
             shift_id=shift_id, machine_id=machine_id, machine_name=machine_name,
             job_id=job_id, job_name=job_name, target_koli=target_koli,
             produced_koli=produced_koli,
-            remaining_koli=remaining_koli if remaining_koli > 0 else 0,
+            remaining_koli=shift_remaining,
             defect_kg=defect_kg
         )
         await db.shift_end_reports.insert_one(shift_report.model_dump())
 
-        if job_id and remaining_koli > 0:
-            await db.jobs.update_one(
-                {"id": job_id},
-                {"$set": {"remaining_koli": remaining_koli, "completed_koli": produced_koli}}
-            )
+        if job_id:
+            job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+            if job:
+                prev_completed = job.get("completed_koli", 0)
+                total_completed = prev_completed + produced_koli
+                original_koli = job.get("koli_count", 0)
+                new_remaining = max(0, original_koli - total_completed)
+
+                if new_remaining <= 0 and original_koli > 0:
+                    # Job tamamen bitti — otomatik tamamla
+                    await db.jobs.update_one(
+                        {"id": job_id},
+                        {"$set": {
+                            "status": "completed",
+                            "completed_at": datetime.now(timezone.utc).isoformat(),
+                            "completed_koli": total_completed,
+                            "remaining_koli": 0
+                        }}
+                    )
+                else:
+                    # Yarım kalan iş — yeni vardiyada devam etmesi için "pending"
+                    # started_at korunuyor (start_shift bunu kontrol edecek)
+                    await db.jobs.update_one(
+                        {"id": job_id},
+                        {"$set": {
+                            "completed_koli": total_completed,
+                            "remaining_koli": new_remaining,
+                            "status": "pending"
+                        }}
+                    )
 
         if defect_kg > 0:
             defect_log = DefectLog(
@@ -296,16 +323,30 @@ async def start_shift(started_by: str = None):
     shift = Shift()
     await db.shifts.insert_one(shift.model_dump())
 
+    # Onceki vardiyada baslamis ama tamamlanmamis tum isleri devam ettir
+    # Kriter: pending durumda + onceden baslamis (started_at var) + henuz tamamlanmamis
     partial_jobs = await db.jobs.find(
-        {"status": "pending", "completed_koli": {"$gt": 0}, "remaining_koli": {"$gt": 0}},
+        {
+            "status": "pending",
+            "started_at": {"$ne": None, "$exists": True},
+            "machine_id": {"$ne": None, "$exists": True},
+            "$expr": {
+                "$lt": [
+                    {"$ifNull": ["$completed_koli", 0]},
+                    {"$ifNull": ["$koli_count", 0]}
+                ]
+            }
+        },
         {"_id": 0}
-    ).to_list(100)
+    ).to_list(200)
 
     resumed_count = 0
     for job in partial_jobs:
+        if not job.get("machine_id"):
+            continue
         await db.jobs.update_one(
             {"id": job["id"]},
-            {"$set": {"status": "in_progress", "started_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {"status": "in_progress"}}
         )
         await db.machines.update_one(
             {"id": job["machine_id"]},
@@ -395,10 +436,13 @@ async def cleanup_stuck_shifts():
 
 
 @router.get("/shift-reports")
-async def get_shift_reports(shift_id: Optional[str] = None, limit: int = 50):
+async def get_shift_reports(shift_id: Optional[str] = None, today: bool = False, limit: int = 200):
     """Vardiya sonu raporlarını listele"""
     query = {}
     if shift_id:
         query["shift_id"] = shift_id
+    if today:
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        query["created_at"] = {"$gte": today_start}
     reports = await db.shift_end_reports.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return reports

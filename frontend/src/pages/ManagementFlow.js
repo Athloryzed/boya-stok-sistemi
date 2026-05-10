@@ -169,6 +169,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [isShiftEndDialogOpen, setIsShiftEndDialogOpen] = useState(false);
   const [isShiftEndChoiceDialogOpen, setIsShiftEndChoiceDialogOpen] = useState(false);
   const [shiftEndReports, setShiftEndReports] = useState([]);
+  const [todayShiftReports, setTodayShiftReports] = useState([]);
   
   // Operatör seçimi ile iş başlatma
   const [isStartJobDialogOpen, setIsStartJobDialogOpen] = useState(false);
@@ -232,11 +233,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async (retryCount = 0) => {
     try {
-      const [shiftRes, machinesRes, jobsRes, shiftStatusRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, shiftStatusRes, todayReportsRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
-        axios.get(`${API}/shifts/status`)
+        axios.get(`${API}/shifts/status`),
+        axios.get(`${API}/shift-reports?today=true`).catch(() => ({ data: [] }))
       ]);
       
       setCurrentShift(shiftRes.data);
@@ -252,6 +254,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
         setJobs(jobsRes.data);
       }
       setShiftStatus(shiftStatusRes.data);
+      if (Array.isArray(todayReportsRes.data)) {
+        setTodayShiftReports(todayReportsRes.data);
+      }
     } catch (error) {
       console.error("Primary fetch error:", error);
       if (retryCount < 2) {
@@ -1218,7 +1223,33 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             const activeJobsCount = jobs.filter(j => j.status === "in_progress").length;
             const pendingJobsCount = jobs.filter(j => j.status === "pending").length;
             const completedToday = jobs.filter(j => j.status === "completed" && j.completed_at && new Date(j.completed_at) >= todayStart);
-            const koliToday = completedToday.reduce((s, j) => s + (j.completed_koli || j.koli_count || 0), 0);
+
+            // Bugun tamamlanan islerin id'leri
+            const completedTodayIds = new Set(completedToday.map(j => j.id));
+            // Bugun olusturulmus shift_end_reports'lar (kismi uretimleri icerir)
+            const todayPartials = (todayShiftReports || []).filter(r => {
+              if (!r.created_at) return false;
+              return new Date(r.created_at) >= todayStart;
+            });
+            // Cifte sayim onleme: bugun tamamlanmis bir is icin daha onceden bugun raporlanmis kismi uretim
+            const priorPartialsByJob = {};
+            todayPartials.forEach(r => {
+              if (r.job_id && completedTodayIds.has(r.job_id)) {
+                priorPartialsByJob[r.job_id] = (priorPartialsByJob[r.job_id] || 0) + (r.produced_koli || 0);
+              }
+            });
+            // 1) Tamamlanan isler — bugun raporlanmis kismi uretimi cikar
+            let koliToday = 0;
+            completedToday.forEach(j => {
+              const completed = j.completed_koli || j.koli_count || 0;
+              const prior = priorPartialsByJob[j.id] || 0;
+              koliToday += Math.max(0, completed - prior);
+            });
+            // 2) Bugunku tum vardiya raporlarinin produced_koli'si
+            todayPartials.forEach(r => {
+              koliToday += (r.produced_koli || 0);
+            });
+
             const workingMachines = machines.filter(m => m.status === "working").length;
             const maintenanceMachines = machines.filter(m => m.maintenance).length;
             const pendingApprovals = pendingReports.length;

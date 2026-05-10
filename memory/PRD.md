@@ -194,3 +194,26 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Mobil: aynı veri kart formatında (responsive).
 - Mobil tab grid `grid-cols-3`'e güncellendi (5 sekme).
 - Verifiye: 19 İş / 744 Koli depo paneli üzerinde gerçek veri ile e2e test.
+
+
+### Feb 2026 (Iteration 41) — Vardiya Devamlılığı + Canlı Pano Kısmi Üretim + Depo "Beni Hatırla"
+
+**Kritik Bug Fix #1 — Vardiya bitince operatör/Canlı Pano "BOŞTA" kalıyordu:**
+- Sorun: `POST /api/shifts/end-with-report` makineyi `idle` yapıyor ama job status'ünü güncellemediği için job `in_progress` olarak takılıyordu. Sonraki `start_shift` filtresi (`status == "pending" AND completed_koli > 0`) bu işleri yakalamıyordu.
+- Düzeltme (`/app/backend/routes/shifts.py`):
+  - `end-with-report`: Her rapor için `total_completed = prev_completed + produced_koli` doğru hesaplanıyor (önceki overwrite bug'ı fix). İş bitmediyse `status="pending"` (started_at korunuyor); bittiyse `status="completed"` + `completed_at` set ediliyor.
+  - `start_shift`: Resumption filtresi gevşetildi → `status="pending" AND started_at exists AND completed_koli < koli_count` olan tüm işler yeni vardiyada otomatik devam ediyor (kısmi üretim koşulu kaldırıldı; 0 üretmiş ama atanmış işler de resume oluyor). `started_at` korunuyor (yenilenmiyor).
+- E2E test: Job → produced=30/100 ile vardiya bitti → `status=pending, completed_koli=30, remaining=70` ✓ → Yeni vardiya başlatıldı → job otomatik `in_progress`, makine `working` ✓.
+
+**Kritik Bug Fix #2 — Vardiya bitirme formundaki üretim Canlı Pano/Yönetim "Bugünkü Üretim"e işlemiyor:**
+- Sorun: `GET /api/dashboard/live` ve ManagementFlow "Bugünkü Üretim" kartı yalnızca `completed_today` jobs'ından `completed_koli` topluyordu — `shift_end_reports.produced_koli` (yarım üretimler) hiç dahil edilmiyordu.
+- Düzeltme (`/app/backend/routes/dashboard.py` + `ManagementFlow.js`):
+  - `koli_today` artık: (bugün tamamlanan jobs'ların `completed_koli`'si - bugün aynı job için raporlanmış kısmi üretim) + bugünkü tüm `shift_end_reports.produced_koli`. Çifte sayım önlendi.
+  - `daily_koli` (7 gün) ve `operator_ranking` aynı mantıkla genişletildi.
+  - Yeni filtre: `GET /api/shift-reports?today=true`.
+  - `ManagementFlow.js` `fetchData` artık `todayShiftReports` state'ini paralel olarak çekiyor; "Bugünkü Üretim" kartı bunu hesaba katıyor.
+
+**Yeni Özellik — Depo "Hatırla Beni":**
+- `WarehouseFlow.js` login formuna `data-testid="warehouse-remember-me"` checkbox eklendi (PlanFlow/OperatorFlow ile aynı UX).
+- Checked iken `localStorage.depo_remember = {username, password}` kayıt; sayfa açılışında pre-fill.
+- 24 saatlik oturum kalıcılığı korundu (depo_session — token tabanlı, ayrı bir mekanizma).

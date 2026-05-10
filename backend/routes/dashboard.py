@@ -40,7 +40,32 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
         {"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0}
     ).to_list(500)
 
-    koli_today = sum(j.get("completed_koli", j.get("koli_count", 0)) for j in completed_today)
+    # Bugünkü vardiya raporları (kısmi üretimleri içerir)
+    shift_reports_today = await db.shift_end_reports.find(
+        {"created_at": {"$gte": today_start}}, {"_id": 0}
+    ).to_list(1000)
+    shift_reports_7d = await db.shift_end_reports.find(
+        {"created_at": {"$gte": week_ago}}, {"_id": 0}
+    ).to_list(2000)
+
+    # Bugun tamamlanan islerin onceki kismi uretimlerini cikar (cifte sayim onleme)
+    completed_today_ids = {j["id"] for j in completed_today}
+    prior_partials_today = {}
+    for r in shift_reports_today:
+        jid = r.get("job_id")
+        if jid and jid in completed_today_ids:
+            prior_partials_today[jid] = prior_partials_today.get(jid, 0) + r.get("produced_koli", 0)
+
+    # 1) Tamamlanan isler: completed_koli (onceki vardiyalar dahil) - bugun zaten raporlanmis kismi uretim
+    koli_today = 0
+    for j in completed_today:
+        completed_koli = j.get("completed_koli", j.get("koli_count", 0))
+        prior = prior_partials_today.get(j["id"], 0)
+        koli_today += max(0, completed_koli - prior)
+
+    # 2) Bugunku tum vardiya raporlari produced_koli'sini ekle
+    for r in shift_reports_today:
+        koli_today += r.get("produced_koli", 0)
 
     machine_data = []
     for m in all_machines:
@@ -58,6 +83,7 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
             "pending_jobs": pending_count
         })
 
+    # Operator siralamasi: tamamlanan + bugunku kismi uretim
     op_today = {}
     for j in completed_today:
         op = j.get("operator_name", "")
@@ -65,16 +91,63 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
             if op not in op_today:
                 op_today[op] = {"jobs": 0, "koli": 0}
             op_today[op]["jobs"] += 1
-            op_today[op]["koli"] += j.get("completed_koli", j.get("koli_count", 0))
+            credit = max(0, j.get("completed_koli", j.get("koli_count", 0)) - prior_partials_today.get(j["id"], 0))
+            op_today[op]["koli"] += credit
+
+    # Kismi uretimler (bugunku shift raporlarindan operator bilgisi job'tan turetilir)
+    # ShiftEndReport'ta operator yok, job'tan cekiyoruz
+    job_ids_in_reports = list({r.get("job_id") for r in shift_reports_today if r.get("job_id")})
+    job_op_map = {}
+    if job_ids_in_reports:
+        jobs_for_ops = await db.jobs.find(
+            {"id": {"$in": job_ids_in_reports}}, {"_id": 0, "id": 1, "operator_name": 1}
+        ).to_list(500)
+        job_op_map = {j["id"]: j.get("operator_name", "") for j in jobs_for_ops}
+
+    for r in shift_reports_today:
+        produced = r.get("produced_koli", 0)
+        if produced <= 0:
+            continue
+        jid = r.get("job_id")
+        op = job_op_map.get(jid, "") if jid else ""
+        if op:
+            if op not in op_today:
+                op_today[op] = {"jobs": 0, "koli": 0}
+            op_today[op]["koli"] += produced
 
     operator_ranking = [{"name": k, "jobs": v["jobs"], "koli": v["koli"]}
                         for k, v in sorted(op_today.items(), key=lambda x: x[1]["koli"], reverse=True)]
 
+    # 7 gunluk gunluk veri: tamamlanan + kismi uretim
     daily_data = {}
+    completed_7d_ids = {j["id"] for j in completed_7d}
+    prior_partials_7d_by_date = {}
+    for r in shift_reports_7d:
+        jid = r.get("job_id")
+        if jid and jid in completed_7d_ids:
+            d = r.get("created_at", "")[:10]
+            key = (jid, d)
+            prior_partials_7d_by_date[key] = prior_partials_7d_by_date.get(key, 0) + r.get("produced_koli", 0)
+
     for j in completed_7d:
         date = j.get("completed_at", "")[:10]
         if date:
-            daily_data[date] = daily_data.get(date, 0) + j.get("completed_koli", j.get("koli_count", 0))
+            completed_koli = j.get("completed_koli", j.get("koli_count", 0))
+            # Aynı gun icindeki onceki kismi uretimleri cikar (o uretimler shift report uzerinden eklenecek)
+            same_day_prior = sum(
+                v for (jid, d), v in prior_partials_7d_by_date.items()
+                if jid == j["id"] and d == date
+            )
+            credit = max(0, completed_koli - same_day_prior)
+            daily_data[date] = daily_data.get(date, 0) + credit
+
+    for r in shift_reports_7d:
+        produced = r.get("produced_koli", 0)
+        if produced <= 0:
+            continue
+        date = r.get("created_at", "")[:10]
+        if date:
+            daily_data[date] = daily_data.get(date, 0) + produced
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),

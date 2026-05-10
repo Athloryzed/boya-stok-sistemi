@@ -19,6 +19,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [warehouseRequests, setWarehouseRequests] = useState([]);
   const [pallets, setPallets] = useState([]);
@@ -39,6 +40,21 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+
+  // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
+  useEffect(() => {
+    const remembered = localStorage.getItem("depo_remember");
+    if (remembered) {
+      try {
+        const creds = JSON.parse(remembered);
+        setUsername(creds.username || "");
+        setPassword(creds.password || "");
+        setRememberMe(true);
+      } catch (e) {
+        localStorage.removeItem("depo_remember");
+      }
+    }
+  }, []);
 
   // Oturum kontrolü - 24 saatlik kalıcı oturum
   useEffect(() => {
@@ -79,6 +95,12 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       const user = response.data;
       if (user.token) {
         localStorage.setItem("auth_token", user.token);
+      }
+      // Hatırla Beni kaydet/temizle
+      if (rememberMe) {
+        localStorage.setItem("depo_remember", JSON.stringify({ username, password }));
+      } else {
+        localStorage.removeItem("depo_remember");
       }
       setUserData(user);
       localStorage.setItem("depo_session", JSON.stringify({ ...user, login_time: Date.now() }));
@@ -355,6 +377,11 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                   className="mt-1 bg-background border-border text-text-primary text-lg h-14"
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="warehouse-remember-me">
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-5 h-5 rounded border-border accent-amber-500 cursor-pointer" />
+                <span className="text-text-secondary text-sm">Hatırla Beni</span>
+              </label>
               <Button
                 data-testid="warehouse-login-button"
                 onClick={handleLogin}
