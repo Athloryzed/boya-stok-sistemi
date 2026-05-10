@@ -690,7 +690,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                     <SelectTrigger data-testid="completed-machine-filter" className="bg-background border-border">
                       <SelectValue placeholder="Tüm Makineler" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-surface border-border text-text-primary">
                       <SelectItem value="all">Tüm Makineler</SelectItem>
                       {[...new Set(completedJobs.map((j) => j.machine_name).filter(Boolean))].sort().map((m) => (
                         <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -702,7 +702,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                       <Calendar className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-surface border-border text-text-primary">
                       <SelectItem value="1">Son 24 Saat</SelectItem>
                       <SelectItem value="7">Son 7 Gün</SelectItem>
                       <SelectItem value="30">Son 30 Gün</SelectItem>
