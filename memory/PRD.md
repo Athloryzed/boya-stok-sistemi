@@ -183,3 +183,14 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
   - Yeni mesaj → `default` (ding-dong + kısa titreşim).
 - Tarayıcı autoplay kısıtlaması için ilk dokunuşta AudioContext otomatik resume oluyor.
 
+
+### Feb 2026 (Iteration 40) — Depo "Tamamlanan İşler" Sekmesi
+**Yeni Sekme (`/warehouse`):**
+- `WarehouseFlow.js`: Yeni "Tamamlanan İşler" tab'ı (CheckCircle2 ikonu) — depo çalışanları tamamlanan işleri, hangi makinenin yaptığını ve kaç koli üretildiğini görür.
+- Veri kaynağı: `GET /api/jobs?status=completed` (her 5sn fetchData içinde yenilenir).
+- Filtreler: Arama (iş adı / makine / renk), Makine seçici (otomatik liste), Tarih aralığı (Son 24 Saat / 7 Gün / 30 Gün / Tümü) — varsayılan 30 gün.
+- Üst rozetler: toplam iş sayısı + toplam koli (filtre uygulanmış toplam).
+- Masaüstü: tablo (İş Adı, Makine pill, Renk, Koli completed/target, Operatör, Tamamlandı timestamp), tamamlanma tarihine göre desc sıralı.
+- Mobil: aynı veri kart formatında (responsive).
+- Mobil tab grid `grid-cols-3`'e güncellendi (5 sekme).
+- Verifiye: 19 İş / 744 Koli depo paneli üzerinde gerçek veri ile e2e test.

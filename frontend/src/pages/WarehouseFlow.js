@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff, Package, Truck, History, Check } from "lucide-react";
+import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff, Package, Truck, History, Check, CheckCircle2, Search, Calendar } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -33,6 +33,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [isShipmentLogDialogOpen, setIsShipmentLogDialogOpen] = useState(false);
   const [selectedShipmentForLog, setSelectedShipmentForLog] = useState(null);
   const [shipmentLogForm, setShipmentLogForm] = useState({ delivered_koli: 0, partial: false });
+  const [completedJobs, setCompletedJobs] = useState([]);
+  const [completedSearch, setCompletedSearch] = useState("");
+  const [completedMachineFilter, setCompletedMachineFilter] = useState("all");
+  const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
@@ -215,6 +219,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/pallets`),
         axios.get(`${API}/shipments?status=preparing`),
         axios.get(`${API}/warehouse/shipment-logs`),
+        axios.get(`${API}/jobs?status=completed`),
       ]);
       const safeArray = (res) =>
         res.status === "fulfilled" && Array.isArray(res.value.data) ? res.value.data : null;
@@ -222,6 +227,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       const p = safeArray(results[1]); if (p) setPallets(p);
       const s = safeArray(results[2]); if (s) setShipments(s);
       const l = safeArray(results[3]); if (l) setShipmentLogs(l);
+      const c = safeArray(results[4]); if (c) setCompletedJobs(c);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
@@ -441,7 +447,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         <Tabs defaultValue="alerts" className="space-y-6">
           {/* Mobile tabs */}
           <div className="block md:hidden">
-            <TabsList className="bg-surface border-border w-full grid grid-cols-2 gap-1 h-auto p-1">
+            <TabsList className="bg-surface border-border w-full grid grid-cols-3 gap-1 h-auto p-1">
               <TabsTrigger value="alerts" data-testid="alerts-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
                 Uyarılar
                 {warehouseRequests.length > 0 && (
@@ -452,6 +458,9 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               </TabsTrigger>
               <TabsTrigger value="scanner" data-testid="scanner-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
                 Palet
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="completed-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
+                Tamamlanan
               </TabsTrigger>
               <TabsTrigger value="shipments" data-testid="shipments-tab-mobile" className="data-[state=active]:bg-warning data-[state=active]:text-black text-xs py-2">
                 Sevkiyat
@@ -476,6 +485,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               <TabsTrigger value="scanner" data-testid="scanner-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
                 <QrCode className="mr-2 h-4 w-4" />
                 Palet Okuma
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="completed-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Tamamlanan İşler
               </TabsTrigger>
               <TabsTrigger value="shipments" data-testid="shipments-tab" className="data-[state=active]:bg-warning data-[state=active]:text-black">
                 <Truck className="mr-2 h-4 w-4" />
@@ -617,6 +630,207 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                     </table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAMAMLANAN İŞLER TAB */}
+          <TabsContent value="completed">
+            <Card className="bg-surface border-border">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <CardTitle className="text-2xl font-heading flex items-center gap-2">
+                    <CheckCircle2 className="h-6 w-6 text-success" />
+                    Tamamlanan İşler
+                  </CardTitle>
+                  {(() => {
+                    const filtered = completedJobs.filter((j) => {
+                      if (completedMachineFilter !== "all" && j.machine_name !== completedMachineFilter) return false;
+                      if (completedDaysFilter !== "all" && j.completed_at) {
+                        const days = parseInt(completedDaysFilter, 10);
+                        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+                        if (new Date(j.completed_at).getTime() < cutoff) return false;
+                      }
+                      if (completedSearch) {
+                        const q = completedSearch.toLowerCase();
+                        return (j.name || "").toLowerCase().includes(q) ||
+                               (j.machine_name || "").toLowerCase().includes(q) ||
+                               (j.colors || "").toLowerCase().includes(q);
+                      }
+                      return true;
+                    });
+                    const totalKoli = filtered.reduce((s, j) => s + (j.completed_koli || j.koli_count || 0), 0);
+                    return (
+                      <div className="flex flex-wrap gap-2 text-sm">
+                        <span className="px-3 py-1 rounded-full bg-success/15 text-success font-semibold" data-testid="completed-count-badge">
+                          {filtered.length} İş
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-warning/15 text-warning font-semibold" data-testid="completed-koli-badge">
+                          {totalKoli.toLocaleString("tr-TR")} Koli
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filtre Çubuğu */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+                    <Input
+                      data-testid="completed-search-input"
+                      placeholder="İş adı, makine, renk ara..."
+                      value={completedSearch}
+                      onChange={(e) => setCompletedSearch(e.target.value)}
+                      className="pl-9 bg-background border-border"
+                    />
+                  </div>
+                  <Select value={completedMachineFilter} onValueChange={setCompletedMachineFilter}>
+                    <SelectTrigger data-testid="completed-machine-filter" className="bg-background border-border">
+                      <SelectValue placeholder="Tüm Makineler" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tüm Makineler</SelectItem>
+                      {[...new Set(completedJobs.map((j) => j.machine_name).filter(Boolean))].sort().map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={completedDaysFilter} onValueChange={setCompletedDaysFilter}>
+                    <SelectTrigger data-testid="completed-days-filter" className="bg-background border-border">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Son 24 Saat</SelectItem>
+                      <SelectItem value="7">Son 7 Gün</SelectItem>
+                      <SelectItem value="30">Son 30 Gün</SelectItem>
+                      <SelectItem value="all">Tümü</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(() => {
+                  const filtered = completedJobs
+                    .filter((j) => {
+                      if (completedMachineFilter !== "all" && j.machine_name !== completedMachineFilter) return false;
+                      if (completedDaysFilter !== "all" && j.completed_at) {
+                        const days = parseInt(completedDaysFilter, 10);
+                        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+                        if (new Date(j.completed_at).getTime() < cutoff) return false;
+                      }
+                      if (completedSearch) {
+                        const q = completedSearch.toLowerCase();
+                        return (j.name || "").toLowerCase().includes(q) ||
+                               (j.machine_name || "").toLowerCase().includes(q) ||
+                               (j.colors || "").toLowerCase().includes(q);
+                      }
+                      return true;
+                    })
+                    .sort((a, b) => {
+                      const ta = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+                      const tb = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+                      return tb - ta;
+                    });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12">
+                        <CheckCircle2 className="h-12 w-12 mx-auto text-text-secondary mb-3 opacity-40" />
+                        <p className="text-text-secondary text-lg">Tamamlanan iş bulunamadı.</p>
+                        <p className="text-text-secondary text-sm mt-1">Filtreleri değiştirmeyi deneyin.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {/* Mobil Kart Görünümü */}
+                      <div className="md:hidden space-y-3" data-testid="completed-jobs-mobile">
+                        {filtered.map((job) => (
+                          <div
+                            key={job.id}
+                            data-testid={`completed-job-card-${job.id}`}
+                            className="p-4 bg-background border border-border rounded-lg"
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <h3 className="font-bold text-text-primary text-base">{job.name}</h3>
+                              <span className="shrink-0 bg-success/15 text-success px-2 py-1 rounded text-xs font-semibold">
+                                {job.completed_koli || job.koli_count} Koli
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-text-secondary">
+                              <div>
+                                <span className="text-xs opacity-70">Makine</span>
+                                <p className="font-semibold text-text-primary">{job.machine_name || "—"}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs opacity-70">Operatör</span>
+                                <p className="font-semibold text-text-primary">{job.operator_name || "—"}</p>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="text-xs opacity-70">Renk</span>
+                                <p className="text-text-primary">{job.colors || "—"}</p>
+                              </div>
+                              <div className="col-span-2 pt-2 border-t border-border">
+                                <span className="text-xs opacity-70">Tamamlandı</span>
+                                <p className="text-text-primary">
+                                  {job.completed_at ? new Date(job.completed_at).toLocaleString("tr-TR") : "—"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Masaüstü Tablo */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full" data-testid="completed-jobs-table">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left p-3 font-heading text-text-primary">İş Adı</th>
+                              <th className="text-left p-3 font-heading text-text-primary">Makine</th>
+                              <th className="text-left p-3 font-heading text-text-primary">Renk</th>
+                              <th className="text-right p-3 font-heading text-text-primary">Koli</th>
+                              <th className="text-left p-3 font-heading text-text-primary">Operatör</th>
+                              <th className="text-left p-3 font-heading text-text-primary">Tamamlandı</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.map((job) => (
+                              <tr
+                                key={job.id}
+                                className="border-b border-border hover:bg-surface-highlight/40 transition-colors"
+                                data-testid={`completed-job-row-${job.id}`}
+                              >
+                                <td className="p-3 text-text-primary font-semibold">{job.name}</td>
+                                <td className="p-3">
+                                  <span className="px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-sm">
+                                    {job.machine_name || "—"}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-text-secondary">{job.colors || "—"}</td>
+                                <td className="p-3 text-right">
+                                  <span className="font-bold text-success text-lg">
+                                    {job.completed_koli || job.koli_count}
+                                  </span>
+                                  {job.completed_koli && job.koli_count && job.completed_koli !== job.koli_count && (
+                                    <span className="text-xs text-text-secondary ml-1">/ {job.koli_count}</span>
+                                  )}
+                                </td>
+                                <td className="p-3 text-text-secondary">{job.operator_name || "—"}</td>
+                                <td className="p-3 text-text-secondary text-sm">
+                                  {job.completed_at ? new Date(job.completed_at).toLocaleString("tr-TR") : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
