@@ -78,13 +78,17 @@ async def add_brand_stock(data: dict = Body(...)):
 
     if not brand:
         raise HTTPException(status_code=400, detail="Marka zorunludur")
-    if not machine:
-        raise HTTPException(status_code=400, detail="Makine seçimi zorunludur")
+    # Custom marka için makine opsiyonel; bos string'i None'a cevir
+    machine_val = machine if machine else None
     if quantity <= 0:
         raise HTTPException(status_code=400, detail="Adet sıfırdan büyük olmalıdır")
 
     # Mevcut kayıt var mı?
-    query: dict = {"brand": brand, "machine": machine}
+    query: dict = {"brand": brand}
+    if machine_val:
+        query["machine"] = machine_val
+    else:
+        query["machine"] = {"$in": [None, ""]}
     if color:
         query["color"] = color
     else:
@@ -107,25 +111,24 @@ async def add_brand_stock(data: dict = Body(...)):
         stock_doc = {**existing, "quantity": new_qty, "notes": notes or existing.get("notes")}
     else:
         stock = BrandStock(
-            brand=brand, machine=machine, color=color,
+            brand=brand, machine=machine_val, color=color,
             quantity=quantity, notes=notes
         )
         stock_doc = stock.model_dump()
         await db.brand_stock.insert_one(stock_doc)
         stock_id = stock.id
-        # Mongo _id'yi response'a dahil etmemek için doc'tan çıkar
         stock_doc.pop("_id", None)
 
     # Hareket logu
     movement = BrandStockMovement(
-        stock_id=stock_id, brand=brand, machine=machine, color=color,
+        stock_id=stock_id, brand=brand, machine=machine_val, color=color,
         movement_type="in", quantity=quantity, note=notes, user_name=user_name
     )
     await db.brand_stock_movements.insert_one(movement.model_dump())
 
     await log_audit(
         user_name, "create", "brand_stock", stock_id,
-        f"Stoğa eklendi: {stock_label({'brand': brand, 'machine': machine, 'color': color})} +{quantity} adet"
+        f"Stoğa eklendi: {stock_label({'brand': brand, 'machine': machine_val, 'color': color})} +{quantity} adet"
     )
 
     return {"success": True, "stock": stock_doc, "movement_id": movement.id}

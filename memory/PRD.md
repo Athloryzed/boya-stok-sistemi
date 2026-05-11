@@ -260,4 +260,19 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Hareketler tablosu, marka/makine filtreleri, arama, Excel export (2 sayfa).
 - 24 saatlik oturum + Hatırla Beni.
 
+
+### Feb 2026 (Iteration 44) — Marka Stok: Custom Marka + Kart "+ Ekle" Butonu
+
+**Backend (`brand_stock.py` + `models.py`):**
+- `BrandStock.machine` ve `BrandStockMovement.machine` Optional yapıldı (custom markalar için makine zorunlu değil).
+- `POST /brand-stock` artık makine alanını opsiyonel kabul ediyor; merge mantığı `machine in [None, ""]` kontrolüne genişletildi.
+- E2E test: "Lüks Servis" custom marka makine olmadan +40 ekleme, sonra +10 merge → 50 adet ✓
+
+**Frontend (`MarkaStokFlow.js`):**
+- Stok Ekle dialog'da marka select'in altına **"+ Diğer (Yeni Marka)..."** seçeneği eklendi. Seçilince marka select metin kutusuna dönüşüyor (geri butonu ile şablon listeye dönülebiliyor).
+- Custom marka aktifken makine alanı "Makine (Opsiyonel)" olarak metin kutusu; bilinen marka aktifken hâlâ select (33 ICM / SİES vs. ICM / Büyük Makine).
+- Validasyon: bilinen markada makine zorunlu, custom markada zorunlu değil.
+- Her stok kartına yeni **"+ Ekle"** butonu eklendi (`quick-add-{id}`) — tıklayınca Stoğa Ekle dialog'u o kartın brand+machine+color bilgileriyle pre-fill açılıyor; kullanıcı sadece adet girip kaydediyor (merge ile mevcut stoğa eklenir).
+- Custom marka ile oluşturulan kartlara da "+ Ekle" tıklayınca aynı flow custom mode'da açılıyor.
+
 **Erişim:** Home.js modules + Yönetim Quick Panel'de "Marka Stok" kısayolu.

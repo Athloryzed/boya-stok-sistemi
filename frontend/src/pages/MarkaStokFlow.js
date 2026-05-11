@@ -37,6 +37,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   // Add dialog
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [form, setForm] = useState({ brand: "", machine: "", color: "", quantity: "", notes: "" });
+  const [isCustomBrand, setIsCustomBrand] = useState(false);
 
   // Sell dialog
   const [isSellOpen, setIsSellOpen] = useState(false);
@@ -151,6 +152,21 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   // Şu anki form'a göre seçilebilecek makineler
   const selectedBrandTpl = templates.find(t => t.brand === form.brand);
   const machineOptions = selectedBrandTpl?.machines || [];
+  const isKnownBrand = !!selectedBrandTpl;
+
+  // Hızlı ekleme (kart üzerinden) — mevcut marka+makine+renk'i pre-fill et
+  const openQuickAdd = (s) => {
+    const known = templates.find(t => t.brand === s.brand);
+    setIsCustomBrand(!known);
+    setForm({
+      brand: s.brand || "",
+      machine: s.machine || "",
+      color: s.color || "",
+      quantity: "",
+      notes: "",
+    });
+    setIsAddOpen(true);
+  };
 
   // Filtreli stok listesi
   const filteredStocks = useMemo(() => {
@@ -173,15 +189,16 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
 
   // Add submit
   const submitAdd = async () => {
-    if (!form.brand) return toast.error("Marka seçin");
-    if (!form.machine) return toast.error("Makine seçin");
+    if (!form.brand?.trim()) return toast.error("Marka girin / seçin");
+    // Custom marka için makine zorunlu değil; bilinen marka için zorunlu
+    if (isKnownBrand && !form.machine) return toast.error("Makine seçin");
     const q = parseInt(form.quantity, 10);
     if (!q || q <= 0) return toast.error("Geçerli adet girin");
 
     try {
       await axios.post(`${API}/brand-stock`, {
-        brand: form.brand,
-        machine: form.machine,
+        brand: form.brand.trim(),
+        machine: form.machine?.trim() || null,
         color: form.color?.trim() || null,
         quantity: q,
         notes: form.notes?.trim() || null,
@@ -189,6 +206,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
       });
       toast.success(`+${q} adet eklendi`);
       setIsAddOpen(false);
+      setIsCustomBrand(false);
       setForm({ brand: "", machine: "", color: "", quantity: "", notes: "" });
       fetchAll();
     } catch (e) {
@@ -453,6 +471,9 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
                       </div>
                       {s.notes && <p className="text-xs text-text-secondary mt-1 italic border-l-2 border-border pl-2">{s.notes}</p>}
                       <div className="flex gap-2 mt-3 flex-wrap">
+                        <Button size="sm" onClick={() => openQuickAdd(s)} data-testid={`quick-add-${s.id}`} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <Plus className="mr-1 h-3.5 w-3.5" /> Ekle
+                        </Button>
                         <Button size="sm" onClick={() => { setSellTarget(s); setSellForm({ quantity: "", customer_name: "", note: "" }); setIsSellOpen(true); }}
                           data-testid={`sell-${s.id}`} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white">
                           <ShoppingCart className="mr-1 h-3.5 w-3.5" /> Sat
@@ -525,7 +546,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
         </Tabs>
 
         {/* ADD DIALOG */}
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setIsCustomBrand(false); }}>
           <DialogContent className="bg-surface border-border max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-emerald-500" /> Stoğa Ekle</DialogTitle>
@@ -533,28 +554,55 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
             <div className="space-y-3">
               <div>
                 <Label>Marka *</Label>
-                <Select value={form.brand} onValueChange={(v) => setForm({ ...form, brand: v, machine: "" })}>
-                  <SelectTrigger data-testid="add-brand" className="bg-background border-border mt-1"><SelectValue placeholder="Marka seç..." /></SelectTrigger>
-                  <SelectContent className="bg-surface border-border text-text-primary">
-                    {templates.map(t => <SelectItem key={t.brand} value={t.brand}>{t.brand}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {isCustomBrand ? (
+                  <div className="flex gap-2 mt-1">
+                    <Input data-testid="add-brand-custom" value={form.brand}
+                      onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                      placeholder="Yeni marka adı..." className="bg-background border-border flex-1" autoFocus />
+                    <Button type="button" variant="outline" size="icon"
+                      onClick={() => { setIsCustomBrand(false); setForm({ ...form, brand: "", machine: "" }); }}
+                      data-testid="add-brand-back" title="Geri">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={form.brand} onValueChange={(v) => {
+                    if (v === "__custom__") {
+                      setIsCustomBrand(true);
+                      setForm({ ...form, brand: "", machine: "" });
+                    } else {
+                      setForm({ ...form, brand: v, machine: "" });
+                    }
+                  }}>
+                    <SelectTrigger data-testid="add-brand" className="bg-background border-border mt-1"><SelectValue placeholder="Marka seç..." /></SelectTrigger>
+                    <SelectContent className="bg-surface border-border text-text-primary">
+                      {templates.map(t => <SelectItem key={t.brand} value={t.brand}>{t.brand}</SelectItem>)}
+                      <SelectItem value="__custom__" data-testid="add-brand-custom-option">+ Diğer (Yeni Marka)...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               {form.brand && (
                 <div>
-                  <Label>Makine *</Label>
-                  <Select value={form.machine} onValueChange={(v) => setForm({ ...form, machine: v })}>
-                    <SelectTrigger data-testid="add-machine" className="bg-background border-border mt-1"><SelectValue placeholder="Makine seç..." /></SelectTrigger>
-                    <SelectContent className="bg-surface border-border text-text-primary">
-                      {machineOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Label>{isCustomBrand ? "Makine (Opsiyonel)" : "Makine *"}</Label>
+                  {isCustomBrand ? (
+                    <Input data-testid="add-machine-custom" value={form.machine}
+                      onChange={(e) => setForm({ ...form, machine: e.target.value })}
+                      placeholder="Makine adı (opsiyonel)" className="mt-1 bg-background border-border" />
+                  ) : (
+                    <Select value={form.machine} onValueChange={(v) => setForm({ ...form, machine: v })}>
+                      <SelectTrigger data-testid="add-machine" className="bg-background border-border mt-1"><SelectValue placeholder="Makine seç..." /></SelectTrigger>
+                      <SelectContent className="bg-surface border-border text-text-primary">
+                        {machineOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
               <div>
                 <Label>Renk (Opsiyonel)</Label>
                 <Input data-testid="add-color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  placeholder="Örn: Kırmızı, Mavi, Sarı (Banko için)" className="mt-1 bg-background border-border" />
+                  placeholder="Örn: Kırmızı, Mavi, Sarı" className="mt-1 bg-background border-border" />
               </div>
               <div>
                 <Label>Adet *</Label>

@@ -371,8 +371,8 @@ class BrandStock(BaseModel):
     """Bitmiş ürün marka stoğu — her marka+makine+renk kombinasyonu için ayrı kayıt."""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    brand: str  # "Deniz 33", "Banko", vs.
-    machine: str  # "33 ICM", "SİES", "ICM", "Büyük Makine"
+    brand: str  # "Deniz 33", "Banko", vs. (custom marka da olabilir)
+    machine: Optional[str] = None  # "33 ICM", "SİES", "ICM", "Büyük Makine" — custom markalar için opsiyonel
     color: Optional[str] = None  # Banko gibi renkli markalar için (serbest metin)
     quantity: int = 0  # Adet (paket / koli / birim)
     notes: Optional[str] = None
@@ -386,7 +386,7 @@ class BrandStockMovement(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     stock_id: str  # BrandStock referansı
     brand: str
-    machine: str
+    machine: Optional[str] = None
     color: Optional[str] = None
     movement_type: str  # "in" (stoğa ekleme/üretim) | "out" (satış/çıkış) | "adjustment" (düzeltme)
     quantity: int = 0
