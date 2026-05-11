@@ -413,32 +413,71 @@ const Home = ({ theme, toggleTheme }) => {
         {/* Bugünün Yemek Menüsü — tüm çalışanlara açık */}
         {todayMenu && todayMenu.exists && Array.isArray(todayMenu.items) && todayMenu.items.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="w-full max-w-xl mb-5"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5, type: "spring", stiffness: 120 }}
+            className="w-full max-w-xl mb-6"
             data-testid="home-today-menu"
           >
-            <div className="bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 border border-amber-500/25 rounded-2xl px-5 py-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <UtensilsCrossed className="h-4 w-4 text-amber-400" />
-                <h3 className="text-sm font-semibold text-amber-200 tracking-wide">BUGÜNÜN YEMEK MENÜSÜ</h3>
-                <span className="ml-auto text-[10px] text-amber-200/60 font-mono">
-                  {new Date(todayMenu.date).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", weekday: "long" })}
-                </span>
+            <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-orange-600/30 ring-1 ring-white/20">
+              {/* Strong solid gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-amber-500 to-rose-500" />
+              {/* Decorative blobs for depth */}
+              <div className="absolute -top-20 -right-10 w-56 h-56 rounded-full bg-yellow-300/35 blur-3xl" />
+              <div className="absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-rose-700/35 blur-3xl" />
+              {/* Subtle grain overlay */}
+              <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>\")" }} />
+
+              <div className="relative px-5 py-5 sm:px-7 sm:py-6 text-white">
+                {/* Header */}
+                <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      animate={{ rotate: [0, -10, 10, -5, 0] }}
+                      transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/95 flex items-center justify-center shadow-xl shadow-black/20"
+                    >
+                      <UtensilsCrossed className="h-6 w-6 sm:h-7 sm:w-7 text-orange-600" />
+                    </motion.div>
+                    <div className="leading-tight">
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-white text-orange-700 text-[10px] font-black tracking-widest uppercase shadow">Bugün</span>
+                      <h3 className="text-xl sm:text-2xl font-heading font-black text-white mt-1 drop-shadow-md">Yemek Menüsü</h3>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-4xl sm:text-5xl font-black text-white leading-none drop-shadow-md">
+                      {new Date(todayMenu.date).toLocaleDateString("tr-TR", { day: "2-digit" })}
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-white/95 font-bold uppercase tracking-wider mt-1">
+                      {new Date(todayMenu.date).toLocaleDateString("tr-TR", { weekday: "long", month: "short" })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Items as chips */}
+                <div className="flex flex-wrap gap-2">
+                  {todayMenu.items.map((it, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, scale: 0.85, y: 6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ delay: 0.4 + idx * 0.06, type: "spring", stiffness: 180 }}
+                      className="group flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-white/95 backdrop-blur-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                    >
+                      <span className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-rose-600 text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-inner">
+                        {idx + 1}
+                      </span>
+                      <span className="text-sm sm:text-base font-bold text-zinc-800">{it}</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {todayMenu.notes && (
+                  <div className="mt-4 pt-3 border-t border-white/30 flex items-start gap-2">
+                    <span className="text-lg leading-tight">💬</span>
+                    <p className="text-xs sm:text-sm text-white/95 italic leading-relaxed font-medium">{todayMenu.notes}</p>
+                  </div>
+                )}
               </div>
-              <ul className="space-y-1">
-                {todayMenu.items.map((it, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm text-zinc-100">
-                    <span className="text-amber-400/60">•</span>
-                    <span>{it}</span>
-                  </li>
-                ))}
-              </ul>
-              {todayMenu.notes && (
-                <p className="text-[11px] text-amber-200/70 italic mt-2 pt-2 border-t border-amber-500/15">
-                  {todayMenu.notes}
-                </p>
-              )}
             </div>
           </motion.div>
         )}
