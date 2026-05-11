@@ -236,3 +236,28 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - **ManagementFlow** Bekleyen İşler listesi: Her bekleyen işin yanına 12×12 thumbnail eklendi → tıklanınca yeni eklenen "Görsel Önizleme Dialog"u açıyor.
 - **ManagementFlow** Aktif İş thumbnail'i: `window.open` yerine artık dialog kullanıyor; thumbnail büyütüldü (12×12 → 14×14) ve hover scale animasyonu eklendi.
 - **ManagementFlow**'a yeni state: `selectedJobImage`, `isImagePreviewOpen`, `openImagePreview` helper + max-w-4xl Image Preview Dialog.
+
+
+### Feb 2026 (Iteration 43) — Marka Stok Modülü (Bitmiş Ürün Takibi)
+
+**Yeni Modül — Bitmiş ürünleri (Deniz 33, Banko, vs.) marka+makine+renk bazında stok takibi:**
+
+**Backend (`/app/backend/routes/brand_stock.py` + `models.py`):**
+- 2 yeni Pydantic modeli: `BrandStock` (mevcut stok), `BrandStockMovement` (hareket logu — in/out/adjustment).
+- 9 endpoint: templates, list, add (merge), sell, edit, delete, movements, summary, Excel export.
+- Şablonlar: **Deniz 33** → 33 ICM / SİES; **Banko** → ICM / Büyük Makine (renk opsiyonel serbest metin).
+- Tüm hareketler `audit_logs`'a yazılıyor (kim, ne zaman, ne yaptı).
+- E2E test: Add (+100) → Add merge (+30 → 80) → Sell (-30 → 70) ✓
+
+**Frontend (`/app/frontend/src/pages/MarkaStokFlow.js`):**
+- Route: `/marka-stok` — Depo / Planlama / Yönetim rollerine açık.
+- Marka kartları (Deniz 33 toplam, Banko toplam) + 30 günlük giriş/satış özeti.
+- Stok kartları: marka + makine pill + renk pill + adet + Sat/Düzelt/Sil.
+- Stok Ekle: Marka → makine seçenekleri dinamik; renk opsiyonel; adet + not.
+- Sat: müşteri + adet + not, stok limit kontrolü.
+- Düzelt: yanlış kayıt düzeltmesi (delta = "adjustment" hareketi).
+- Detay drawer: stok kartına tıklayınca o kayda ait son 100 hareket alt-modal'da.
+- Hareketler tablosu, marka/makine filtreleri, arama, Excel export (2 sayfa).
+- 24 saatlik oturum + Hatırla Beni.
+
+**Erişim:** Home.js modules + Yönetim Quick Panel'de "Marka Stok" kısayolu.

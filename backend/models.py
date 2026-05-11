@@ -362,3 +362,35 @@ class BobinMovement(BaseModel):
     note: Optional[str] = None
     user_name: str = ""  # İşlemi yapan kullanıcı
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+
+# ==================== MARKA STOK (Brand Stock - Bitmiş Ürün) ====================
+
+class BrandStock(BaseModel):
+    """Bitmiş ürün marka stoğu — her marka+makine+renk kombinasyonu için ayrı kayıt."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    brand: str  # "Deniz 33", "Banko", vs.
+    machine: str  # "33 ICM", "SİES", "ICM", "Büyük Makine"
+    color: Optional[str] = None  # Banko gibi renkli markalar için (serbest metin)
+    quantity: int = 0  # Adet (paket / koli / birim)
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class BrandStockMovement(BaseModel):
+    """Marka stoğu için stok giriş/çıkış hareket logu."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    stock_id: str  # BrandStock referansı
+    brand: str
+    machine: str
+    color: Optional[str] = None
+    movement_type: str  # "in" (stoğa ekleme/üretim) | "out" (satış/çıkış) | "adjustment" (düzeltme)
+    quantity: int = 0
+    customer_name: Optional[str] = None  # Satışta müşteri
+    note: Optional[str] = None
+    user_name: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

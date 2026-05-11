@@ -48,6 +48,7 @@ from routes.logistics import router as logistics_router
 from routes.misc import router as misc_router
 from routes.bobins import router as bobins_router
 from routes.menu import router as menu_router
+from routes.brand_stock import router as brand_stock_router
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -96,6 +97,7 @@ api_router.include_router(logistics_router)
 api_router.include_router(misc_router)
 api_router.include_router(bobins_router)
 api_router.include_router(menu_router)
+api_router.include_router(brand_stock_router)
 
 app.include_router(api_router)
 

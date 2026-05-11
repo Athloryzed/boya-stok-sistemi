@@ -48,6 +48,7 @@ const DriverFlow = lazy(() => import("./pages/DriverFlow"));
 const LiveDashboard = lazy(() => import("./pages/LiveDashboard"));
 const TrackingPage = lazy(() => import("./pages/TrackingPage"));
 const BobinFlow = lazy(() => import("./pages/BobinFlow"));
+const MarkaStokFlow = lazy(() => import("./pages/MarkaStokFlow"));
 
 // Suspense fallback — chunk indirilirken gösterilen yükleyici (industrial tema)
 const RouteLoading = () => (
@@ -256,6 +257,7 @@ function App() {
               <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
               <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
               <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
               <Route path="/dashboard" element={<LiveDashboard />} />
               <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
             </Routes>
