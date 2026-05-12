@@ -394,3 +394,34 @@ class BrandStockMovement(BaseModel):
     note: Optional[str] = None
     user_name: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ==================== KOLİ STOK (Box Stock) ====================
+
+class KoliStock(BaseModel):
+    """Koli (kutu) stoğu — fabrikaya alınan ve makinelere dağıtılan kutular."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str  # Örn: "Tip A Koli", "Mavi Koli"
+    size: Optional[str] = None  # Örn: "33x33x20", "40x40x25"
+    quantity: int = 0  # Mevcut adet
+    notes: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class KoliStockMovement(BaseModel):
+    """Koli stoğu giriş/çıkış hareket logu."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    stock_id: str
+    name: str
+    size: Optional[str] = None
+    movement_type: str  # "in" (alındı) | "out" (makineye verildi) | "adjustment"
+    quantity: int = 0
+    machine_id: Optional[str] = None  # Çıkışta hangi makineye
+    machine_name: Optional[str] = None
+    supplier: Optional[str] = None  # Girişte tedarikçi
+    note: Optional[str] = None
+    user_name: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

@@ -119,7 +119,7 @@ const modules = [
   { name: "Depo", path: "/warehouse", icon: Warehouse, color: "#F97316", desc: "Stok yonetimi" },
   { name: "Boya", path: "/paint", icon: Paintbrush, color: "#A78BFA", desc: "Boya takibi" },
   { name: "Bobin", path: "/bobin", icon: Layers, color: "#10B981", desc: "Bobin takibi" },
-  { name: "Marka Stok", path: "/marka-stok", icon: Package, color: "#22C55E", desc: "Bitmis urun stogu" },
+  { name: "Marka/Koli Stok", path: "/marka-stok", icon: Package, color: "#22C55E", desc: "Stok takibi" },
   { name: "Surucu", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
   { name: "Canli Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];
@@ -552,7 +552,7 @@ const Home = ({ theme, toggleTheme }) => {
                     { path: "/operator", label: "Operatör", icon: "👷", color: "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300" },
                     { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300" },
                     { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300" },
-                    { path: "/marka-stok", label: "Marka Stok", icon: "🏷️", color: "from-green-500/20 to-green-600/10 border-green-500/30 text-green-300" },
+                    { path: "/marka-stok", label: "Marka/Koli", icon: "🏷️", color: "from-green-500/20 to-green-600/10 border-green-500/30 text-green-300" },
                     { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300" },
                   ].map(p => (
                     <button
