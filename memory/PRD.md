@@ -302,3 +302,12 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Çözüm: `lucide-react` importuna `Database` ve `HardDrive` ikonları eklendi (line 4).
 - Etki: Yönetim paneli (`/management`) yeniden hatasız açılıyor; Yedek dialogu çalışıyor.
 - Test: Screenshot smoke test başarılı; konsolda ReferenceError yok.
+
+
+
+## ESLint Strict Mode - 12 May 2026
+- **Amaç:** "Database is not defined" / "HardDrive is not defined" gibi eksik import hatalarının build aşamasında yakalanması.
+- **Uygulama:** `craco.config.js` içindeki eslint kurallarına `"react/jsx-no-undef": "error"` ve `"no-undef": "error"` eklendi.
+- **Etki:** Eksik bir import varsa dev server hata gösterir, CI build (`CI=true yarn build`) fail eder.
+- **Yan kazanım:** `PlanFlow.js` içindeki tanımsız `setEditingJob` çağrıları (ölü kod) bu sayede yakalandı ve temizlendi.
+- **Test:** Database/HardDrive importları geçici olarak kaldırılıp build koşuldu, kural beklenen 4 hatayı raporladı. Sağlam build başarılı (24.15s).

@@ -39,6 +39,10 @@ const webpackConfig = {
       rules: {
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn",
+        // Catch missing imports (e.g., forgetting to import an icon from lucide-react)
+        // These must always be errors to prevent ReferenceError at runtime.
+        "react/jsx-no-undef": "error",
+        "no-undef": "error",
       },
     },
   },

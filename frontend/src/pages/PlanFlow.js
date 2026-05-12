@@ -824,7 +824,6 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     setDuplicateJobWarning(null);
     // Dialog'u kapat ve düzenleme moduna geç
     setIsDialogOpen(false);
-    setEditingJob(job);
     setEditFormData({
       name: job.name,
       koli_count: job.koli_count.toString(),
@@ -872,7 +871,6 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         const editExisting = window.confirm("Mevcut işi düzenlemek ister misiniz?");
         if (editExisting) {
           setIsDialogOpen(false);
-          setEditingJob(existingJob);
           setEditFormData({
             name: existingJob.name,
             koli_count: existingJob.koli_count.toString(),
