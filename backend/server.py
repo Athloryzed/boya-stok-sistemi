@@ -50,6 +50,7 @@ from routes.bobins import router as bobins_router
 from routes.menu import router as menu_router
 from routes.brand_stock import router as brand_stock_router
 from routes.koli_stock import router as koli_stock_router
+from routes.backups import router as backups_router, start_scheduler as start_backup_scheduler
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -100,6 +101,15 @@ api_router.include_router(bobins_router)
 api_router.include_router(menu_router)
 api_router.include_router(brand_stock_router)
 api_router.include_router(koli_stock_router)
+api_router.include_router(backups_router)
+
+
+@app.on_event("startup")
+async def _on_startup():
+    try:
+        start_backup_scheduler()
+    except Exception as e:
+        logging.warning(f"Backup scheduler başlatılamadı: {e}")
 
 app.include_router(api_router)
 

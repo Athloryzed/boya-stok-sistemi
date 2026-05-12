@@ -821,3 +821,39 @@ h1, h2, h3, .font-heading {
     min-height: 40px;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   LITE MOD — Düşük performans cihazları için animasyon/efekt iptal
+   ──────────────────────────────────────────────────────────────── */
+.lite-mode *, .lite-mode *::before, .lite-mode *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+}
+.lite-mode .backdrop-blur-sm,
+.lite-mode .backdrop-blur,
+.lite-mode .backdrop-blur-md,
+.lite-mode .backdrop-blur-lg,
+.lite-mode .backdrop-blur-xl,
+.lite-mode .backdrop-blur-2xl,
+.lite-mode .backdrop-blur-3xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.lite-mode .blur-sm,
+.lite-mode .blur,
+.lite-mode .blur-md,
+.lite-mode .blur-lg,
+.lite-mode .blur-xl,
+.lite-mode .blur-2xl,
+.lite-mode .blur-3xl {
+  filter: none !important;
+}
+.lite-mode [data-lite-hide],
+.lite-mode .lite-hide {
+  display: none !important;
+}
+.lite-mode .live-dot { animation: none !important; box-shadow: none !important; }
+.lite-mode .shadow-2xl, .lite-mode .shadow-xl { box-shadow: 0 2px 6px rgba(0,0,0,.15) !important; }

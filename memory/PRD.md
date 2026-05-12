@@ -276,3 +276,21 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Custom marka ile oluşturulan kartlara da "+ Ekle" tıklayınca aynı flow custom mode'da açılıyor.
 
 **Erişim:** Home.js modules + Yönetim Quick Panel'de "Marka Stok" kısayolu.
+
+
+### Feb 2026 (Iteration 45) — Veritabanı Yedekleme + LITE MOD
+
+**Yedekleme** (`/app/backend/routes/backups.py`):
+- APScheduler ile her gün **03:00 UTC** otomatik `mongodump --gzip --archive` → `/app/backups/backup_YYYYMMDD_HHMMSS.archive.gz`.
+- Son **7 gün** saklanır, eski dosyalar otomatik silinir.
+- Sadece Yönetim erişebilir (roller: `yonetim`, `management`).
+- Endpoints: `GET /admin/backups`, `POST /admin/backups/run`, `GET /admin/backups/download/{file}`, `DELETE /admin/backups/{file}`.
+- ManagementFlow header'ına **"Yedek"** butonu eklendi → dialog: liste, "Şimdi Yedek Al", indir, sil + sonraki otomatik zaman.
+- E2E test: Manuel run → 180 KB archive ✓ listele ✓.
+
+**LITE MOD** (`App.js` + `App.css`):
+- localStorage `lite_mode` → `<html class="lite-mode">`.
+- Global CSS overrides: `animation-duration` / `transition-duration` → 0.001ms; `backdrop-blur-*` + `blur-*` → none; `live-dot` animasyonsuz; ağır shadow'lar minimize.
+- Home.js'de düşen balonlar + çocuk siluetleri lite modda render edilmiyor.
+- Ana sayfa header'ında **Gauge** ikonlu toggle (yeşil = aktif). Tüm panellere `liteMode` + `toggleLiteMode` prop'u geçirildi.
+- Tercih localStorage'da kalıcı.

@@ -210,24 +210,32 @@ function VisitorTracker() {
 
 function App() {
   const [theme, setTheme] = useState("dark");
+  const [liteMode, setLiteMode] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
-    document.documentElement.className = savedTheme;
+    const lite = localStorage.getItem("lite_mode") === "1";
+    setLiteMode(lite);
+    document.documentElement.className = savedTheme + (lite ? " lite-mode" : "");
   }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
-    // Enable smooth transition
     document.documentElement.classList.add('theme-transitioning');
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
-    document.documentElement.className = newTheme + ' theme-transitioning';
-    // Remove transition class after animation
+    document.documentElement.className = newTheme + ' theme-transitioning' + (liteMode ? ' lite-mode' : '');
     setTimeout(() => {
       document.documentElement.classList.remove('theme-transitioning');
     }, 350);
+  };
+
+  const toggleLiteMode = () => {
+    const next = !liteMode;
+    setLiteMode(next);
+    localStorage.setItem("lite_mode", next ? "1" : "0");
+    document.documentElement.className = theme + (next ? " lite-mode" : "");
   };
 
   useEffect(() => {
@@ -249,15 +257,15 @@ function App() {
           <VisitorTracker />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
-              <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} />} />
-              <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
-              <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} /></ErrorBoundary>} />
+              <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} />} />
+              <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+              <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
               <Route path="/dashboard" element={<LiveDashboard />} />
               <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
             </Routes>

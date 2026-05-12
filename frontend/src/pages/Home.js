@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge } from "lucide-react";
 import { API } from "../App";
 
 // Dalgalanan Türk Bayrağı bileşeni
@@ -124,7 +124,7 @@ const modules = [
   { name: "Canli Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];
 
-const Home = ({ theme, toggleTheme }) => {
+const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
@@ -243,6 +243,12 @@ const Home = ({ theme, toggleTheme }) => {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
           <WavingFlag />
         </motion.div>
+        <button onClick={toggleLiteMode}
+          className={`p-2 rounded-full backdrop-blur-sm border text-white transition-all ${liteMode ? "bg-emerald-500/40 border-emerald-300" : "bg-white/20 border-white/30 hover:bg-white/30"}`}
+          data-testid="lite-toggle"
+          title={liteMode ? "Hafif Mod açık — kapatmak için bas" : "Hafif Mod (animasyonsuz, hızlı)"}>
+          <Gauge className="h-5 w-5" />
+        </button>
         <button onClick={toggleTheme}
           className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all"
           data-testid="theme-toggle">
@@ -315,7 +321,7 @@ const Home = ({ theme, toggleTheme }) => {
       ))}
 
       {/* Dusen balonlar (yumurta yerine) */}
-      {fallingBalloons.map(bl => (
+      {!liteMode && fallingBalloons.map(bl => (
         <motion.div key={`fbl-${bl.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${bl.left}%`, top: -40 }}
           animate={{
@@ -329,7 +335,7 @@ const Home = ({ theme, toggleTheme }) => {
       ))}
 
       {/* Dusen cocuk siluetleri */}
-      {fallingChildren.map(ch => (
+      {!liteMode && fallingChildren.map(ch => (
         <motion.div key={`fch-${ch.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${ch.left}%`, top: -60 }}
           animate={{

@@ -206,6 +206,51 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     setIsImagePreviewOpen(true);
   };
 
+  // Yedekler
+  const [backupsDialogOpen, setBackupsDialogOpen] = useState(false);
+  const [backupsList, setBackupsList] = useState([]);
+  const [backupsMeta, setBackupsMeta] = useState({ retention_days: 7, next_run_utc: null });
+  const [backupRunning, setBackupRunning] = useState(false);
+  const fetchBackups = async () => {
+    try {
+      const r = await axios.get(`${API}/admin/backups`);
+      setBackupsList(Array.isArray(r.data?.backups) ? r.data.backups : []);
+      setBackupsMeta({ retention_days: r.data?.retention_days || 7, next_run_utc: r.data?.next_run_utc });
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Yedekler alınamadı");
+    }
+  };
+  const runManualBackup = async () => {
+    setBackupRunning(true);
+    try {
+      const r = await axios.post(`${API}/admin/backups/run`);
+      toast.success(`Yedek oluşturuldu: ${r.data?.size_mb} MB`);
+      fetchBackups();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Yedekleme başarısız");
+    } finally {
+      setBackupRunning(false);
+    }
+  };
+  const downloadBackup = async (filename) => {
+    try {
+      const r = await axios.get(`${API}/admin/backups/download/${filename}`, { responseType: "blob" });
+      const blob = new Blob([r.data], { type: "application/gzip" });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    } catch (e) { toast.error("İndirilemedi"); }
+  };
+  const deleteBackup = async (filename) => {
+    if (!window.confirm(`${filename} silinsin mi?`)) return;
+    try {
+      await axios.delete(`${API}/admin/backups/${filename}`);
+      toast.success("Silindi");
+      fetchBackups();
+    } catch (e) { toast.error("Silinemedi"); }
+  };
+
   // Yemek Menüsü
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [menuDate, setMenuDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -1189,6 +1234,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 h-9 gap-1.5">
               <UtensilsCrossed className="h-4 w-4" />
               <span className="hidden md:inline text-xs">Menü</span>
+            </Button>
+            {/* YEDEKLER butonu */}
+            <Button variant="outline" size="sm" onClick={() => { setBackupsDialogOpen(true); fetchBackups(); }} data-testid="backups-btn"
+              className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 h-9 gap-1.5">
+              <Database className="h-4 w-4" />
+              <span className="hidden md:inline text-xs">Yedek</span>
             </Button>
             {/* VERİ SENKRONU rozeti */}
             <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
@@ -3476,6 +3527,58 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 />
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Yedekler Dialog */}
+        <Dialog open={backupsDialogOpen} onOpenChange={setBackupsDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="backups-dialog">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading flex items-center gap-2">
+                <Database className="h-5 w-5 text-emerald-500" /> Veritabanı Yedekleri
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                Otomatik yedekleme her gece <span className="font-mono">03:00 UTC</span>. Son {backupsMeta.retention_days} gün saklanır. Manuel tetikleyebilir, indirebilir ve silebilirsin.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg border border-border">
+              <div className="text-xs text-text-secondary">
+                <p>Sonraki otomatik yedekleme:</p>
+                <p className="text-sm font-mono text-emerald-500">
+                  {backupsMeta.next_run_utc ? new Date(backupsMeta.next_run_utc).toLocaleString("tr-TR") : "—"}
+                </p>
+              </div>
+              <Button onClick={runManualBackup} disabled={backupRunning} data-testid="run-backup-btn"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {backupRunning ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
+                {backupRunning ? "Alınıyor..." : "Şimdi Yedek Al"}
+              </Button>
+            </div>
+            <div className="space-y-2 mt-3">
+              {backupsList.length === 0 ? (
+                <div className="text-center py-8 text-text-secondary">
+                  <HardDrive className="h-10 w-10 mx-auto opacity-40 mb-2" />
+                  <p className="text-sm">Henüz yedek yok. "Şimdi Yedek Al" diyerek ilk yedeği oluşturabilirsin.</p>
+                </div>
+              ) : backupsList.map(b => (
+                <div key={b.filename} className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-emerald-500/40 transition-colors" data-testid={`backup-${b.filename}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-sm text-text-primary truncate">{b.filename}</p>
+                    <p className="text-xs text-text-secondary">
+                      {new Date(b.created_at).toLocaleString("tr-TR")} · <span className="text-emerald-500">{b.size_mb} MB</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => downloadBackup(b.filename)} data-testid={`download-backup-${b.filename}`}>
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => deleteBackup(b.filename)} className="border-error/40 text-error">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
