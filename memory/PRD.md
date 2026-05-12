@@ -294,3 +294,11 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - Home.js'de düşen balonlar + çocuk siluetleri lite modda render edilmiyor.
 - Ana sayfa header'ında **Gauge** ikonlu toggle (yeşil = aktif). Tüm panellere `liteMode` + `toggleLiteMode` prop'u geçirildi.
 - Tercih localStorage'da kalıcı.
+
+
+
+## Bug Fix - 12 May 2026
+- **P0 Crash:** `ManagementFlow.js` içinde `Database is not defined` ve devamında `HardDrive is not defined` ReferenceError'ları giderildi.
+- Çözüm: `lucide-react` importuna `Database` ve `HardDrive` ikonları eklendi (line 4).
+- Etki: Yönetim paneli (`/management`) yeniden hatasız açılıyor; Yedek dialogu çalışıyor.
+- Test: Screenshot smoke test başarılı; konsolda ReferenceError yok.

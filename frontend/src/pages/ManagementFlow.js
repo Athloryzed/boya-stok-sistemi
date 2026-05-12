@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
