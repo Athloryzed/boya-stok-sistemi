@@ -127,8 +127,11 @@ def run_backup_sync(upload_drive: bool = True) -> dict:
                 "created_at": datetime.now(timezone.utc).isoformat()}
 
     if upload_drive:
-        drive_res = upload_to_drive(out_path)
-        response["drive"] = drive_res
+        # Sadece Drive yapılandırması varsa upload denenir
+        svc, _ = _drive_service()
+        if svc is not None:
+            drive_res = upload_to_drive(out_path)
+            response["drive"] = drive_res
 
     return response
 
