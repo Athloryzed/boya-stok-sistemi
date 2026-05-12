@@ -94,7 +94,6 @@ const BrandSection = ({ userData, role }) => {
 
   const selectedBrandTpl = templates.find(t => t.brand === form.brand);
   const isKnownBrand = !!selectedBrandTpl;
-  const machineOptions = selectedBrandTpl?.machines || [];
 
   const openQuickAdd = (s) => {
     const known = templates.find(t => t.brand === s.brand);
@@ -123,7 +122,7 @@ const BrandSection = ({ userData, role }) => {
 
   const submitAdd = async () => {
     if (!form.brand?.trim()) return toast.error("Marka girin / seçin");
-    if (isKnownBrand && !form.machine) return toast.error("Makine seçin");
+    if (isKnownBrand && !form.machine?.trim()) return toast.error("Ölçü girin (örn: 20x40)");
     const q = parseInt(form.quantity, 10);
     if (!q || q <= 0) return toast.error("Geçerli adet girin");
     try {
@@ -248,7 +247,7 @@ const BrandSection = ({ userData, role }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
-          <Input data-testid="marka-search" placeholder="Marka, makine, renk, not ara..." value={search}
+          <Input data-testid="marka-search" placeholder="Marka, ölçü, renk, not ara..." value={search}
             onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background border-border h-11" />
         </div>
         <Select value={filterBrand} onValueChange={setFilterBrand}>
@@ -261,7 +260,7 @@ const BrandSection = ({ userData, role }) => {
         <Select value={filterMachine} onValueChange={setFilterMachine}>
           <SelectTrigger data-testid="marka-filter-machine" className="bg-background border-border h-11"><SelectValue /></SelectTrigger>
           <SelectContent className="bg-surface border-border text-text-primary">
-            <SelectItem value="all">Tüm Makineler</SelectItem>
+            <SelectItem value="all">Tüm Ölçüler</SelectItem>
             {allMachines.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -344,7 +343,7 @@ const BrandSection = ({ userData, role }) => {
                       <th className="text-left p-3 font-semibold">Tarih</th>
                       <th className="text-left p-3 font-semibold">Tip</th>
                       <th className="text-left p-3 font-semibold">Marka</th>
-                      <th className="text-left p-3 font-semibold">Makine</th>
+                      <th className="text-left p-3 font-semibold">Ölçü</th>
                       <th className="text-left p-3 font-semibold">Renk</th>
                       <th className="text-right p-3 font-semibold">Adet</th>
                       <th className="text-left p-3 font-semibold">Müşteri/Not</th>
@@ -413,18 +412,10 @@ const BrandSection = ({ userData, role }) => {
             </div>
             {form.brand && (
               <div>
-                <Label>{isCustomBrand ? "Makine (Opsiyonel)" : "Makine *"}</Label>
-                {isCustomBrand ? (
-                  <Input value={form.machine} onChange={(e) => setForm({ ...form, machine: e.target.value })}
-                    placeholder="Makine adı (opsiyonel)" className="mt-1 bg-background border-border" />
-                ) : (
-                  <Select value={form.machine} onValueChange={(v) => setForm({ ...form, machine: v })}>
-                    <SelectTrigger className="bg-background border-border mt-1"><SelectValue placeholder="Makine seç..." /></SelectTrigger>
-                    <SelectContent className="bg-surface border-border text-text-primary">
-                      {machineOptions.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
+                <Label>{isKnownBrand ? "Ölçü *" : "Ölçü (Opsiyonel)"}</Label>
+                <Input data-testid="add-size" value={form.machine}
+                  onChange={(e) => setForm({ ...form, machine: e.target.value })}
+                  placeholder="Örn: 20x40, 33x33, 40x40..." className="mt-1 bg-background border-border" />
               </div>
             )}
             <div>
@@ -482,7 +473,7 @@ const BrandSection = ({ userData, role }) => {
             <div className="space-y-3">
               <p className="text-xs text-amber-500 bg-amber-500/10 p-2 rounded">Miktar değişimi "Düzeltme" olarak log'a yazılır.</p>
               <div><Label>Marka</Label><Input value={editForm.brand} onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })} className="mt-1 bg-background border-border" /></div>
-              <div><Label>Makine</Label><Input value={editForm.machine} onChange={(e) => setEditForm({ ...editForm, machine: e.target.value })} className="mt-1 bg-background border-border" /></div>
+              <div><Label>Ölçü</Label><Input value={editForm.machine} onChange={(e) => setEditForm({ ...editForm, machine: e.target.value })} placeholder="Örn: 20x40" className="mt-1 bg-background border-border" /></div>
               <div><Label>Renk</Label><Input value={editForm.color} onChange={(e) => setEditForm({ ...editForm, color: e.target.value })} className="mt-1 bg-background border-border" /></div>
               <div><Label>Adet</Label><Input type="number" min={0} value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} className="mt-1 bg-background border-border" /></div>
               <div><Label>Not</Label><Input value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="mt-1 bg-background border-border" /></div>
