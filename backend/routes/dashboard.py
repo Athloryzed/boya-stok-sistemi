@@ -29,15 +29,16 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
 
     all_machines = await db.machines.find({}, {"_id": 0}).to_list(50)
-    active_jobs = await db.jobs.find({"status": "in_progress"}, {"_id": 0}).to_list(50)
-    pending_jobs = await db.jobs.find({"status": "pending"}, {"_id": 0}).to_list(200)
+    # PERF: image_url base64 dashboard'da gerekmiyor — exclude.
+    active_jobs = await db.jobs.find({"status": "in_progress"}, {"_id": 0, "image_url": 0}).to_list(50)
+    pending_jobs = await db.jobs.find({"status": "pending"}, {"_id": 0, "image_url": 0}).to_list(200)
 
     completed_today = await db.jobs.find(
-        {"status": "completed", "completed_at": {"$gte": today_start}}, {"_id": 0}
+        {"status": "completed", "completed_at": {"$gte": today_start}}, {"_id": 0, "image_url": 0}
     ).to_list(200)
 
     completed_7d = await db.jobs.find(
-        {"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0}
+        {"status": "completed", "completed_at": {"$gte": week_ago}}, {"_id": 0, "image_url": 0}
     ).to_list(500)
 
     # Bugünkü vardiya raporları (kısmi üretimleri içerir)

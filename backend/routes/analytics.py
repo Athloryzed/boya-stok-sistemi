@@ -19,11 +19,11 @@ async def get_weekly_analytics():
     week_ago_str = week_ago.isoformat()
 
     completed_jobs = await db.jobs.find(
-        {"status": "completed", "completed_at": {"$gte": week_ago_str}}, {"_id": 0}
+        {"status": "completed", "completed_at": {"$gte": week_ago_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     shift_reports = await db.shift_end_reports.find(
-        {"created_at": {"$gte": week_ago_str}}, {"_id": 0}
+        {"created_at": {"$gte": week_ago_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     machine_stats = {}
@@ -69,12 +69,12 @@ async def get_daily_analytics():
 
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         shift_reports_today = await db.shift_end_reports.find(
             {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         total_koli = 0
@@ -135,22 +135,22 @@ async def get_daily_detail_analytics(date: str):
 
     completed_jobs = await db.jobs.find(
         {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-        {"_id": 0}
+        {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     started_jobs = await db.jobs.find(
         {"started_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-        {"_id": 0}
+        {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     shift_reports = await db.shift_end_reports.find(
         {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-        {"_id": 0}
+        {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     defects = await db.defect_logs.find(
         {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-        {"_id": 0}
+        {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     machine_breakdown = {}
@@ -250,12 +250,12 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
 
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": start_date_str, "$lt": end_date_str}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         shift_reports = await db.shift_end_reports.find(
             {"created_at": {"$gte": start_date_str, "$lt": end_date_str}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
     else:
         month_ago = datetime.now(timezone.utc) - timedelta(days=30)
@@ -263,12 +263,12 @@ async def get_monthly_analytics(year: Optional[int] = None, month: Optional[int]
 
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": month_ago_str}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         shift_reports = await db.shift_end_reports.find(
             {"created_at": {"$gte": month_ago_str}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
     machine_stats = {}
@@ -317,12 +317,12 @@ async def get_daily_analytics_by_week(week_offset: int = 0):
 
         jobs = await db.jobs.find(
             {"status": "completed", "completed_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         shift_reports_today = await db.shift_end_reports.find(
             {"created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()}},
-            {"_id": 0}
+            {"_id": 0, "image_url": 0}
         ).to_list(1000)
 
         total_koli = 0
@@ -405,16 +405,16 @@ async def export_analytics(period: str = "weekly", week_offset: int = 0):
     end_str = end_date.isoformat()
 
     completed_jobs = await db.jobs.find(
-        {"status": "completed", "completed_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0}
+        {"status": "completed", "completed_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
     started_jobs = await db.jobs.find(
-        {"started_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0}
+        {"started_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
     shift_reports = await db.shift_end_reports.find(
-        {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0}
+        {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
     defects = await db.defect_logs.find(
-        {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0}
+        {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
 
     # Stiller

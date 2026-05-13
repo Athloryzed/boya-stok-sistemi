@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 37 — Image payload optimization + atomic bobin deduction + recalculate endpoint validation. 11/11 pytest backend tests passed. Frontend verified: ManagementFlow lazy-load /jobs/{id}/image works (network confirmed + dialog opens), bobin-recalc-btn triggers POST /api/admin/bobins/recalculate (returns 200, fixed_count). All payload optimization targets met.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration37_payload.py",
+    "/app/test_reports/pytest/iteration37_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Atomic find_one_and_update with $gte filter in /bobins/{id}/to-machine and /sale is the correct race-free pattern (pymongo ReturnDocument.AFTER). Confirmed 1947 - 970 = 977 kg and -500 = 1447 kg.",
+    "Recalculate endpoint correctly aggregates SUM(purchase) - SUM(to_machine) - SUM(sale) from bobin_movements and updates only when delta >= 0.01 kg. Audit log fired.",
+    "GET /api/jobs uses projection {image_url:0} + separate query for has_image set — slight overhead (extra query) but acceptable for current scale. Could be optimized with $cond in single aggregation pipeline if dataset grows.",
+    "GET /api/jobs/{id}/image returns {image_url: None} when not present (consistent shape). 401 enforced via get_current_user.",
+    "GET /api/visitors limit=50 + user_agent excluded — payload trimmed correctly.",
+    "GET /api/dashboard/live recursively scanned: no base64 image_url anywhere in payload (verified).",
+    "Backup endpoint test triggered run successfully — returned method='mongodump' or 'python_bson' fallback path is wired with FileNotFoundError exception. No mongodump installed in current container would auto-fall back."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration37_payload.py (NEW - 11 tests)"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "100% (recalc + lazy image)"},
+  "test_credentials": "management buse11993, depo1/depo123, dashboard buse4",
+  "seed_data_creation": "Test creates TEST_ATOM_{ts} bobin (1947kg), TEST_IMG_{ts} job — both auto-cleaned via teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All payload optimization + atomic + recalculate features verified backend + frontend. Test file /app/backend/tests/test_iteration37_payload.py covers all 11 critical paths. Frontend Playwright confirmed: management /jobs/{id}/image lazy load (network call captured), bobin-recalc-btn returns success toast with fixed_count. No regressions detected.",
+  "rca of the issue": "N/A — all features working as designed."
+}

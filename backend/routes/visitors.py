@@ -104,8 +104,14 @@ async def log_visitor(request: Request, data: dict = Body(...)):
 
 
 @router.get("/visitors")
-async def get_visitors(limit: int = 100, current_user: dict = Depends(get_current_user)):
-    visitors = await db.visitors.find({}, {"_id": 0}).sort("visited_at", -1).to_list(limit)
+async def get_visitors(limit: int = 50, current_user: dict = Depends(get_current_user)):
+    # Default limit düşürüldü (100→50) — payload optimize.
+    # user_agent her ziyarette ~200B, listede gerek yok; detay endpoint'inde
+    # gönderilebilir. Şimdilik trim:
+    visitors = await db.visitors.find(
+        {},
+        {"_id": 0, "user_agent": 0},
+    ).sort("visited_at", -1).to_list(limit)
     return visitors
 
 

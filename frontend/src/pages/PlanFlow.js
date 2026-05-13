@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp, QrCode, GripVertical, Printer } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image as ImageIcon, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp, QrCode, GripVertical, Printer } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -370,9 +370,29 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const openImagePreview = (imageUrl) => {
-    setSelectedJobImage(imageUrl);
+  const openImagePreview = async (jobOrUrl) => {
+    // Geriye dönük uyum: string URL gelirse direkt göster
+    if (typeof jobOrUrl === "string") {
+      setSelectedJobImage(jobOrUrl);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+    // Job objesi geldi → image_url varsa kullan, yoksa has_image ile lazy fetch
+    const job = jobOrUrl || {};
+    if (job.image_url) {
+      setSelectedJobImage(job.image_url);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+    if (!job.has_image || !job.id) return;
     setIsImagePreviewOpen(true);
+    setSelectedJobImage(null); // loading
+    try {
+      const r = await axios.get(`${API}/jobs/${job.id}/image`);
+      setSelectedJobImage(r.data?.image_url || null);
+    } catch {
+      setSelectedJobImage(null);
+    }
   };
 
   const handleAddVehicle = async () => {
@@ -671,8 +691,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const openEditJob = (job) => {
+  const openEditJob = async (job) => {
     setJobToEdit(job);
+    // Liste'de image_url yok; has_image varsa lazy fetch
+    let imgUrl = job.image_url || "";
+    if (!imgUrl && job.has_image && job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        imgUrl = r.data?.image_url || "";
+      } catch {}
+    }
     setEditFormData({
       name: job.name,
       koli_count: job.koli_count.toString(),
@@ -680,9 +708,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       format: job.format || "",
       notes: job.notes || "",
       delivery_date: job.delivery_date || "",
-      image_url: job.image_url || ""
+      image_url: imgUrl
     });
-    setEditPreviewImage(job.image_url || null);
+    setEditPreviewImage(imgUrl || null);
     setIsEditJobOpen(true);
   };
 
@@ -805,7 +833,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   };
 
   // Mevcut işi forma yükle
-  const loadExistingJob = (job) => {
+  const loadExistingJob = async (job) => {
+    let imgUrl = job.image_url || "";
+    if (!imgUrl && job.has_image && job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        imgUrl = r.data?.image_url || "";
+      } catch {}
+    }
     setFormData({
       name: job.name,
       koli_count: job.koli_count.toString(),
@@ -816,10 +851,10 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       delivery_date: job.delivery_date || "",
       delivery_address: job.delivery_address || "",
       delivery_phone: job.delivery_phone || "",
-      image_url: job.image_url || ""
+      image_url: imgUrl
     });
-    if (job.image_url) {
-      setPreviewImage(job.image_url);
+    if (imgUrl) {
+      setPreviewImage(imgUrl);
     }
     setDuplicateJobWarning(null);
     // Dialog'u kapat ve düzenleme moduna geç
@@ -832,9 +867,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       format: job.format || "",
       notes: job.notes || "",
       delivery_date: job.delivery_date || "",
-      image_url: job.image_url || ""
+      image_url: imgUrl
     });
-    setEditPreviewImage(job.image_url || null);
+    setEditPreviewImage(imgUrl || null);
     setIsEditJobOpen(true);
   };
 
@@ -1869,16 +1904,23 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                                   )}
                           </div>
                           {/* İş Resmi Thumbnail */}
-                          {job.image_url && (
+                          {(job.image_url || job.has_image) && (
                             <div 
                               className="mt-3 mb-3 cursor-pointer"
-                              onClick={() => openImagePreview(job.image_url)}
+                              onClick={() => openImagePreview(job)}
                             >
-                              <img 
-                                src={job.image_url.startsWith('data:') ? job.image_url : (job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`)}
-                                alt={job.name}
-                                className="w-32 h-24 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
-                              />
+                              {job.image_url ? (
+                                <img 
+                                  src={job.image_url.startsWith('data:') ? job.image_url : (job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`)}
+                                  alt={job.name}
+                                  className="w-32 h-24 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
+                                />
+                              ) : (
+                                <div className="w-32 h-24 rounded-lg border border-border bg-surface/40 flex flex-col items-center justify-center hover:bg-surface/60 transition-colors">
+                                  <ImageIcon className="h-6 w-6 text-text-secondary" />
+                                  <span className="text-[10px] text-text-secondary mt-1">Resmi göster</span>
+                                </div>
+                              )}
                               <p className="text-xs text-text-secondary mt-1">Büyütmek için tıklayın</p>
                             </div>
                           )}
@@ -2642,7 +2684,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           <DialogContent className="bg-surface border-border max-w-4xl">
             <DialogHeader>
               <DialogTitle className="text-xl font-heading flex items-center gap-2">
-                <Image className="h-5 w-5" /> İş Görseli
+                <ImageIcon className="h-5 w-5" /> İş Görseli
               </DialogTitle>
             </DialogHeader>
             {selectedJobImage && (

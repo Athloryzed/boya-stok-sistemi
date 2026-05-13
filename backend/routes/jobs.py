@@ -91,8 +91,28 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
             {"name": {"$regex": search, "$options": "i"}},
             {"colors": {"$regex": search, "$options": "i"}}
         ]
-    jobs = await db.jobs.find(query, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    # PERFORMANS: image_url base64 payload'ı şişiriyor (10x). Listede çıkarıp
+    # has_image flag bırak; detay için /api/jobs/{id}/image kullan.
+    projection = {"_id": 0, "image_url": 0}
+    jobs = await db.jobs.find(query, projection).sort("created_at", 1).to_list(1000)
+    # has_image alanını sonradan ekle (Pydantic image_url None döner)
+    img_ids = await db.jobs.find(
+        {"image_url": {"$exists": True, "$nin": [None, ""]}},
+        {"_id": 0, "id": 1},
+    ).to_list(1000)
+    with_img = {x["id"] for x in img_ids}
+    for j in jobs:
+        j["has_image"] = j.get("id") in with_img
     return jobs
+
+
+@router.get("/jobs/{job_id}/image")
+async def get_job_image(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Yalnızca işin image_url'unu döndürür — liste payload'ını şişirmemek için."""
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0, "id": 1, "image_url": 1})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    return {"id": job.get("id"), "image_url": job.get("image_url") or None}
 
 
 @router.post("/jobs", response_model=Job)
@@ -208,7 +228,9 @@ async def get_operators_list(current_user: dict = Depends(get_current_user)):
 @router.get("/jobs/paused")
 async def get_paused_jobs(current_user: dict = Depends(get_current_user)):
     """Durdurulmuş işleri listele"""
-    paused = await db.jobs.find({"status": "paused"}, {"_id": 0}).to_list(100)
+    paused = await db.jobs.find({"status": "paused"}, {"_id": 0, "image_url": 0}).to_list(100)
+    for j in paused:
+        j["has_image"] = False  # paused listede ihtiyaç yok; lazy load /jobs/{id}/image ile
     return paused
 
 

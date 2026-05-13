@@ -99,9 +99,25 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
   const qrScannerRef = useRef(null);
 
-  const openImagePreview = (imageUrl) => {
-    setSelectedJobImage(imageUrl);
+  const openImagePreview = async (jobOrUrl) => {
+    if (typeof jobOrUrl === "string") {
+      setSelectedJobImage(jobOrUrl);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+    const job = jobOrUrl || {};
+    if (job.image_url) {
+      setSelectedJobImage(job.image_url);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+    if (!job.has_image || !job.id) return;
     setIsImagePreviewOpen(true);
+    setSelectedJobImage(null);
+    try {
+      const r = await axios.get(`${API}/jobs/${job.id}/image`);
+      setSelectedJobImage(r.data?.image_url || null);
+    } catch { setSelectedJobImage(null); }
   };
 
   // QR Scanner
@@ -1219,17 +1235,23 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       <p className="text-text-secondary">Renkler: {currentJobOnMachine.colors}</p>
                       {currentJobOnMachine.format && <p className="text-text-secondary">Format: {currentJobOnMachine.format}</p>}
                     </div>
-                    {currentJobOnMachine.image_url && (
+                    {(currentJobOnMachine.image_url || currentJobOnMachine.has_image) && (
                       <div 
                         className="cursor-pointer flex-shrink-0"
-                        onClick={() => openImagePreview(currentJobOnMachine.image_url)}
+                        onClick={() => openImagePreview(currentJobOnMachine)}
                         data-testid="active-job-image-thumb"
                       >
-                        <img 
-                          src={currentJobOnMachine.image_url?.startsWith('data:') || currentJobOnMachine.image_url?.startsWith('http') ? currentJobOnMachine.image_url : `${API.replace('/api', '')}${currentJobOnMachine.image_url}`}
-                          alt={currentJobOnMachine.name}
-                          className="w-24 h-24 object-cover rounded-lg border-2 border-success hover:opacity-80 transition-opacity"
-                        />
+                        {currentJobOnMachine.image_url ? (
+                          <img 
+                            src={currentJobOnMachine.image_url?.startsWith('data:') || currentJobOnMachine.image_url?.startsWith('http') ? currentJobOnMachine.image_url : `${API.replace('/api', '')}${currentJobOnMachine.image_url}`}
+                            alt={currentJobOnMachine.name}
+                            className="w-24 h-24 object-cover rounded-lg border-2 border-success hover:opacity-80 transition-opacity"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-lg border-2 border-success flex items-center justify-center bg-success/10 hover:bg-success/20 transition-colors">
+                            <Image className="h-8 w-8 text-success" />
+                          </div>
+                        )}
                         <p className="text-xs text-center text-success mt-1">Görseli Aç</p>
                       </div>
                     )}
@@ -1376,10 +1398,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                               <GripVertical className="h-5 w-5 text-text-secondary" />
                               <span className="text-xs text-text-secondary mt-1">#{index + 1}</span>
                             </div>
-                            {job.image_url && (
+                            {(job.image_url || job.has_image) && (
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); openImagePreview(job.image_url); }}
+                                onClick={(e) => { e.stopPropagation(); openImagePreview(job); }}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onTouchStart={(e) => e.stopPropagation()}
                                 draggable={false}
@@ -1387,12 +1409,18 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                                 data-testid={`job-image-thumb-${job.id}`}
                                 aria-label="Görseli büyüt"
                               >
-                                <img
-                                  src={job.image_url?.startsWith('data:') || job.image_url?.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
-                                  alt={job.name}
-                                  draggable={false}
-                                  className="w-full h-full object-cover pointer-events-none"
-                                />
+                                {job.image_url ? (
+                                  <img
+                                    src={job.image_url?.startsWith('data:') || job.image_url?.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
+                                    alt={job.name}
+                                    draggable={false}
+                                    className="w-full h-full object-cover pointer-events-none"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-surface-highlight/40">
+                                    <Image className="h-6 w-6 text-text-secondary" />
+                                  </div>
+                                )}
                                 <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
                                   <Image className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </span>

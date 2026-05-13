@@ -29,6 +29,7 @@ class Job(BaseModel):
     delivery_address: Optional[str] = None
     delivery_phone: Optional[str] = None
     image_url: Optional[str] = None
+    has_image: Optional[bool] = None  # Liste endpoint'lerinde döner; tam URL /jobs/{id}/image ile
     status: str = "pending"
     operator_name: Optional[str] = None
     started_at: Optional[str] = None
