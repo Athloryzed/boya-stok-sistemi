@@ -991,73 +991,75 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         </DialogContent>
       </Dialog>
 
-      {/* DETAY DRAWER (bobin kartına tıklayınca) */}
+      {/* DETAY MODALI (bobin kartına tıklayınca — merkez modal) */}
       <AnimatePresence>
         {drawerBobin && (
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 bg-black/60 z-50"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
               onClick={closeDrawer}
               data-testid="bobin-drawer-overlay"
             />
-            <motion.div
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 26, stiffness: 260 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1f2e] border-t border-white/[0.08] rounded-t-2xl max-h-[85vh] overflow-y-auto"
-              data-testid="bobin-drawer"
-            >
-              <div className="sticky top-0 bg-[#1a1f2e] border-b border-white/[0.06] px-5 pt-4 pb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-semibold text-white truncate">{drawerBobin.brand}</h3>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{drawerBobin.color}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                      {drawerBobin.layers === 1 || !drawerBobin.layers ? "TEK" : drawerBobin.layers === 2 ? "CIFT" : `${drawerBobin.layers} KAT`}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    {drawerBobin.width_cm}cm · {drawerBobin.grammage}gr · <span className="text-sky-400">{drawerBobin.total_weight_kg?.toFixed(1)} kg stokta</span>
-                  </p>
-                  {drawerBobin.barcode && <p className="text-[10px] font-mono text-zinc-600 mt-0.5">{drawerBobin.barcode}</p>}
-                </div>
-                <button onClick={closeDrawer} className="text-zinc-500 hover:text-white text-2xl leading-none -mt-1" data-testid="bobin-drawer-close">×</button>
-              </div>
-              <div className="px-5 py-3 mx-auto w-12 -mt-2">
-                <div className="h-1 bg-white/[0.08] rounded-full" />
-              </div>
-              <div className="px-5 pb-6">
-                <h4 className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2 mt-2">Son Hareketler</h4>
-                {drawerLoading && <p className="text-xs text-zinc-500 py-3">Yukleniyor...</p>}
-                {!drawerLoading && drawerMovements.length === 0 && (
-                  <p className="text-xs text-zinc-600 py-6 text-center">Bu bobine ait hareket kaydi yok.</p>
-                )}
-                <div className="space-y-1.5">
-                  {drawerMovements.map(m => (
-                    <div key={m.id} className="bg-[#0f1422]/60 border border-white/[0.04] rounded-lg px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${typeBg(m.movement_type)}`}>
-                          {typeLabel(m.movement_type)}
-                        </span>
-                        <span className="text-[10px] text-zinc-600 whitespace-nowrap">
-                          {m.created_at ? new Date(m.created_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1.5 text-[11px]">
-                        <span className={m.movement_type === "purchase" ? "text-emerald-400 font-medium" : "text-zinc-300 font-medium"}>
-                          {m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg
-                        </span>
-                        {m.machine_name && <span className="text-sky-400/80">→ {m.machine_name}</span>}
-                        {m.customer_name && <span className="text-amber-400/80">→ {m.customer_name}</span>}
-                        <span className="text-zinc-600 ml-auto">{m.user_name || "-"}</span>
-                      </div>
-                      {m.note && <p className="text-[10px] text-zinc-600 mt-1 italic">{m.note}</p>}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                transition={{ type: "spring", damping: 24, stiffness: 280 }}
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto bg-[#1a1f2e] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/40 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+                data-testid="bobin-drawer"
+              >
+                <div className="bg-[#1a1f2e] border-b border-white/[0.06] px-5 pt-4 pb-3 flex items-start justify-between gap-3 shrink-0">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-semibold text-white truncate">{drawerBobin.brand}</h3>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{drawerBobin.color}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                        {drawerBobin.layers === 1 || !drawerBobin.layers ? "TEK" : drawerBobin.layers === 2 ? "CIFT" : `${drawerBobin.layers} KAT`}
+                      </span>
                     </div>
-                  ))}
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {drawerBobin.width_cm}cm · {drawerBobin.grammage}gr · <span className="text-sky-400">{drawerBobin.total_weight_kg?.toFixed(1)} kg stokta</span>
+                    </p>
+                    {drawerBobin.barcode && <p className="text-[10px] font-mono text-zinc-600 mt-0.5">{drawerBobin.barcode}</p>}
+                  </div>
+                  <button onClick={closeDrawer} className="text-zinc-500 hover:text-white text-2xl leading-none -mt-1" data-testid="bobin-drawer-close">×</button>
                 </div>
-              </div>
-            </motion.div>
+                <div className="px-5 pb-6 overflow-y-auto flex-1">
+                  <h4 className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2 mt-3">Son Hareketler</h4>
+                  {drawerLoading && <p className="text-xs text-zinc-500 py-3">Yukleniyor...</p>}
+                  {!drawerLoading && drawerMovements.length === 0 && (
+                    <p className="text-xs text-zinc-600 py-6 text-center">Bu bobine ait hareket kaydi yok.</p>
+                  )}
+                  <div className="space-y-1.5">
+                    {drawerMovements.map(m => (
+                      <div key={m.id} className="bg-[#0f1422]/60 border border-white/[0.04] rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${typeBg(m.movement_type)}`}>
+                            {typeLabel(m.movement_type)}
+                          </span>
+                          <span className="text-[10px] text-zinc-600 whitespace-nowrap">
+                            {m.created_at ? new Date(m.created_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-1.5 text-[11px]">
+                          <span className={m.movement_type === "purchase" ? "text-emerald-400 font-medium" : "text-zinc-300 font-medium"}>
+                            {m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg
+                          </span>
+                          {m.machine_name && <span className="text-sky-400/80">→ {m.machine_name}</span>}
+                          {m.customer_name && <span className="text-amber-400/80">→ {m.customer_name}</span>}
+                          <span className="text-zinc-600 ml-auto">{m.user_name || "-"}</span>
+                        </div>
+                        {m.note && <p className="text-[10px] text-zinc-600 mt-1 italic">{m.note}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

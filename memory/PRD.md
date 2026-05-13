@@ -414,3 +414,15 @@ Production'daki "Hayat" bobini gibi tutarsız kayıtları düzeltmek için:
 - Frontend Playwright: lazy load image network call yakalandı, recalc butonu çalışıyor ✅
 - Test raporu: `/app/test_reports/iteration_37.json`
 
+
+
+## Bobin Detay Modalı Konumlandırma - 13 May 2026
+- **Sorun:** Bobin kartına tıklanınca detay sheet'i sayfanın en altından (bottom drawer) açılıyordu, mobilde ekranı yarıya kapatıyor, masaüstünde ekranın altında küçük görünüyordu.
+- **Çözüm:** `BobinFlow.js` line 994 — fixed bottom drawer **merkez modal**'a çevrildi:
+  - Container: `fixed inset-0 flex items-center justify-center p-4`
+  - Animation: `y: "100%"` (alt slide) → `scale 0.92 + y:12` (merkez fade-in)
+  - Max width: `max-w-2xl`, max-h `85vh`, içerik scroll'lu
+  - Backdrop: `backdrop-blur-sm` + bg-black/70
+- **Sonuç:** Modal artık her ekran boyutunda merkezde açılır, kullanıcı kartla aynı görsel hizada detayı görür.
+- Doğrulama: Desktop ekran görüntüsü ile modal merkezde, "Hayat" detay sheet'i blur backdrop ile render edildi.
+
