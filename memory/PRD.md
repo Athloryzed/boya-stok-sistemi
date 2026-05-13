@@ -372,3 +372,45 @@ Production'daki "Hayat" bobini gibi tutarsız kayıtları düzeltmek için:
 2. Header'da **"Bobin Yeniden Hesapla"** butonuna bas.
 3. Onayla → tüm bobin stokları hareket geçmişine göre yeniden hesaplanır.
 
+
+
+## Performans Optimizasyonu - 13 May 2026
+
+### Bulgular (ölçüm önce)
+- `/api/jobs` 68.8 KB (gzip 40.7 KB) — sadece 2 işin base64 image_url'si payload'un **%72'sini** oluşturuyordu.
+- `/api/visitors` 36 KB — user_agent ve sayfa metaları gereksiz şişiriyordu.
+
+### Yapılan Değişiklikler
+
+**Backend**
+1. `routes/jobs.py` — `GET /api/jobs` projection `image_url: 0`; ek query ile `has_image: bool` flag eklendi.
+2. **Yeni endpoint** `GET /api/jobs/{job_id}/image` — sadece image_url döndürür. Lazy load için.
+3. `routes/jobs.py` paused listesi de image_url exclude.
+4. `routes/dashboard.py` — active/pending/completed_today/completed_7d jobs query'lerinde image_url exclude.
+5. `routes/analytics.py` — tüm jobs.find çağrılarında image_url exclude (toplu sed).
+6. `routes/visitors.py` — default limit 100→50, user_agent exclude.
+7. `models.py` — Job modeline `has_image: Optional[bool]` eklendi.
+
+**Frontend**
+1. **3 dosyada (Plan/Operator/Management)** `openImagePreview(jobOrUrl)` polymorphic yapıldı:
+   - String URL gelirse direkt göster (geriye dönük uyum).
+   - Job objesi gelirse: image_url varsa kullan, yoksa `has_image && id` ise `GET /api/jobs/{id}/image` ile lazy fetch et.
+2. Thumbnail render mantığı `(job.image_url || job.has_image)` koşuluna güncellendi:
+   - image_url cached varsa normal `<img>` render.
+   - Sadece has_image varsa "Resmi Göster" ikonu butonu — tıklayınca lazy fetch + preview dialog.
+3. `PlanFlow.openEditJob` ve `loadExistingJob` — düzenleme dialog'u açılırken eğer `has_image` varsa image lazy fetch ile form'a yüklenir.
+
+### Ölçülen Kazanç
+| Endpoint | Önce (raw / gzip) | Sonra (raw / gzip) | Azalma (gzip) |
+|---|---|---|---|
+| `/api/jobs` | 68.8 KB / 40.7 KB | **20.3 KB / 3.86 KB** | **%90.5** 🚀 |
+| `/api/visitors` | 36.5 KB / ~8 KB | **11.8 KB / 1.8 KB** | **~%77** |
+| `/api/dashboard/live` | ~1 KB / 936 B | 936 B / **376 B** | ~%60 |
+
+### Test Sonuçları
+- Backend pytest: **11/11 ✅** (`/app/backend/tests/test_iteration37_payload.py`)
+- Atomic deduction doğrulandı: 1947 - 970 = 977 kg ✅, sıralı çıkartmalar: 1947 - 970 - 500 = 477 kg ✅
+- Recalculate endpoint: yapay olarak bozulmuş weight düzeltildi ✅
+- Frontend Playwright: lazy load image network call yakalandı, recalc butonu çalışıyor ✅
+- Test raporu: `/app/test_reports/iteration_37.json`
+
