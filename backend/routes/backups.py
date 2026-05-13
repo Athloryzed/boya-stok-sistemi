@@ -30,9 +30,9 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-BACKUP_DIR = Path("/app/backups")
+BACKUP_DIR = Path(os.environ.get("BACKUP_DIR", "/app/backups"))
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-RETENTION_DAYS = 30
+RETENTION_DAYS = int(os.environ.get("BACKUP_RETENTION_DAYS", "30"))
 
 DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
