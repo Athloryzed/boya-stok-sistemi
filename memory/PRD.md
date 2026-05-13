@@ -426,3 +426,41 @@ Production'daki "Hayat" bobini gibi tutarsız kayıtları düzeltmek için:
 - **Sonuç:** Modal artık her ekran boyutunda merkezde açılır, kullanıcı kartla aynı görsel hizada detayı görür.
 - Doğrulama: Desktop ekran görüntüsü ile modal merkezde, "Hayat" detay sheet'i blur backdrop ile render edildi.
 
+
+
+## Hetzner VPS Migrasyon Hazırlığı - 13 May 2026
+
+Kullanıcı production'ı **Hetzner CPX21 (Falkenstein, Almanya)** üzerinde self-host etmek istiyor. Sebep: Türkiye ISP'lerinde 4G mobil bağlantı sorunu (SNI/DNS engelleme). Hetzner Almanya IP'leri TR ISP blok listelerinde yok ve TR'ye ~25-35ms latency veriyor.
+
+### Hazırlanan Deployment Paketi (`/app/deploy/`)
+- **`MIGRATION_RUNBOOK.md`** — Adım adım geçiş rehberi (önkoşullar, SSH key, DNS, kurulum, restore, smoke test, cutover, geri dönüş planı)
+- **`setup.sh`** — VPS initial setup (Python 3.11, Node 20, MongoDB 7.0, Nginx, Certbot, UFW, fail2ban, buse user)
+- **`buse-backend.service`** — systemd unit (uvicorn, 2 workers, hardening flags)
+- **`nginx.conf`** — Reverse proxy (rate limit, gzip, SPA fallback, WS support, security headers, SSL ready)
+- **`proxy_params`** — Standart proxy header set
+- **`deploy.sh`** — Update script (pre-deploy backup, git pull, deps, build, restart)
+- **`backup.sh`** — Cron-friendly mongodump (30 gün retention, optional rclone off-site)
+- **`restore.sh`** — Disaster recovery (mongodump VEYA Python BSON fallback otomatik tespit + pre-restore safety yedek)
+- **`.env.backend.example`** — VPS backend env template
+- **`.env.frontend.example`** — VPS frontend env template
+
+### Geçiş Stratejisi (zero data loss)
+1. VPS açılır + `setup.sh` çalıştırılır.
+2. Kod yüklenir, `.env` doldurulur, `yarn build` yapılır, systemd başlatılır.
+3. Nginx + Let's Encrypt SSL kurulur.
+4. **Emergent'tan en güncel yedek alınır → VPS'e SCP → mongorestore.**
+5. DNS değişmeden hosts override ile smoke test (yönetim girişi, plan ekleme, WS, bobin recalc, yedek alma).
+6. **Cutover (Pazar gecesi):** Son yedek → restore → DNS bksistem.space A kaydını Hetzner IP'ye → TTL 300s ile 5dk yayılır.
+7. 24-48 saat Emergent ayakta kalır (geri dönüş için). Sorun çıkarsa DNS'i geri çevir → eski sistem.
+
+### Kullanıcının Bekleyen Adımları
+- [ ] Hetzner hesabı aç + CPX21 oluştur (Falkenstein, Ubuntu 22.04)
+- [ ] SSH key kurulumu
+- [ ] VPS IP'sini bana ilet
+- [ ] Beraber `setup.sh` → kod yükleme → restore → cutover
+
+### Maliyet
+- Hetzner CPX21: ~5.83 €/ay (~200 ₺)
+- Let's Encrypt SSL: ücretsiz
+- Toplam: **~205 ₺/ay** (önceki Emergent'a göre çok daha ucuz + TR'ye düşük latency)
+

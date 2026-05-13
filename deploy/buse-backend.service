@@ -1,0 +1,28 @@
+[Unit]
+Description=Buse Kagit FastAPI Backend
+After=network.target mongod.service
+Requires=mongod.service
+
+[Service]
+Type=simple
+User=buse
+Group=buse
+WorkingDirectory=/opt/buse-kagit/backend
+Environment="PATH=/opt/buse-kagit/backend/venv/bin:/usr/bin:/bin"
+EnvironmentFile=/opt/buse-kagit/backend/.env
+ExecStart=/opt/buse-kagit/backend/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8001 --workers 2 --proxy-headers --forwarded-allow-ips='*'
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=buse-backend
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/buse-kagit /tmp
+
+[Install]
+WantedBy=multi-user.target
