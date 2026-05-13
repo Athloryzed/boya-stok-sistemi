@@ -98,8 +98,46 @@ def _db_name() -> str:
     return os.environ.get("DB_NAME", "")
 
 
+def _python_bson_backup(out_path: Path) -> dict:
+    """
+    mongodump binary'si yoksa Python fallback. Her collection'ı BSON olarak
+    tar.gz içine yazar. Geri yükleme için /admin/backups/restore_python kullanılır
+    veya pymongo ile manual restore yapılır.
+    """
+    import io
+    import gzip
+    import tarfile
+    from pymongo import MongoClient
+    from bson import BSON
+
+    uri = _mongo_uri()
+    dbn = _db_name()
+    client = MongoClient(uri)
+    database = client[dbn] if dbn else client.get_default_database()
+    if database is None:
+        return {"success": False, "error": "Veritabanı adı belirlenemedi"}
+
+    try:
+        with gzip.open(out_path, "wb") as gz, tarfile.open(fileobj=gz, mode="w|") as tar:
+            for coll_name in database.list_collection_names():
+                buf = io.BytesIO()
+                for doc in database[coll_name].find({}):
+                    buf.write(BSON.encode(doc))
+                data = buf.getvalue()
+                info = tarfile.TarInfo(name=f"{coll_name}.bson")
+                info.size = len(data)
+                info.mtime = int(datetime.now(timezone.utc).timestamp())
+                tar.addfile(info, io.BytesIO(data))
+        return {"success": True}
+    except Exception as e:
+        logger.exception("Python backup failed")
+        return {"success": False, "error": str(e)}
+    finally:
+        client.close()
+
+
 def run_backup_sync(upload_drive: bool = True) -> dict:
-    """Senkron yedekleme — başarılıysa Drive'a yükler."""
+    """Senkron yedekleme — mongodump varsa onu, yoksa Python fallback'ı kullanır."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"backup_{ts}.archive.gz"
     out_path = BACKUP_DIR / filename
@@ -109,11 +147,20 @@ def run_backup_sync(upload_drive: bool = True) -> dict:
     if dbn:
         cmd.append(f"--db={dbn}")
     cmd += ["--gzip", f"--archive={out_path}"]
+
+    used_fallback = False
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         if result.returncode != 0:
             logger.error(f"mongodump failed: {result.stderr}")
             return {"success": False, "error": result.stderr[:500]}
+    except FileNotFoundError:
+        # mongodump binary yok — Python fallback
+        logger.warning("mongodump bulunamadı, Python fallback kullanılıyor")
+        used_fallback = True
+        fb = _python_bson_backup(out_path)
+        if not fb["success"]:
+            return fb
     except subprocess.TimeoutExpired:
         return {"success": False, "error": "Yedekleme zaman aşımına uğradı (>5dk)"}
     except Exception as e:
@@ -124,7 +171,8 @@ def run_backup_sync(upload_drive: bool = True) -> dict:
     _cleanup_old()
 
     response = {"success": True, "filename": filename, "size_mb": size_mb,
-                "created_at": datetime.now(timezone.utc).isoformat()}
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "method": "python_bson" if used_fallback else "mongodump"}
 
     if upload_drive:
         # Sadece Drive yapılandırması varsa upload denenir

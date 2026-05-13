@@ -161,6 +161,10 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const isNight = hour < 6 || hour >= 20;
   const isDusk = (hour >= 18 && hour < 20) || (hour >= 6 && hour < 8);
 
+  // 23 Nisan teması: yalnızca Nisan ayı boyunca (1-30 Nisan) aktif.
+  // Mayıs sonrası balon yağmuru, çocuk siluetleri, bayraklı çocuklar gizlenir.
+  const isAprilTheme = time.getMonth() === 3; // 0=Ocak, 3=Nisan
+
   const dayProgress = useMemo(() => {
     const totalMin = hour * 60 + minutes;
     if (totalMin < 360) return 0;
@@ -320,8 +324,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         </motion.div>
       ))}
 
-      {/* Dusen balonlar (yumurta yerine) */}
-      {!liteMode && fallingBalloons.map(bl => (
+      {/* Dusen balonlar (yumurta yerine) — yalnızca Nisan */}
+      {isAprilTheme && !liteMode && fallingBalloons.map(bl => (
         <motion.div key={`fbl-${bl.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${bl.left}%`, top: -40 }}
           animate={{
@@ -334,8 +338,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         </motion.div>
       ))}
 
-      {/* Dusen cocuk siluetleri */}
-      {!liteMode && fallingChildren.map(ch => (
+      {/* Dusen cocuk siluetleri — yalnızca Nisan */}
+      {isAprilTheme && !liteMode && fallingChildren.map(ch => (
         <motion.div key={`fch-${ch.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${ch.left}%`, top: -60 }}
           animate={{
@@ -376,8 +380,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           </motion.div>
         ))}
 
-        {/* Cimenlikte oynayan cocuklar (tavsanlar yerine) */}
-        {groundChildren.map(c => (
+        {/* Cimenlikte oynayan cocuklar — yalnızca Nisan */}
+        {isAprilTheme && groundChildren.map(c => (
           <motion.div key={`gc-${c.id}`} className="absolute z-20 pointer-events-none"
             style={{ left: `${c.left}%`, bottom: "30px" }}
             animate={{ y: [0, -10, 0] }}
@@ -386,8 +390,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           </motion.div>
         ))}
 
-        {/* Bayrak tutan cocuklar (cimenlikte) */}
-        {flagChildren.map(fc => (
+        {/* Bayrak tutan cocuklar (cimenlikte) — yalnızca Nisan */}
+        {isAprilTheme && flagChildren.map(fc => (
           <motion.div key={`fc-${fc.id}`} className="absolute z-20 pointer-events-none"
             style={{ left: `${fc.left}%`, bottom: "25px" }}
             animate={{ y: [0, -5, 0] }}
@@ -398,7 +402,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
       </div>
 
       {/* Main content */}
-      <div className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+      <div className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 pt-24 sm:pt-28 pb-8">
 
         {/* Title */}
         <motion.div className="text-center mb-10"

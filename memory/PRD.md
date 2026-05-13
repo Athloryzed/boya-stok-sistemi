@@ -311,3 +311,28 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - **Etki:** Eksik bir import varsa dev server hata gösterir, CI build (`CI=true yarn build`) fail eder.
 - **Yan kazanım:** `PlanFlow.js` içindeki tanımsız `setEditingJob` çağrıları (ölü kod) bu sayede yakalandı ve temizlendi.
 - **Test:** Database/HardDrive importları geçici olarak kaldırılıp build koşuldu, kural beklenen 4 hatayı raporladı. Sağlam build başarılı (24.15s).
+
+
+## Production Hotfix - 13 May 2026
+
+### 1. Yedekleme Python Fallback (P0)
+- **Sorun:** Production sunucusunda `mongodump` binary'si yok → "Şimdi Yedekle" hatası: `[Errno 2] No such file or directory: 'mongodump'`.
+- **Çözüm:** `routes/backups.py` içinde `_python_bson_backup()` fonksiyonu eklendi. `subprocess.run(["mongodump", ...])` `FileNotFoundError` fırlatırsa pymongo + BSON ile her collection tar.gz'a yazılır.
+- **Dosya formatı:** Aynı isim (`backup_TS.archive.gz`). Restore için pymongo ile manuel açılabilir (tar içinde `*.bson` dosyaları).
+- **Response field:** `method` → `"mongodump"` veya `"python_bson"`.
+- **Test:** Python fallback üretilen arşiv 31 collection içerdi, 190KB.
+
+### 2. 23 Nisan Teması Tarih Duyarlı (P1)
+- **Sorun:** 13 Mayıs olmasına rağmen ana sayfada balon yağmuru, düşen çocuk siluetleri ve bayraklı çocuklar hala görünüyordu.
+- **Çözüm:** `Home.js` içine `isAprilTheme = time.getMonth() === 3` flag'i eklendi. Aşağıdaki 4 render bloğu artık yalnızca Nisan ayında gösteriliyor:
+  - `fallingBalloons` (düşen balonlar)
+  - `fallingChildren` (düşen çocuk siluetleri)
+  - `groundChildren` (oynayan çocuklar)
+  - `flagChildren` (bayrak tutan çocuklar)
+- **Atatürk + bayrak + tema toggle her zaman görünür (Türkiye kimlik unsurları).**
+
+### 3. Mobil Bayrak/Başlık Çakışması (P2)
+- **Sorun:** Mobilde sağ üstteki bayrak "BUSE KAGIT" başlığına biniyordu.
+- **Çözüm:** Main content container'a `pt-24 sm:pt-28` üst padding eklendi (`py-8` → `pt-24 sm:pt-28 pb-8`).
+- **Doğrulama:** Ekran görüntüsü ile title-bayrak ayrımı görüldü.
+
