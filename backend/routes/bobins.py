@@ -12,6 +12,7 @@ from database import db
 from models import Bobin, BobinMovement
 from auth import get_current_user
 from services.audit import log_audit
+from pymongo import ReturnDocument
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 logger = logging.getLogger(__name__)
@@ -261,20 +262,36 @@ async def give_bobin_to_machine(bobin_id: str, data: dict = Body(...)):
     if weight_out > current_weight + 0.001:
         raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {current_weight:g}kg")
 
-    new_qty = max((bobin.get("quantity", 0) or 0) - quantity, 0)
-    new_weight = max(round(current_weight - weight_out, 2), 0)
-    new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
-
-    await db.bobins.update_one(
-        {"id": bobin_id},
-        {"$set": {
-            "quantity": new_qty, "total_weight_kg": new_weight,
-            "weight_per_piece_kg": new_wpp,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-
     label = bobin_label(bobin)
+    quantity_dec = quantity if quantity > 0 else 0
+
+    # Atomik düşürme: yetersiz stok varsa match etmez, None döner.
+    # Bu race condition'ı tamamen önler (iki eşzamanlı isteğin biri 400 alır).
+    updated = await db.bobins.find_one_and_update(
+        {"id": bobin_id, "total_weight_kg": {"$gte": weight_out - 0.001}},
+        {
+            "$inc": {"total_weight_kg": -weight_out, "quantity": -quantity_dec},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
+        },
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        # Yarış sonrası stok yetersiz
+        fresh = await db.bobins.find_one({"id": bobin_id}, {"_id": 0, "total_weight_kg": 1})
+        cur = (fresh or {}).get("total_weight_kg", 0) or 0
+        raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {cur:g}kg")
+
+    # weight_per_piece_kg ve quantity negatife düşmesin diye normalize
+    new_qty = max(updated.get("quantity", 0) or 0, 0)
+    new_weight = max(round(updated.get("total_weight_kg", 0) or 0, 2), 0)
+    new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
+    if new_qty != (updated.get("quantity") or 0) or new_wpp != (updated.get("weight_per_piece_kg") or 0):
+        await db.bobins.update_one(
+            {"id": bobin_id},
+            {"$set": {"quantity": new_qty, "total_weight_kg": new_weight, "weight_per_piece_kg": new_wpp}},
+        )
+
     movement = BobinMovement(
         bobin_id=bobin_id, bobin_label=label,
         movement_type="to_machine", quantity=quantity, weight_kg=weight_out,
@@ -317,20 +334,32 @@ async def sell_bobin(bobin_id: str, data: dict = Body(...)):
     if weight_out > current_weight + 0.001:
         raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {current_weight:g}kg")
 
-    new_qty = max((bobin.get("quantity", 0) or 0) - quantity, 0)
-    new_weight = max(round(current_weight - weight_out, 2), 0)
-    new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
-
-    await db.bobins.update_one(
-        {"id": bobin_id},
-        {"$set": {
-            "quantity": new_qty, "total_weight_kg": new_weight,
-            "weight_per_piece_kg": new_wpp,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-
     label = bobin_label(bobin)
+    quantity_dec = quantity if quantity > 0 else 0
+
+    updated = await db.bobins.find_one_and_update(
+        {"id": bobin_id, "total_weight_kg": {"$gte": weight_out - 0.001}},
+        {
+            "$inc": {"total_weight_kg": -weight_out, "quantity": -quantity_dec},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
+        },
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        fresh = await db.bobins.find_one({"id": bobin_id}, {"_id": 0, "total_weight_kg": 1})
+        cur = (fresh or {}).get("total_weight_kg", 0) or 0
+        raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {cur:g}kg")
+
+    new_qty = max(updated.get("quantity", 0) or 0, 0)
+    new_weight = max(round(updated.get("total_weight_kg", 0) or 0, 2), 0)
+    new_wpp = round(new_weight / new_qty, 2) if new_qty > 0 else 0
+    if new_qty != (updated.get("quantity") or 0) or new_wpp != (updated.get("weight_per_piece_kg") or 0):
+        await db.bobins.update_one(
+            {"id": bobin_id},
+            {"$set": {"quantity": new_qty, "total_weight_kg": new_weight, "weight_per_piece_kg": new_wpp}},
+        )
+
     movement = BobinMovement(
         bobin_id=bobin_id, bobin_label=label,
         movement_type="sale", quantity=quantity, weight_kg=weight_out,
@@ -353,6 +382,102 @@ async def get_bobin_movements(bobin_id: Optional[str] = None, movement_type: Opt
         query["movement_type"] = movement_type
     movements = await db.bobin_movements.find(query, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return movements
+
+
+# ==================== STOK YENİDEN HESAPLAMA (DATA INTEGRITY) ====================
+
+def _require_yonetim(user: dict):
+    roles = user.get("roles") or []
+    role = user.get("role")
+    if role in ("yonetim", "management", "depo", "planlama") or any(
+        r in roles for r in ("yonetim", "management", "depo", "planlama")
+    ):
+        return
+    raise HTTPException(status_code=403, detail="Yetkisiz")
+
+
+@router.post("/admin/bobins/recalculate")
+async def recalculate_bobin_stock(current_user: dict = Depends(get_current_user)):
+    """
+    Tüm bobinlerin total_weight_kg ve quantity değerlerini bobin_movements
+    tablosundan yeniden hesaplar. Veri tutarsızlığı (eski race condition kalıntısı,
+    manuel düzenleme vb.) sonrası kullanılır.
+
+    Hesap: SUM(purchase) - SUM(to_machine) - SUM(sale)
+    """
+    _require_yonetim(current_user)
+
+    # Tüm hareketleri bobin_id bazında topla
+    pipeline = [
+        {"$group": {
+            "_id": "$bobin_id",
+            "purchase_w": {"$sum": {"$cond": [{"$eq": ["$movement_type", "purchase"]}, "$weight_kg", 0]}},
+            "purchase_q": {"$sum": {"$cond": [{"$eq": ["$movement_type", "purchase"]}, "$quantity", 0]}},
+            "machine_w": {"$sum": {"$cond": [{"$eq": ["$movement_type", "to_machine"]}, "$weight_kg", 0]}},
+            "machine_q": {"$sum": {"$cond": [{"$eq": ["$movement_type", "to_machine"]}, "$quantity", 0]}},
+            "sale_w": {"$sum": {"$cond": [{"$eq": ["$movement_type", "sale"]}, "$weight_kg", 0]}},
+            "sale_q": {"$sum": {"$cond": [{"$eq": ["$movement_type", "sale"]}, "$quantity", 0]}},
+        }},
+    ]
+    agg = {doc["_id"]: doc async for doc in db.bobin_movements.aggregate(pipeline)}
+
+    fixed = []
+    bobins = await db.bobins.find({}, {"_id": 0}).to_list(None)
+    for b in bobins:
+        bid = b.get("id")
+        old_w = round(float(b.get("total_weight_kg", 0) or 0), 2)
+        old_q = int(b.get("quantity", 0) or 0)
+
+        a = agg.get(bid, {})
+        new_w = round(
+            float(a.get("purchase_w", 0) or 0)
+            - float(a.get("machine_w", 0) or 0)
+            - float(a.get("sale_w", 0) or 0),
+            2,
+        )
+        new_q = max(
+            int(a.get("purchase_q", 0) or 0)
+            - int(a.get("machine_q", 0) or 0)
+            - int(a.get("sale_q", 0) or 0),
+            0,
+        )
+        new_w = max(new_w, 0)
+        new_wpp = round(new_w / new_q, 2) if new_q > 0 else 0
+
+        if abs(new_w - old_w) >= 0.01 or new_q != old_q:
+            await db.bobins.update_one(
+                {"id": bid},
+                {"$set": {
+                    "total_weight_kg": new_w,
+                    "quantity": new_q,
+                    "weight_per_piece_kg": new_wpp,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+            fixed.append({
+                "id": bid,
+                "label": bobin_label(b),
+                "old_weight_kg": old_w,
+                "new_weight_kg": new_w,
+                "old_quantity": old_q,
+                "new_quantity": new_q,
+                "diff_kg": round(new_w - old_w, 2),
+            })
+
+    await log_audit(
+        (current_user or {}).get("display_name", "Yönetim"),
+        "recalculate",
+        "bobin",
+        "ALL",
+        f"{len(fixed)} bobin düzeltildi",
+    )
+    return {
+        "success": True,
+        "total_bobins": len(bobins),
+        "fixed_count": len(fixed),
+        "fixed": fixed,
+    }
+
 
 
 # ==================== EXCEL EXPORT (kapsamlı + aylık arşiv) ====================

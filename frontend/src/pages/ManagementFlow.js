@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -250,6 +250,32 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       fetchBackups();
     } catch (e) { toast.error("Silinemedi"); }
   };
+
+  // Bobin Stok Yeniden Hesapla
+  const [recalcRunning, setRecalcRunning] = useState(false);
+  const runBobinRecalc = async () => {
+    if (!window.confirm("Tüm bobinlerin gerçek stoğu, hareket geçmişinden (alış − makineye − satış) yeniden hesaplanacak. Devam edilsin mi?")) return;
+    setRecalcRunning(true);
+    try {
+      const r = await axios.post(`${API}/admin/bobins/recalculate`);
+      const f = r.data?.fixed_count || 0;
+      const total = r.data?.total_bobins || 0;
+      if (f === 0) {
+        toast.success(`Tüm ${total} bobin tutarlı — düzeltme gerekmedi`);
+      } else {
+        const lines = (r.data?.fixed || []).slice(0, 5).map(x =>
+          `• ${x.label}: ${x.old_weight_kg}kg → ${x.new_weight_kg}kg (${x.diff_kg > 0 ? "+" : ""}${x.diff_kg}kg)`
+        ).join("\n");
+        toast.success(`${f}/${total} bobin düzeltildi`);
+        alert(`Bobin Stok Düzeltme Raporu (${f} kayıt):\n\n${lines}${(r.data?.fixed || []).length > 5 ? "\n…" : ""}`);
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Yeniden hesaplama başarısız");
+    } finally {
+      setRecalcRunning(false);
+    }
+  };
+
 
   // Yemek Menüsü
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
@@ -1240,6 +1266,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 h-9 gap-1.5">
               <Database className="h-4 w-4" />
               <span className="hidden md:inline text-xs">Yedek</span>
+            </Button>
+            {/* BOBİN STOK YENİDEN HESAPLA */}
+            <Button variant="outline" size="sm" onClick={runBobinRecalc} disabled={recalcRunning} data-testid="bobin-recalc-btn"
+              className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 h-9 gap-1.5"
+              title="Tüm bobinlerin stoğunu hareket geçmişinden yeniden hesapla">
+              {recalcRunning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Scale className="h-4 w-4" />}
+              <span className="hidden md:inline text-xs">Bobin Yeniden Hesapla</span>
             </Button>
             {/* VERİ SENKRONU rozeti */}
             <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />

@@ -336,3 +336,39 @@ Factory management system for Buse Kagit paper company. Full-stack React + FastA
 - **Çözüm:** Main content container'a `pt-24 sm:pt-28` üst padding eklendi (`py-8` → `pt-24 sm:pt-28 pb-8`).
 - **Doğrulama:** Ekran görüntüsü ile title-bayrak ayrımı görüldü.
 
+
+
+## Bobin Veri Bütünlüğü Fix - 13 May 2026
+
+### Sorun
+"Hayat" markası için +1947 alış ve -970 makineye çıkışına rağmen üst kartta hala 1947 kg görünüyordu (matematik tutmadı).
+
+### Kök Sebep
+`to-machine` ve `sale` endpoint'leri **read-then-update** deseniyle çalışıyordu: önce `find_one` ile mevcut ağırlık okunup, hesaplanmış `new_weight` `$set` ile yazılıyordu. Eşzamanlı iki istek arasında race condition oluşunca biri diğerini eziyordu.
+
+### Çözüm
+
+1. **Atomik `$inc` düşürme** — `routes/bobins.py` `to-machine` ve `sale` endpoint'leri `find_one_and_update` + `$inc` ile yenilendi. Filter olarak `total_weight_kg >= weight_out` koşulu eklendi → yetersiz stoğa düşürme atomik olarak reddedilir.
+   - Race condition tamamen önlendi.
+   - `weight_per_piece_kg` yan-hesap için ikinci hızlı update yapılıyor (kritik veri zaten atomik korunuyor).
+   - `ReturnDocument.AFTER` ile güncel doc dönülüyor.
+
+2. **`POST /api/admin/bobins/recalculate`** — Tüm bobinlerin `total_weight_kg` ve `quantity` değerlerini `bobin_movements`'tan yeniden hesaplayan endpoint:
+   - Formül: `SUM(purchase) - SUM(to_machine) - SUM(sale)`.
+   - MongoDB aggregation pipeline (tek query, performanslı).
+   - Sadece farklı olanları update eder, response'ta düzeltilen kayıtların listesini döner (`fixed[]` → old_weight, new_weight, diff_kg).
+   - Yetki: `yonetim`, `management`, `depo`, `planlama` rolleri.
+
+3. **UI Butonu** — `ManagementFlow.js` header'da "Bobin Yeniden Hesapla" butonu (data-testid: `bobin-recalc-btn`). Onay sonrası raporu toast + alert ile gösterir.
+
+### Doğrulama (Curl Test)
+- Test bobin: 1947kg alış, 970kg makineye → API döndü: `new_weight: 977.0` ✅
+- DB'de manuel olarak 1947 olarak bozuldu → recalculate çağırıldı → `fixed_count: 1, diff_kg: -970, new_weight_kg: 977` ✅
+- ReferenceError yok, UI butonu görünür ve çalışır.
+
+### Production'da Kullanım
+Production'daki "Hayat" bobini gibi tutarsız kayıtları düzeltmek için:
+1. Yönetim paneline gir.
+2. Header'da **"Bobin Yeniden Hesapla"** butonuna bas.
+3. Onayla → tüm bobin stokları hareket geçmişine göre yeniden hesaplanır.
+
