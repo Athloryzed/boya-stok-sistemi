@@ -464,3 +464,27 @@ Kullanıcı production'ı **Hetzner CPX21 (Falkenstein, Almanya)** üzerinde sel
 - Let's Encrypt SSL: ücretsiz
 - Toplam: **~205 ₺/ay** (önceki Emergent'a göre çok daha ucuz + TR'ye düşük latency)
 
+
+
+## Ana Sayfa — Soft Geçiş Banner'ı - 13 May 2026
+
+### Sorun
+Cutover öncesi kullanıcıları yeni Hetzner sistemine (`https://yeni.bksistem.space`) yumuşak biçimde yönlendirmek; ama eski paneller `bksistem.space` üzerinden hala erişilebilir kalsın.
+
+### Çözüm
+`Home.js`'de soft-cutover akışı:
+1. **Büyük yeşil/cyan gradient banner** ana sayfada — `🚀 YENI SISTEM` ikonu, "Daha Hızlı, Daha Güvenli" başlığı, `yeni.bksistem.space` URL'i ve "Geç →" CTA butonu. Tıklayınca https://yeni.bksistem.space açılır.
+2. **Module kartları varsayılan gizli** — `showLegacyPanels` state false başlar.
+3. **Altta küçük gri toggle link** — `"Eski panel girişleri (geçici)"` → tıklanınca modüller görünür, tekrar tıklayınca gizlenir.
+4. **Atatürk + Bayrak + Hız Modu + Tema toggle** her zaman görünür.
+5. **Yönetim Hızlı Panel FAB** — yönetim rolündeki kullanıcılar için sağ altta hala görünür (alışkanlık değişmesin).
+
+### Avantaj
+- Cutover gerek yok, DNS dokunulmadı.
+- Eski URL'le gelenler banner görüp yeni sisteme yönelir.
+- Henüz hazır olmayan istemciler "Eski paneller" linkiyle eski sistemden devam edebilir.
+- Geçiş tamamlandığında banner kaldırılır veya tüm trafik kalıcı redirect ile yeni sisteme yönlendirilir.
+
+### Deploy
+Kullanıcı Emergent panelinde Save → Deploy yapacak; Hetzner VPS'e dokunulmadı.
+
