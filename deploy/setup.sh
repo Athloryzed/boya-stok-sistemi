@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Buse Kağıt — Hetzner VPS Initial Setup
-# Usage: bash setup.sh
-# OS: Ubuntu 22.04 LTS
+# OS: Ubuntu 22.04 OR 24.04 LTS (otomatik tespit)
+# Usage: sudo bash setup.sh
 
 set -euo pipefail
 
 echo "=============================================="
-echo " Buse Kagit VPS Setup — Ubuntu 22.04"
+echo " Buse Kagit VPS Setup"
 echo "=============================================="
 
 if [ "$EUID" -ne 0 ]; then
@@ -14,44 +14,66 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Ubuntu codename tespit (jammy=22.04, noble=24.04)
+. /etc/os-release
+CODENAME="${VERSION_CODENAME}"
+echo "Tespit edilen: $PRETTY_NAME (codename: $CODENAME)"
+
+if [ "$CODENAME" != "jammy" ] && [ "$CODENAME" != "noble" ]; then
+  echo "Bu script yalnızca Ubuntu 22.04 (jammy) veya 24.04 (noble) destekler"
+  exit 1
+fi
+
+# Python versiyonu: 22.04 → 3.11, 24.04 → 3.12 (default)
+if [ "$CODENAME" = "noble" ]; then
+  PY="python3.12"
+else
+  PY="python3.11"
+fi
+
 # 1. System update
 echo "[1/9] System update..."
 apt-get update -qq
-apt-get upgrade -y -qq
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -qq
 
 # 2. Essentials
 echo "[2/9] Essential packages..."
-apt-get install -y -qq curl wget gnupg lsb-release ca-certificates \
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl wget gnupg lsb-release ca-certificates \
   software-properties-common build-essential git ufw fail2ban htop \
   unzip zip jq
 
-# 3. Python 3.11
-echo "[3/9] Python 3.11..."
-add-apt-repository -y ppa:deadsnakes/ppa
-apt-get update -qq
-apt-get install -y -qq python3.11 python3.11-venv python3.11-dev python3-pip
+# 3. Python
+echo "[3/9] $PY..."
+if [ "$CODENAME" = "noble" ]; then
+  # Python 3.12 default in 24.04, sadece venv'i yükle
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3.12 python3.12-venv python3.12-dev python3-pip
+else
+  add-apt-repository -y ppa:deadsnakes/ppa
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3.11 python3.11-venv python3.11-dev python3-pip
+fi
 
 # 4. Node.js 20 + Yarn
 echo "[4/9] Node.js 20 + Yarn..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt-get install -y -qq nodejs
-npm install -g yarn
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nodejs
+npm install -g yarn --silent
 
 # 5. MongoDB 7.0
 echo "[5/9] MongoDB 7.0..."
-curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor --yes
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu ${CODENAME}/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
 apt-get update -qq
-apt-get install -y -qq mongodb-org
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mongodb-org
 systemctl enable --now mongod
 
 # 6. Nginx + Certbot
 echo "[6/9] Nginx + Certbot..."
-apt-get install -y -qq nginx certbot python3-certbot-nginx
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nginx certbot python3-certbot-nginx
 
 # 7. Firewall
 echo "[7/9] UFW Firewall..."
-ufw --force reset
+ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow 22/tcp comment 'SSH'
@@ -80,13 +102,17 @@ echo "=============================================="
 echo " ✓ VPS hazır!"
 echo "=============================================="
 echo " Versiyonlar:"
-python3.11 --version
+$PY --version
 node --version
 yarn --version
 mongod --version | head -1
 nginx -v 2>&1
+echo ""
+echo " Disk kullanımı:"
+df -h / | tail -1
+echo ""
+echo " Bellek:"
+free -h | head -2
 echo "=============================================="
 echo ""
 echo " Sonraki adım: Uygulama kodunu /opt/buse-kagit'e yükleyin"
-echo " (git clone veya scp)"
-echo ""
