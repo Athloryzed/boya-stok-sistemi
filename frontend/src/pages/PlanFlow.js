@@ -1406,10 +1406,19 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
 
-        {/* Beklenen Üretim Özeti — Plan paneli, tıkla → makine bazlı pop-up */}
+        {/* Beklenen Üretim Özeti — Plan paneli, tıkla → makine bazlı pop-up + drill-down + Yeni İş hızlı eylem */}
         <div className="mb-4 max-w-2xl">
           <ExpectedKoliCard
-            summary={expectedSummary || computeExpectedSummary(jobs)}
+            summary={expectedSummary || computeExpectedSummary(allJobs.length ? allJobs : jobs)}
+            jobs={allJobs.length ? allJobs : jobs}
+            onCreateJob={(machine) => {
+              setFormData((prev) => ({
+                ...prev,
+                machine_id: machine.machine_id,
+                machine_name: machine.machine_name,
+              }));
+              setIsDialogOpen(true);
+            }}
             variant="compact"
             title="Üretilecek Toplam Koli"
             testId="plan-expected-koli"

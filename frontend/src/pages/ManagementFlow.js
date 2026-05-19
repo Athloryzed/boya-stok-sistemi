@@ -1496,10 +1496,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           })()}
         </div>
 
-        {/* Beklenen Üretim Özeti — Yönetim için tüm fabrika kapsamlı + tıkla → makine bazlı pop-up */}
+        {/* Beklenen Üretim Özeti — Yönetim için tüm fabrika kapsamlı + tıkla → makine bazlı pop-up + drill-down */}
         <div className="mb-4">
           <ExpectedKoliCard
             summary={expectedSummary || computeExpectedSummary(jobs)}
+            jobs={jobs}
             variant="large"
             title="Üretilecek Toplam Koli"
             subtitle="Aktif kuyruktaki tüm işler (Bekleyen + Devam Eden + Durdurulmuş) — makine kırılımı için tıkla"

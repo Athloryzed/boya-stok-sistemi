@@ -566,3 +566,30 @@ sudo systemctl reload nginx
 ### UX cue
 - Kart üzerinde "Makine Detayı →" rozeti (large variant) veya sağda chevron ikonu (compact)
 - Hover'da renk değişimi ve gölge
+
+
+## Drill-down + Plan Hızlı İş Ekleme — 19 May 2026
+
+### Eklenenler
+- Pop-up'taki makine satırları **tıklanabilir**: tıklayınca o makinenin **iş listesi drill-down** görünür.
+- Her iş satırında: durum etiketi (Çalışıyor / Bekliyor / Durduruldu), iş adı, kalan koli, ilerleme barı, "X / Y koli üretildi", renkler.
+- İşler sıralı: önce in_progress, sonra paused, sonra pending (order'a göre).
+- **← Geri** butonu ile makine listesine dön.
+
+### Plan paneli özel hızlı eylem
+- Drill-down ekranının altında **"+ Bu Makineye Yeni İş Ekle"** butonu (sadece Plan'da görünür)
+- Tıklanınca: pop-up kapanır, **Yeni İş Ekle** formu açılır, **makine alanı önceden doldurulmuş** olarak gelir.
+- Yönetim panelinde bu buton görünmez (sadece görüntüleme — `onCreateJob` prop verilmedi).
+
+### Implementation
+- `ExpectedKoliBreakdownDialog` yeni props: `jobs` (drill-down için), `onCreateJob(machine)` (Plan'da set edilir).
+- `ExpectedKoliCard` aynı props'u proxy eder.
+- `PlanFlow.js` `onCreateJob` callback'i: `setFormData({...prev, machine_id, machine_name})` + `setIsDialogOpen(true)`.
+- `allJobs` state'i (Plan zaten tutuyordu) drill-down için kullanıldı (in_progress + paused dahil).
+
+### data-testid'ler
+`breakdown-back-btn`, `breakdown-job-{job_id}`, `breakdown-create-job-btn`
+
+### Test
+- Yönetim: 40x40 ICM → 2 iş listesi (TEST_Diagnostic 70 koli, İldo 50 koli), create btn YOK ✅
+- Plan: aynı drill-down + create btn AÇIK → tıkla → Yeni İş Ekle dialogu makine önceden doldurulmuş şekilde açıldı ✅
