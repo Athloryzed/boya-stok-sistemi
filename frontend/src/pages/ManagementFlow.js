@@ -16,7 +16,7 @@ import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
-import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
+import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1496,13 +1496,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           })()}
         </div>
 
-        {/* Beklenen Üretim Özeti — Yönetim için tüm fabrika kapsamlı */}
+        {/* Beklenen Üretim Özeti — Yönetim için tüm fabrika kapsamlı + tıkla → makine bazlı pop-up */}
         <div className="mb-4">
-          <ExpectedKoliSummary
+          <ExpectedKoliCard
             summary={expectedSummary || computeExpectedSummary(jobs)}
             variant="large"
             title="Üretilecek Toplam Koli"
-            subtitle="Aktif kuyruktaki tüm işler (Bekleyen + Devam Eden + Durdurulmuş)"
+            subtitle="Aktif kuyruktaki tüm işler (Bekleyen + Devam Eden + Durdurulmuş) — makine kırılımı için tıkla"
             testId="management-expected-koli"
           />
         </div>

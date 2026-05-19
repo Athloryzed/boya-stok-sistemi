@@ -544,3 +544,25 @@ sudo certbot --expand --nginx \
   --email <email> --agree-tos -n
 sudo systemctl reload nginx
 ```
+
+
+## Makine Bazlı Kırılım Pop-up (Bonus) — 19 May 2026
+
+### Eklendi
+- `ExpectedKoliBreakdownDialog` ve `ExpectedKoliCard` bileşenleri (`ExpectedKoliSummary.js` içinde).
+- Pop-up içinde her makine için: kalan koli, iş sayısı, toplam yükteki payı (%), tamamlanma %'si, ilerleme barı, "X / Y koli üretildi" detayı.
+- Makineler kalan koli sayısına göre azalan sıralanır (en yoğun en üstte).
+- Footer: Genel ilerleme yüzdesi + tamamlanan/hedef koli.
+- Klavye erişimi: Enter/Space ile aç, X butonu veya dışına tıklayarak kapat.
+
+### Entegre edilen sayfalar
+- **Yönetim** (`ManagementFlow.js`): Large variant kart → tıkla → pop-up
+- **Plan** (`PlanFlow.js`): Compact variant kart → tıkla → pop-up
+- Depo, Operatör, Canlı Pano kartları tıklanmaz kaldı (gerek görülmedi).
+
+### data-testid'ler
+`management-expected-koli-dialog`, `plan-expected-koli-dialog`, `breakdown-row-{machine_name}`, `breakdown-close-btn`
+
+### UX cue
+- Kart üzerinde "Makine Detayı →" rozeti (large variant) veya sağda chevron ikonu (compact)
+- Hover'da renk değişimi ve gölge

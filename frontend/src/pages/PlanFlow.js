@@ -19,7 +19,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from "@dnd-kit/utilities";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
-import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
+import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -1406,9 +1406,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         </Dialog>
 
 
-        {/* Beklenen Üretim Özeti — Plan paneli */}
+        {/* Beklenen Üretim Özeti — Plan paneli, tıkla → makine bazlı pop-up */}
         <div className="mb-4 max-w-2xl">
-          <ExpectedKoliSummary
+          <ExpectedKoliCard
             summary={expectedSummary || computeExpectedSummary(jobs)}
             variant="compact"
             title="Üretilecek Toplam Koli"
