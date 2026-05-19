@@ -130,7 +130,6 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
   const [isYonetimUser, setIsYonetimUser] = useState(false);
   const [todayMenu, setTodayMenu] = useState(null);
-  const [showLegacyPanels, setShowLegacyPanels] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
@@ -494,62 +493,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         )}
 
 
-        {/* YENİ SİSTEM YÖNLENDIRME BANNER — Geçiş döneminde */}
-        <motion.a
-          href="https://yeni.bksistem.space"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.15, duration: 0.6, type: "spring", stiffness: 140 }}
-          className="w-full max-w-xl mb-6 block group"
-          data-testid="new-system-banner"
-        >
-          <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-emerald-600/40 ring-1 ring-white/20 group-hover:scale-[1.02] active:scale-[0.98] transition-transform">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600" />
-            <div className="absolute -top-16 -right-10 w-48 h-48 rounded-full bg-emerald-300/35 blur-3xl" />
-            <div className="absolute -bottom-20 -left-12 w-56 h-56 rounded-full bg-cyan-700/35 blur-3xl" />
-            <div className="relative px-5 py-5 sm:px-7 sm:py-6 text-white">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3 min-w-0">
-                  <motion.div
-                    animate={{ rotate: [0, 8, -8, 0] }}
-                    transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2 }}
-                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/95 flex items-center justify-center shadow-xl shadow-black/20 shrink-0"
-                  >
-                    <span className="text-2xl sm:text-3xl">🚀</span>
-                  </motion.div>
-                  <div className="leading-tight min-w-0">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-white text-emerald-700 text-[10px] font-black tracking-widest uppercase shadow">Yeni Sistem</span>
-                    <h3 className="text-base sm:text-lg font-heading font-black text-white mt-1 drop-shadow-md truncate">
-                      Daha Hızlı, Daha Güvenli
-                    </h3>
-                    <p className="text-[11px] sm:text-xs text-white/95 mt-0.5">
-                      Tüm panellere yeni adresimizden erişin
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 bg-white/95 text-emerald-700 px-3 py-2 rounded-xl font-bold text-sm shadow-lg group-hover:bg-white shrink-0">
-                  <span>Geç</span>
-                  <span className="text-base">→</span>
-                </div>
-              </div>
-              <div className="mt-3 px-3 py-2 rounded-xl bg-black/20 backdrop-blur-sm border border-white/10">
-                <p className="text-[11px] sm:text-xs font-mono text-white/95 text-center break-all">
-                  yeni.bksistem.space
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.a>
-
-        {/* Module cards — Geçiş döneminde gizli, "Eski Paneller" butonu ile açılır */}
-        {showLegacyPanels && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full"
-          >
+        {/* Module cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full">
           {modules.map((mod, i) => (
             <motion.div key={mod.path}
               initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
@@ -570,19 +515,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
               </div>
             </motion.div>
           ))}
-          </motion.div>
-        )}
-
-        {/* Eski paneller toggle butonu — küçük, altta */}
-        <button
-          onClick={() => setShowLegacyPanels(v => !v)}
-          data-testid="toggle-legacy-panels"
-          className={`mt-6 text-[11px] underline-offset-4 hover:underline transition-opacity ${
-            isNight ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          {showLegacyPanels ? "✕ Eski panelleri gizle" : "Eski panel girişleri (geçici)"}
-        </button>
+        </div>
       </div>
 
       {/* YONETIM HIZLI PANEL */}
