@@ -488,3 +488,59 @@ Cutover öncesi kullanıcıları yeni Hetzner sistemine (`https://yeni.bksistem.
 ### Deploy
 Kullanıcı Emergent panelinde Save → Deploy yapacak; Hetzner VPS'e dokunulmadı.
 
+
+
+## Beklenen Toplam Koli Özeti — 19 May 2026
+
+### Problem
+Yönetim, Plan, Depo ve Canlı Pano üretilmesi beklenen toplam koli sayısını net göstermiyordu. Operatör de kendi makinesinin yüklemesini panelde göremiyordu. Kullanıcı tüm bu görüşlerin aynı anda iş tamamlama ve vardiya sonu raporlarıyla **otomatik düşmesini** istedi.
+
+### Çözüm — Backend
+- **YENİ endpoint:** `GET /api/jobs/expected-summary` (auth gerekli, opsiyonel `?machine_id=` filtresi)
+  - Aktif kuyruk = `status in [pending, in_progress, paused]`
+  - Hesap: `remaining = max(0, koli_count - completed_koli)` her iş için
+  - Response: `{ total_remaining_koli, total_target_koli, total_completed_koli, total_jobs, completion_pct, by_machine: [...] }`
+- `GET /api/dashboard/live` response'una `summary.expected_summary` field'ı eklendi (paused işleri de dahil).
+- Mevcut shift onay akışı zaten `completed_koli`'yi `$inc` ile güncellediği için kalan sayı OTOMATIK düşer.
+  - Vardiya sonu rapor onayı → `completed_koli` artar → remaining düşer ✅
+  - İş `status=completed` olduğunda → kuyruktan çıkar ✅
+
+### Çözüm — Frontend (5 panel)
+- **YENİ component:** `/app/frontend/src/components/ExpectedKoliSummary.js`
+  - 3 variant: `compact`, `large`, `dark-tv`
+  - Helper: `computeExpectedSummary(jobs, machineId?)` — server endpoint erişilemezse fallback
+- **Yönetim** (`ManagementFlow.js`): large variant, üst kısımda büyük altın kart
+- **Plan** (`PlanFlow.js`): compact variant, makine grid'inin altında
+- **Depo** (`WarehouseFlow.js`): compact variant, başlığın altında
+- **Canlı Pano** (`LiveDashboard.js`): dark-tv variant, TV için optimize
+- **Operatör** (`OperatorFlow.js`): compact variant, sadece kendi makinesinin remaining koli'si
+
+### data-testid'ler
+`management-expected-koli`, `plan-expected-koli`, `warehouse-expected-koli`, `dashboard-expected-koli`, `operator-expected-koli`
+
+### Test Sonuçları (iteration_38.json)
+- Backend: 8/8 pytest passed (auth, hesap doğruluğu, by_machine, machine_id filter, dashboard/live entegrasyonu)
+- Frontend: 5/5 panel doğrulandı (DOM, sayı eşleşmesi, operatör filtresi)
+- Mevcut veri: 283 koli kalan, 7 aktif iş, %9.6 tamamlandı (30/313)
+
+### DRY Notu (gelecekte refactor)
+- `_build_expected_summary` (dashboard.py) ve `/jobs/expected-summary` (jobs.py) hesabı aynı (~30 LOC) — ileride ortak helper'a taşınabilir.
+
+---
+
+## SSL — www.bksistem.space Durumu (19 May 2026)
+
+### Tespit
+- `bksistem.space` ✅ HTTP 200, SSL OK
+- `yeni.bksistem.space` ✅ HTTP 200, SSL OK
+- `www.bksistem.space` ❌ SSL SAN listesinde yok (sertifika sadece `bksistem.space` + `yeni.bksistem.space` kapsıyor)
+- DNS `www.bksistem.space` → `178.105.135.9` ✅ doğru ayarlanmış
+
+### Çözüm (VPS'te kullanıcı tarafından çalıştırılmalı)
+```bash
+ssh user@178.105.135.9
+sudo certbot --expand --nginx \
+  -d bksistem.space -d www.bksistem.space -d yeni.bksistem.space \
+  --email <email> --agree-tos -n
+sudo systemctl reload nginx
+```
