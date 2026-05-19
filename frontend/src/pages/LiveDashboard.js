@@ -4,7 +4,9 @@ import { Monitor, Activity, Package, Users, Clock, Wrench, ChevronUp, Lock } fro
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const _isCanonical = typeof window !== "undefined" &&
+  /^(www\.|yeni\.)?bksistem\.space$/.test(window.location.hostname);
+const BACKEND_URL = _isCanonical ? window.location.origin : process.env.REACT_APP_BACKEND_URL;
 const DASHBOARD_API = `${BACKEND_URL}/api`;
 
 const LiveDashboard = () => {
