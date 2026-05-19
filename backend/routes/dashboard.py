@@ -32,6 +32,7 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
     # PERF: image_url base64 dashboard'da gerekmiyor — exclude.
     active_jobs = await db.jobs.find({"status": "in_progress"}, {"_id": 0, "image_url": 0}).to_list(50)
     pending_jobs = await db.jobs.find({"status": "pending"}, {"_id": 0, "image_url": 0}).to_list(200)
+    paused_jobs = await db.jobs.find({"status": "paused"}, {"_id": 0, "image_url": 0}).to_list(100)
 
     completed_today = await db.jobs.find(
         {"status": "completed", "completed_at": {"$gte": today_start}}, {"_id": 0, "image_url": 0}
@@ -159,9 +160,49 @@ async def get_live_dashboard(current_user: dict = Depends(get_current_user)):
             "maintenance": sum(1 for m in all_machines if m.get("status") == "maintenance"),
             "koli_today": koli_today,
             "completed_today": len(completed_today),
-            "pending_total": len(pending_jobs)
+            "pending_total": len(pending_jobs),
+            "expected_summary": _build_expected_summary(active_jobs + pending_jobs + paused_jobs)
         },
         "machines": machine_data,
         "operator_ranking": operator_ranking,
         "daily_koli": [{"date": k, "koli": v} for k, v in sorted(daily_data.items())]
+    }
+
+
+def _build_expected_summary(jobs: list) -> dict:
+    """Aktif kuyruktaki işler için beklenen koli özeti."""
+    total_target = 0
+    total_completed = 0
+    total_remaining = 0
+    by_machine = {}
+    for j in jobs:
+        target = int(j.get("koli_count", 0) or 0)
+        completed = int(j.get("completed_koli", 0) or 0)
+        remaining = max(0, target - completed)
+        total_target += target
+        total_completed += min(completed, target)
+        total_remaining += remaining
+        mid = j.get("machine_id") or ""
+        mname = j.get("machine_name") or "—"
+        if mid not in by_machine:
+            by_machine[mid] = {
+                "machine_id": mid, "machine_name": mname,
+                "remaining_koli": 0, "target_koli": 0,
+                "completed_koli": 0, "jobs_count": 0,
+            }
+        by_machine[mid]["remaining_koli"] += remaining
+        by_machine[mid]["target_koli"] += target
+        by_machine[mid]["completed_koli"] += min(completed, target)
+        by_machine[mid]["jobs_count"] += 1
+    pct = round((total_completed / total_target) * 100, 1) if total_target > 0 else 0.0
+    machines_list = sorted(by_machine.values(), key=lambda x: x["remaining_koli"], reverse=True)
+    for m in machines_list:
+        m["completion_pct"] = round((m["completed_koli"] / m["target_koli"]) * 100, 1) if m["target_koli"] > 0 else 0.0
+    return {
+        "total_remaining_koli": total_remaining,
+        "total_target_koli": total_target,
+        "total_completed_koli": total_completed,
+        "total_jobs": len(jobs),
+        "completion_pct": pct,
+        "by_machine": machines_list,
     }

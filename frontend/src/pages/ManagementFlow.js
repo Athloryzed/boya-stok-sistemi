@@ -16,6 +16,7 @@ import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
+import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -129,6 +130,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [currentShift, setCurrentShift] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [expectedSummary, setExpectedSummary] = useState(null);
   const [weeklyAnalytics, setWeeklyAnalytics] = useState(null);
   const [monthlyAnalytics, setMonthlyAnalytics] = useState(null);
   const [dailyAnalytics, setDailyAnalytics] = useState(null);
@@ -328,12 +330,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async (retryCount = 0) => {
     try {
-      const [shiftRes, machinesRes, jobsRes, shiftStatusRes, todayReportsRes] = await Promise.all([
+      const [shiftRes, machinesRes, jobsRes, shiftStatusRes, todayReportsRes, expectedRes] = await Promise.all([
         axios.get(`${API}/shifts/current`),
         axios.get(`${API}/machines`),
         axios.get(`${API}/jobs`),
         axios.get(`${API}/shifts/status`),
-        axios.get(`${API}/shift-reports?today=true`).catch(() => ({ data: [] }))
+        axios.get(`${API}/shift-reports?today=true`).catch(() => ({ data: [] })),
+        axios.get(`${API}/jobs/expected-summary`).catch(() => ({ data: null }))
       ]);
       
       setCurrentShift(shiftRes.data);
@@ -1492,6 +1495,19 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             );
           })()}
         </div>
+
+        {/* Beklenen Üretim Özeti — Yönetim için tüm fabrika kapsamlı */}
+        <div className="mb-4">
+          <ExpectedKoliSummary
+            summary={expectedSummary || computeExpectedSummary(jobs)}
+            variant="large"
+            title="Üretilecek Toplam Koli"
+            subtitle="Aktif kuyruktaki tüm işler (Bekleyen + Devam Eden + Durdurulmuş)"
+            testId="management-expected-koli"
+          />
+        </div>
+
+
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Mobile: 3-row grid layout, Desktop: horizontal scroll */}

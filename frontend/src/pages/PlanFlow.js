@@ -19,6 +19,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from "@dnd-kit/utilities";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
+import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -55,6 +56,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [userData, setUserData] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [expectedSummary, setExpectedSummary] = useState(null);
   const [allJobs, setAllJobs] = useState([]); // Tüm işler (makine durumları için)
   const [completedJobs, setCompletedJobs] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
@@ -529,6 +531,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       
       const response = await axios.get(`${API}/jobs?${params.toString()}`);
       if (Array.isArray(response.data)) setJobs(response.data);
+      // Beklenen koli özetini paralel çek (filter bağımsız, fabrika geneli)
+      try {
+        const sumRes = await axios.get(`${API}/jobs/expected-summary`);
+        if (sumRes?.data) setExpectedSummary(sumRes.data);
+      } catch (_) { /* sessiz */ }
     } catch (error) {
       if (retryCount < 3) {
         setTimeout(() => fetchJobs(retryCount + 1), 2000 * (retryCount + 1));
@@ -1397,6 +1404,18 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+
+        {/* Beklenen Üretim Özeti — Plan paneli */}
+        <div className="mb-4 max-w-2xl">
+          <ExpectedKoliSummary
+            summary={expectedSummary || computeExpectedSummary(jobs)}
+            variant="compact"
+            title="Üretilecek Toplam Koli"
+            testId="plan-expected-koli"
+          />
+        </div>
+
 
         <Tabs defaultValue="pending" className="space-y-6">
 

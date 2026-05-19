@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [selectedShipmentForLog, setSelectedShipmentForLog] = useState(null);
   const [shipmentLogForm, setShipmentLogForm] = useState({ delivered_koli: 0, partial: false });
   const [completedJobs, setCompletedJobs] = useState([]);
+  const [expectedSummary, setExpectedSummary] = useState(null);
   const [completedSearch, setCompletedSearch] = useState("");
   const [completedMachineFilter, setCompletedMachineFilter] = useState("all");
   const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
@@ -242,6 +244,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/shipments?status=preparing`),
         axios.get(`${API}/warehouse/shipment-logs`),
         axios.get(`${API}/jobs?status=completed`),
+        axios.get(`${API}/jobs/expected-summary`),
       ]);
       const safeArray = (res) =>
         res.status === "fulfilled" && Array.isArray(res.value.data) ? res.value.data : null;
@@ -250,6 +253,9 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       const s = safeArray(results[2]); if (s) setShipments(s);
       const l = safeArray(results[3]); if (l) setShipmentLogs(l);
       const c = safeArray(results[4]); if (c) setCompletedJobs(c);
+      if (results[5].status === "fulfilled" && results[5].value?.data) {
+        setExpectedSummary(results[5].value.data);
+      }
     } catch (error) {
       console.error("Data fetch error:", error);
     }
@@ -470,6 +476,18 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
             </motion.div>
           )}
         </div>
+
+        {/* Beklenen Üretim Özeti */}
+        {expectedSummary && (
+          <div className="mb-6 max-w-2xl">
+            <ExpectedKoliSummary
+              summary={expectedSummary}
+              variant="compact"
+              title="Üretilecek Toplam Koli"
+              testId="warehouse-expected-koli"
+            />
+          </div>
+        )}
 
         <Tabs defaultValue="alerts" className="space-y-6">
           {/* Mobile tabs */}

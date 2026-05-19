@@ -106,6 +106,86 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     return jobs
 
 
+@router.get("/jobs/expected-summary")
+async def get_expected_koli_summary(
+    machine_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Üretilmesi beklenen toplam koli özeti.
+
+    Aktif iş havuzu = status in [pending, in_progress, paused]
+    - total_remaining_koli: kalan koli toplamı (koli_count - completed_koli)
+    - total_target_koli: hedef koli toplamı (planlanan)
+    - total_completed_koli: şu ana kadar üretilen
+    - total_jobs: dahil edilen iş sayısı
+    - completion_pct: % tamamlanma (0-100)
+    - by_machine: makine bazlı kırılım
+    """
+    query = {"status": {"$in": ["pending", "in_progress", "paused"]}}
+    if machine_id:
+        query["machine_id"] = machine_id
+
+    projection = {
+        "_id": 0, "id": 1, "machine_id": 1, "machine_name": 1,
+        "koli_count": 1, "completed_koli": 1, "status": 1
+    }
+    jobs = await db.jobs.find(query, projection).to_list(2000)
+
+    total_target = 0
+    total_completed = 0
+    total_remaining = 0
+    by_machine = {}
+
+    for j in jobs:
+        target = int(j.get("koli_count", 0) or 0)
+        completed = int(j.get("completed_koli", 0) or 0)
+        remaining = max(0, target - completed)
+
+        total_target += target
+        total_completed += min(completed, target)
+        total_remaining += remaining
+
+        mid = j.get("machine_id") or ""
+        mname = j.get("machine_name") or "—"
+        if mid not in by_machine:
+            by_machine[mid] = {
+                "machine_id": mid,
+                "machine_name": mname,
+                "remaining_koli": 0,
+                "target_koli": 0,
+                "completed_koli": 0,
+                "jobs_count": 0,
+            }
+        by_machine[mid]["remaining_koli"] += remaining
+        by_machine[mid]["target_koli"] += target
+        by_machine[mid]["completed_koli"] += min(completed, target)
+        by_machine[mid]["jobs_count"] += 1
+
+    completion_pct = 0.0
+    if total_target > 0:
+        completion_pct = round((total_completed / total_target) * 100, 1)
+
+    machines_list = sorted(
+        by_machine.values(), key=lambda x: x["remaining_koli"], reverse=True
+    )
+    for m in machines_list:
+        if m["target_koli"] > 0:
+            m["completion_pct"] = round((m["completed_koli"] / m["target_koli"]) * 100, 1)
+        else:
+            m["completion_pct"] = 0.0
+
+    return {
+        "total_remaining_koli": total_remaining,
+        "total_target_koli": total_target,
+        "total_completed_koli": total_completed,
+        "total_jobs": len(jobs),
+        "completion_pct": completion_pct,
+        "by_machine": machines_list,
+    }
+
+
+
+
 @router.get("/jobs/{job_id}/image")
 async def get_job_image(job_id: str, current_user: dict = Depends(get_current_user)):
     """Yalnızca işin image_url'unu döndürür — liste payload'ını şişirmemek için."""

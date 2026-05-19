@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 38 — Expected Koli Summary feature: backend + frontend (all 5 panels) verified. 8/8 pytest backend tests passed. All 5 frontend panels (Management/Plan/Warehouse/Dashboard/Operator) render correct data-testid'd ExpectedKoliSummary cards with matching numbers from backend (283 koli, 7 jobs, %9.6 completion). Operator panel correctly filters to only the selected machine (40x40 ICM → 120 koli, 2 jobs, %20 completion). Dashboard /live endpoint exposes summary.expected_summary with identical shape.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_expected_koli_summary.py",
+    "/app/test_reports/pytest/iteration38_expected_koli_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "/api/jobs/expected-summary calculation logic is identical to dashboard._build_expected_summary (DRY duplication ~30 LOC). Consider extracting a shared helper in a util module to avoid drift between the two endpoints.",
+    "Active job pool query {status: {$in: [pending, in_progress, paused]}} is used in 3+ places (jobs.py expected-summary, dashboard.py 3 separate find calls). A single aggregation pipeline could replace 3 round-trips in dashboard/live for a perf win when job count grows.",
+    "computeExpectedSummary helper in ExpectedKoliSummary.js mirrors backend math verbatim — good fallback when /api/jobs/expected-summary is unavailable, but ensure both formulas stay in sync (no rounding diff: backend uses round(_,1); JS uses Math.round(_*1000)/10 — equivalent).",
+    "Operator panel relies on client-side computeExpectedSummary(jobs, machineId) rather than /api/jobs/expected-summary?machine_id=… — works correctly but doubles maintenance surface. Suggest standardizing to server endpoint.",
+    "Response shape is intentionally flat (no pagination) — by_machine could grow unbounded if many machines added. Current 8-machine setup is fine."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_expected_koli_summary.py (NEW - 8 tests)"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100% (5/5 panels)"},
+  "test_credentials": "management=buse11993, plan=emrecan/testtest12, warehouse=depo1/depo123, dashboard=buse4, operator=ali/134679 (machine: 40x40 ICM)",
+  "seed_data_creation": "None — read-only tests against existing 7 active jobs (283 koli remaining).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 38 expected-koli summary feature fully verified end-to-end. Backend endpoint GET /api/jobs/expected-summary (+ optional machine_id filter) and dashboard.summary.expected_summary both pass 8/8 pytest. All 5 frontend panels render correct data-testid={management|plan|warehouse|dashboard|operator}-expected-koli cards with matching numbers. Operator panel uses client-side computeExpectedSummary(jobs, machineId) — correctly machine-scoped. Flow-test (partial shift report → remaining decrease) was NOT executed in this iteration because it requires destructive state mutation; if needed in future, use shift_end_report POST against an active in_progress job and re-check summary.",
+  "rca of the issue": "N/A — feature working as designed."
+}

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Monitor, Activity, Package, Users, Clock, Wrench, ChevronUp, Lock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
+import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 
 const _isCanonical = typeof window !== "undefined" &&
   /^(www\.|yeni\.)?bksistem\.space$/.test(window.location.hostname);
@@ -141,6 +142,19 @@ const LiveDashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* Beklenen Üretim Özeti */}
+      {data.summary?.expected_summary && (
+        <div className="mb-4">
+          <ExpectedKoliSummary
+            summary={data.summary.expected_summary}
+            variant="dark-tv"
+            title="Üretilecek Toplam Koli"
+            testId="dashboard-expected-koli"
+          />
+        </div>
+      )}
+
 
       {/* Özet Kartları */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="dashboard-summary">

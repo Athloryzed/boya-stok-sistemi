@@ -15,6 +15,7 @@ import { requestNotificationPermission, showNotification, registerServiceWorker 
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
+import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
 
 // Geçen gün sayısını hesapla
 const calculateDaysElapsed = (dateString) => {
@@ -1181,8 +1182,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                   <Button variant="outline" className="border-warning text-warning hover:bg-warning/10">
                     <Package className="mr-2 h-4 w-4" /> Malzeme Talep Et
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-surface border-border">
+                </DialogTrigger><DialogContent className="bg-surface border-border">
                   <DialogHeader>
                     <DialogTitle className="text-2xl font-heading">Malzeme Talebi</DialogTitle>
                   </DialogHeader>
@@ -1211,6 +1211,16 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 </DialogContent>
               </Dialog>
             </div>
+
+            {/* Bu Makinedeki Üretilecek Toplam Koli */}
+            <ExpectedKoliSummary
+              summary={computeExpectedSummary(jobs, selectedMachine.id)}
+              variant="compact"
+              title={`${selectedMachine.name} — Üretilecek Toplam Koli`}
+              testId="operator-expected-koli"
+            />
+
+
 
             {/* Aktif İş */}
             {currentJobOnMachine && (
