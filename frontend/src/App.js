@@ -112,11 +112,29 @@ export const IS_SLOW_NETWORK = detectSlowNetwork();
 // Mobil/yavaş ağlarda 35s, masaüstü hızlı ağda 20s
 axios.defaults.timeout = IS_SLOW_NETWORK ? 35000 : 20000;
 
-// Axios interceptor - JWT token'ı her isteğe ekle
+// Axios interceptor - JWT token'ı her isteğe ekle + Idempotency-Key (POST/PUT/PATCH/DELETE)
+// Idempotency-Key, çift-submit/network retry koruması için kullanılır. Backend middleware'i
+// aynı key ile gelen istekleri 1 saat boyunca tek bir response ile döndürür.
+const _genUUID = () => {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback (eski tarayıcılar)
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+};
+
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("auth_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // Sadece mutasyon metodlarına Idempotency-Key ekle (GET'lere gerek yok)
+  const method = (config.method || "").toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (!config.headers["Idempotency-Key"] && !config.headers["idempotency-key"]) {
+      config.headers["Idempotency-Key"] = _genUUID();
+    }
   }
   return config;
 });

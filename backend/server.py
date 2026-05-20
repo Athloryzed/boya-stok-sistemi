@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
+from middleware.idempotency import IdempotencyMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -325,6 +326,10 @@ async def ensure_indexes():
         await db.bobin_movements.create_index([("movement_type", ASCENDING), ("created_at", DESCENDING)])
         await db.bobin_movements.create_index([("created_at", DESCENDING)])
 
+        # idempotency_keys — TTL index: 1 saat sonra otomatik silinir
+        # Bu, ağ retry'ları ve hızlı çift-tıklama için yeterli pencere
+        await db.idempotency_keys.create_index("created_at", expireAfterSeconds=3600)
+
         logger.info("MongoDB indexes ensured for all collections")
     except Exception as e:
         logger.error(f"Index creation error: {e}")
@@ -333,6 +338,12 @@ async def ensure_indexes():
 # JSON yanıtları gzip ile sıkıştırır (>500B). Mobil bağlantılarda yanıt boyutunu %70-85 düşürür.
 # Bu sadece taşıma katmanını değiştirir — saklanan veride sıfır değişiklik.
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
+
+# ==================== Idempotency Middleware (Çift-Submit Koruması) ====================
+# POST/PUT/PATCH/DELETE isteklerinde "Idempotency-Key" header varsa, response 1 saat cache'lenir
+# ve aynı key ile tekrar gelen istek cached yanıtı döndürür. Frontend axios interceptor
+# otomatik UUID üretir. Auth ve upload endpoint'leri hariç tutulur.
+app.add_middleware(IdempotencyMiddleware)
 
 # ==================== CORS Middleware ====================
 

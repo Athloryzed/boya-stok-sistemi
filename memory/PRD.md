@@ -626,3 +626,18 @@ Bu değişiklik **geriye dönük tam uyumlu**: hiçbir mevcut handler güncellen
 
 - Yönetim: 40x40 ICM → 2 iş listesi (TEST_Diagnostic 70 koli, İldo 50 koli), create btn YOK ✅
 - Plan: aynı drill-down + create btn AÇIK → tıkla → Yeni İş Ekle dialogu makine önceden doldurulmuş şekilde açıldı ✅
+
+
+## Idempotency-Key Backend + Frontend — 20 May 2026
+
+### Eklenenler
+- **Backend middleware** `/app/backend/middleware/idempotency.py`:
+  - POST/PUT/PATCH/DELETE isteklerinde `Idempotency-Key` header varsa MongoDB cache'ine bakar.
+  - Tamamlanmış kayıt varsa → cached response döner (`X-Idempotent-Replay: true`).
+  - "processing" durumu → 429 (paralel istek).
+  - 5xx response → cache silinir (retry mümkün).
+- **MongoDB TTL index** `idempotency_keys.created_at expireAfterSeconds=3600` — 1 saat sonra otomatik silinir.
+- **Frontend axios interceptor** (`App.js`): Her POST/PUT/PATCH/DELETE'e `crypto.randomUUID()` ile key atar.
+
+### Test
+- 5 aynı key ile POST → backend'de **1 iş** oluştu (4 tanesi cached replay) ✅
