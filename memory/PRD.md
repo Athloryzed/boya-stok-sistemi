@@ -641,3 +641,41 @@ Bu değişiklik **geriye dönük tam uyumlu**: hiçbir mevcut handler güncellen
 
 ### Test
 - 5 aynı key ile POST → backend'de **1 iş** oluştu (4 tanesi cached replay) ✅
+
+## Apple Push Notification (PWA Web Push) — 20 May 2026
+
+### Eklenenler
+- **iOS PWA tespit utility** `/app/frontend/src/utils/iosPwa.js`:
+  - `isIOS()`, `isStandalone()`, `getIOSVersion()`, `iosSupportsWebPush()`, `iosNotificationStatus()`
+  - Statüler: `not_ios` | `needs_install` | `version_old` | `ready`
+- **IOSInstallGuide bileşeni** `/app/frontend/src/components/IOSInstallGuide.js`:
+  - 3 adımlı kurulum kılavuzu modal'ı (Paylaş → Ana Ekrana Ekle → Bildirim Aç)
+  - iOS 16.4 altı için ayrı uyarı ekranı (sürüm güncellemesi tavsiyesi)
+  - "Neden bu adımlar?" gizlilik açıklaması
+- **NotificationButton ortak bileşeni** `/app/frontend/src/components/NotificationButton.js`:
+  - Tüm panellerde tek satır JSX ile entegre edilir
+  - Bildirim izni durumuna göre 3 ikon: BellRing (kapalı/sarı), Bell (açık/yeşil), BellOff (reddedildi/kırmızı)
+  - Tıklayınca iOS Safari (not standalone) ise IOSInstallGuide; aksi halde normal Firebase FCM akışı
+  - `onTokenReceived(token)` callback ile her panel kendi user_type'ını backend'e gönderir
+- **Entegrasyon:**
+  - PlanFlow: `plan-notif-btn` (user_type=plan)
+  - ManagementFlow: `mgmt-notif-btn` (user_type=manager)
+  - WarehouseFlow: `warehouse-notif-btn` (user_type=warehouse)
+  - OperatorFlow: mevcut `enable-notifications` butonu güncellendi (iOS-aware handler + IOSInstallGuide entegrasyonu)
+
+### iOS Akış (kullanıcı deneyimi)
+1. Apple kullanıcı bksistem.space'i Safari'de açar
+2. Sağ üstteki sarı 🔔 butona tıklar → **3 adımlı rehber modal açılır**
+3. Adım 1-2: Paylaş → Ana Ekrana Ekle (PWA standalone yüklenir)
+4. Adım 3: Yeni simgeyi açar → **Bildirim Aç** butonu artık çalışır (iOS 16.4+ Web Push)
+5. İzin verildi → Firebase FCM token alınır → backend'e kaydedilir → push notification çalışır
+
+### Test
+- iPhone Safari simülasyonu (UA spoof + standalone=false) → buton görünür ✅
+- Buton tıklanınca IOS guide açıldı ✅
+- 3 adım, "Neden bu adımlar?" bilgisi, "Anladım" CTA görüntülendi ✅
+
+### Sınırlamalar (kullanıcıya bildirildi)
+- **iOS 16.4 altı** (~%5 saha): Web Push tamamen desteklenmiyor; Apple Developer + native iOS app ile çözülebilir (~$99/yıl + macOS gerekli — şu an mevcut değil)
+- Apple, native iOS app olmadan Safari standalone-dışı Web Push'a izin vermiyor — bu Apple kısıtı, atlatılamıyor
+

@@ -17,6 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
+import NotificationButton from "../components/NotificationButton";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1295,6 +1296,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </Button>
             {/* VERİ SENKRONU rozeti */}
             <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
+            <NotificationButton
+              testId="mgmt-notif-btn"
+              onTokenReceived={async (token) => {
+                await axios.post(`${API}/notifications/register-token`, {
+                  token, user_type: "manager", user_id: managerId, platform: "web"
+                });
+              }}
+            />
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>

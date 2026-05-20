@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
+import NotificationButton from "../components/NotificationButton";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -1306,6 +1307,14 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               </div>
             </DialogContent>
           </Dialog>
+            <NotificationButton
+              testId="plan-notif-btn"
+              onTokenReceived={async (token) => {
+                await axios.post(`${API}/notifications/register-token`, {
+                  token, user_type: "plan", user_id: userData?.id, platform: "web"
+                });
+              }}
+            />
             <Button
               variant="outline"
               size="icon"

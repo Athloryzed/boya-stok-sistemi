@@ -13,6 +13,8 @@ import axios from "axios";
 import { API } from "../App";
 import { requestNotificationPermission, showNotification, registerServiceWorker } from "../utils/notifications";
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
+import { iosNotificationStatus } from "../utils/iosPwa";
+import IOSInstallGuide from "../components/IOSInstallGuide";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -223,9 +225,19 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   }, []);
 
+  const [iosGuideOpen, setIosGuideOpen] = useState(false);
+  const [iosGuideStatus, setIosGuideStatus] = useState("needs_install");
+
   const handleEnableNotifications = async () => {
     if (!('Notification' in window)) {
       toast.error("Bu tarayıcı bildirimleri desteklemiyor");
+      return;
+    }
+    // iOS özel akış: Safari'den girilirse ana ekrana eklenmesi gerekir (iOS 16.4+)
+    const iosStatus = iosNotificationStatus();
+    if (iosStatus === "needs_install" || iosStatus === "version_old") {
+      setIosGuideStatus(iosStatus);
+      setIosGuideOpen(true);
       return;
     }
     const granted = await requestNotificationPermission();
@@ -1810,6 +1822,13 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             <p className="text-xs text-text-secondary text-center">Kamerayı iş kartındaki QR koda tutun</p>
           </DialogContent>
         </Dialog>
+
+        {/* iOS PWA Bildirim Kurulum Kılavuzu */}
+        <IOSInstallGuide
+          open={iosGuideOpen}
+          onClose={() => setIosGuideOpen(false)}
+          status={iosGuideStatus}
+        />
       </div>
     </div>
   );

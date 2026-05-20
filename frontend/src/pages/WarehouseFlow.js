@@ -14,6 +14,7 @@ import axios from "axios";
 import { API } from "../App";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
+import NotificationButton from "../components/NotificationButton";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -458,6 +459,14 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
               {wsConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               {wsConnected ? "Canlı" : "Bağlantı Yok"}
             </div>
+            <NotificationButton
+              testId="warehouse-notif-btn"
+              onTokenReceived={async (token) => {
+                await axios.post(`${API}/notifications/register-token`, {
+                  token, user_type: "warehouse", user_id: userData?.id || "depo", platform: "web"
+                });
+              }}
+            />
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
