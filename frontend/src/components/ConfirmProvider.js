@@ -107,15 +107,19 @@ const ConfirmDialog = ({ state, onConfirm, onCancel }) => {
   return (
     <div
       data-testid="confirm-dialog"
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={onCancel}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        // Sadece backdrop'a doğrudan tıklamada kapat — buton/dialog içine tıklayınca kapanmasın
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200 dark:border-zinc-700 flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200 dark:border-zinc-700 flex flex-col pointer-events-auto"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-5 pt-5 pb-3 flex items-start gap-3">
@@ -136,7 +140,8 @@ const ConfirmDialog = ({ state, onConfirm, onCancel }) => {
             )}
           </div>
           <button
-            onClick={onCancel}
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCancel(); }}
             data-testid="confirm-close-btn"
             className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
             aria-label="Kapat"
@@ -148,17 +153,19 @@ const ConfirmDialog = ({ state, onConfirm, onCancel }) => {
         {/* Footer / Actions */}
         <div className="px-5 pb-5 pt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
           <button
-            onClick={onCancel}
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onCancel(); }}
             data-testid="confirm-cancel-btn"
-            className="px-4 py-2.5 rounded-lg font-semibold text-sm border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            className="px-4 py-2.5 rounded-lg font-semibold text-sm border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer select-none"
           >
             {state.cancelText}
           </button>
           <button
-            onClick={onConfirm}
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onConfirm(); }}
             data-testid="confirm-ok-btn"
             autoFocus
-            className={`px-4 py-2.5 rounded-lg font-bold text-sm transition-colors ${meta.confirmBg}`}
+            className={`px-4 py-2.5 rounded-lg font-bold text-sm transition-colors cursor-pointer select-none ${meta.confirmBg}`}
           >
             {state.confirmText}
           </button>
