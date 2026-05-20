@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 
@@ -34,13 +35,56 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+/**
+ * Çift-tıklama / çift-submit koruması:
+ * - onClick handler bir Promise döndürürse (async fonksiyon), buton otomatik disable olur + spinner gösterir
+ * - Promise tamamlanana kadar yeni tıklama görmezden gelinir (useRef guard — React render'dan bağımsız)
+ * - Sync handler'lar (örn. setOpen(true)) etkilenmez, önceki davranış aynen korunur
+ * - asChild=true durumunda spinner gösterilmez (Slot çocuk düzenini bozmamak için), ama re-entry guard yine aktif
+ */
+const Button = React.forwardRef(({ className, variant, size, asChild = false, onClick, disabled, children, ...props }, ref) => {
+  const [pending, setPending] = React.useState(false);
+  const inFlightRef = React.useRef(false);
+
+  const handleClick = React.useCallback((e) => {
+    if (!onClick) return;
+    // Re-entry guard: süregelen async işlem varken yeni tıklamayı yut
+    if (inFlightRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    let result;
+    try {
+      result = onClick(e);
+    } catch (err) {
+      throw err;
+    }
+    // Promise döndüyse pending state'i aç
+    if (result && typeof result.then === "function") {
+      inFlightRef.current = true;
+      setPending(true);
+      Promise.resolve(result).finally(() => {
+        inFlightRef.current = false;
+        setPending(false);
+      });
+    }
+  }, [onClick]);
+
   const Comp = asChild ? Slot : "button"
   return (
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
-      {...props} />
+      onClick={onClick ? handleClick : undefined}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      {...props}>
+      {pending && !asChild && (
+        <Loader2 className="animate-spin h-4 w-4" />
+      )}
+      {children}
+    </Comp>
   );
 })
 Button.displayName = "Button"

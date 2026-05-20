@@ -591,5 +591,38 @@ sudo systemctl reload nginx
 `breakdown-back-btn`, `breakdown-job-{job_id}`, `breakdown-create-job-btn`
 
 ### Test
+
+## Global Çift-Tıklama / Çift-Submit Koruması — 20 May 2026
+
+### Problem
+Kullanıcılar bir butona bastıklarında sunucudan cevap gelene kadar (~1-2 saniye) **hiçbir görsel geri bildirim** alamadığı için bastıklarından emin olamayıp 2-5 kez tıklıyordu. Sonuç: aynı iş, aynı bobin, aynı sevkiyat birkaç kez ekleniyordu.
+
+### Çözüm
+**Global Shadcn `Button` bileşeni** (`/app/frontend/src/components/ui/button.jsx`) genişletildi. Tüm app'teki butonlar otomatik korunur — caller'lara hiçbir değişiklik gerekmedi.
+
+#### Davranış
+1. `onClick` handler bir **Promise döndürürse** (async fonksiyon), buton otomatik:
+   - `disabled` durumuna geçer (CSS `pointer-events: none; opacity: 50%`)
+   - İçeriğinin başına **`Loader2` dönen spinner** eklenir
+   - `aria-busy="true"` eklenir
+2. **`useRef` guard** — React render'dan bağımsız olarak süregelen Promise varken yeni tıklama hemen yutulur (preventDefault + stopPropagation).
+3. Promise tamamlanınca buton eski haline döner.
+4. **Sync onClick handlers** (örn. `setOpen(true)`, navigation) etkilenmez — Promise döndürmediği için pending state hiç açılmaz.
+5. `asChild=true` durumunda spinner enjekte edilmez (Slot çocuk düzenini bozmamak için), sadece re-entry guard çalışır.
+
+### Etkilenen Akışlar (otomatik korumalı)
+- 🛡️ Bobin: Ekle / Sat / Makineye Ver / Düzenle / Sil / Excel Export
+- 🛡️ Plan: Yeni İş / Düzenle / Sil / Hızlı Aktar / Sevkiyat / Mesaj
+- 🛡️ Operatör: İş Tamamla / Durdur / Başlat / Malzeme Talep / Vardiya Raporu
+- 🛡️ Depo: Talep Onayla / Sevkiyat Logu / Palet İşlemleri
+- 🛡️ Yönetim: Rapor Onayla / Kullanıcı Oluştur / Mesaj / Bobin Yeniden Hesapla / Menü Kaydet
+
+### Test (smoke)
+- Plan'da "Yeni İş Ekle" butonuna art arda **5 hızlı tıklama** → backend'e sadece **1 POST** gitti, **1 iş** oluştu ✅
+- Kullanıcı tıklarken anında spinner görüyor → "bastığımdan emin değilim" hissi ortadan kalktı
+
+### Bonus
+Bu değişiklik **geriye dönük tam uyumlu**: hiçbir mevcut handler güncellenmedi, yeni butonlar otomatik korunuyor.
+
 - Yönetim: 40x40 ICM → 2 iş listesi (TEST_Diagnostic 70 koli, İldo 50 koli), create btn YOK ✅
 - Plan: aynı drill-down + create btn AÇIK → tıkla → Yeni İş Ekle dialogu makine önceden doldurulmuş şekilde açıldı ✅
