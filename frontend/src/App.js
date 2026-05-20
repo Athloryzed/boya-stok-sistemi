@@ -5,6 +5,7 @@ import "@/App.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ConnectionBanner from "./components/ConnectionBanner";
 import { Toaster } from "./components/ui/sonner";
+import { ConfirmProvider } from "./components/ConfirmProvider";
 
 // ResizeObserver loop uyarısını bastır.
 // Bu, Radix Select / Dialog gibi bileşenlerin layout sırasında
@@ -272,28 +273,30 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className={`App ${theme}`}>
-        <ConnectionBanner />
-        <BrowserRouter>
-          <VisitorTracker />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} />} />
-              <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-              <Route path="/dashboard" element={<LiveDashboard />} />
-              <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
-      </div>
+      <ConfirmProvider>
+        <div className={`App ${theme}`}>
+          <ConnectionBanner />
+          <BrowserRouter>
+            <VisitorTracker />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} />} />
+                <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/dashboard" element={<LiveDashboard />} />
+                <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
+        </div>
+      </ConfirmProvider>
     </ErrorBoundary>
   );
 }

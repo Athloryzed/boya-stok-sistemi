@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
 const LAYER_OPTIONS = [
@@ -29,6 +30,7 @@ const EXTRA_DESTINATIONS = [
 
 const BobinFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -258,6 +260,15 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const handleToMachine = async () => {
     if (!machineForm.machine_id || !machineForm.weight_kg) { toast.error("Makine ve agirlik (kg) secin"); return; }
     const machine = allMachineOptions.find(m => m.id === machineForm.machine_id);
+    const ok = await confirm({
+      title: "Bobini Makineye Ver",
+      description: `${parseFloat(machineForm.weight_kg)} kg bobin "${machine?.name || ''}" makinesine düşülecek.`,
+      details: selectedBobin ? `Bobin: ${selectedBobin.brand || ''} ${selectedBobin.width_cm || ''}cm · Mevcut stok: ${selectedBobin.total_weight_kg || 0} kg` : null,
+      confirmText: "Evet, Makineye Ver",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
     try {
       const res = await axios.post(`${API}/bobins/${selectedBobin.id}/to-machine`, {
         weight_kg: parseFloat(machineForm.weight_kg),
@@ -271,6 +282,15 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   const handleSale = async () => {
     if (!saleForm.customer_name || !saleForm.weight_kg) { toast.error("Musteri ve agirlik (kg) zorunlu"); return; }
+    const ok = await confirm({
+      title: "Bobin Satışını Onayla",
+      description: `${parseFloat(saleForm.weight_kg)} kg bobin "${saleForm.customer_name}" müşterisine satılacak ve stoktan düşülecek.`,
+      details: selectedBobin ? `Bobin: ${selectedBobin.brand || ''} ${selectedBobin.width_cm || ''}cm · Mevcut stok: ${selectedBobin.total_weight_kg || 0} kg` : null,
+      confirmText: "Evet, Satışı Kaydet",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
     try {
       const res = await axios.post(`${API}/bobins/${selectedBobin.id}/sale`, {
         weight_kg: parseFloat(saleForm.weight_kg),

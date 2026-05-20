@@ -18,6 +18,7 @@ import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
+import { useConfirm } from "../components/ConfirmProvider";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -100,6 +101,7 @@ const SyncBadge = ({ lastSyncAt, syncing, onRefresh }) => {
 
 const ManagementFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [managerId, setManagerId] = useState(null);
@@ -262,7 +264,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     } catch (e) { toast.error("İndirilemedi"); }
   };
   const deleteBackup = async (filename) => {
-    if (!window.confirm(`${filename} silinsin mi?`)) return;
+    const ok = await confirm({
+      title: "Yedeği Sil",
+      description: `"${filename}" yedek dosyası kalıcı olarak silinecek.`,
+      confirmText: "Evet, Sil",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API}/admin/backups/${filename}`);
       toast.success("Silindi");
@@ -273,7 +282,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // Bobin Stok Yeniden Hesapla
   const [recalcRunning, setRecalcRunning] = useState(false);
   const runBobinRecalc = async () => {
-    if (!window.confirm("Tüm bobinlerin gerçek stoğu, hareket geçmişinden (alış − makineye − satış) yeniden hesaplanacak. Devam edilsin mi?")) return;
+    const ok = await confirm({
+      title: "Bobin Stoklarını Yeniden Hesapla",
+      description: "Tüm bobinlerin gerçek stoğu, hareket geçmişinden (alış − makineye − satış) yeniden hesaplanacak.",
+      details: "Bu işlem birkaç saniye sürebilir. Mevcut bobin sayıları düzeltilirse görüntülenir.",
+      confirmText: "Evet, Hesapla",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
     setRecalcRunning(true);
     try {
       const r = await axios.post(`${API}/admin/bobins/recalculate`);
@@ -713,7 +730,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleMenuDelete = async () => {
-    if (!window.confirm(`${menuDate} menüsü silinecek. Emin misiniz?`)) return;
+    const ok = await confirm({
+      title: "Menüyü Sil",
+      description: `${menuDate} tarihli menü silinecek.`,
+      confirmText: "Evet, Sil",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API}/menu/${menuDate}`);
       toast.success("Menü silindi");
@@ -764,7 +788,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleDeleteUser = async (userId, username) => {
-    if (!window.confirm(`"${username}" kullanıcısını silmek istediğinize emin misiniz?`)) return;
+    const ok = await confirm({
+      title: "Kullanıcıyı Sil",
+      description: `"${username}" kullanıcısı kalıcı olarak silinecek. Bu işlem GERİ ALINAMAZ.`,
+      details: "Silinen kullanıcı artık sisteme giriş yapamayacak. Geçmiş işlem kayıtları korunur.",
+      confirmText: "Evet, Sil",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API}/users/${userId}`);
       toast.success("Kullanıcı silindi");
@@ -868,6 +900,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Rapor onaylama
   const handleApproveReport = async (reportId) => {
+    const report = todayShiftReports.find(r => r.id === reportId);
+    const ok = await confirm({
+      title: "Vardiya Raporunu Onayla",
+      description: `"${report?.machine_name || 'Bu'}" raporu onaylanacak ve üretim sayıları kalıcı olarak kaydedilecek.`,
+      details: report ? `İş: ${report.job_name || '—'} · Hedef: ${report.target_koli || 0} koli · Üretilen: ${report.produced_koli || 0} koli` : null,
+      confirmText: "Evet, Onayla",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
     try {
       await axios.post(`${API}/shifts/approve-report/${reportId}`);
       toast.success("Rapor onaylandı!");
@@ -879,6 +921,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Tümünü onayla ve vardiyayı bitir
   const handleApproveAllAndEndShift = async () => {
+    const ok = await confirm({
+      title: "Tüm Raporları Onayla ve Vardiyayı Bitir",
+      description: "Bekleyen tüm vardiya raporları onaylanacak ve vardiya kapatılacak. Bu işlem GERİ ALINAMAZ.",
+      details: `Onaylanacak rapor sayısı: ${todayShiftReports?.filter(r => !r.is_approved).length || 0}`,
+      confirmText: "Evet, Onayla & Bitir",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await axios.post(`${API}/shifts/approve-all`);
       toast.success("Tüm raporlar onaylandı ve vardiya bitirildi!");
@@ -1037,7 +1088,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!window.confirm("Bu işi silmek istediğinizden emin misiniz?")) return;
+    const job = jobs.find(j => j.id === jobId);
+    const ok = await confirm({
+      title: "İşi Sil",
+      description: `"${job?.name || 'Bu iş'}" kalıcı olarak silinecek. Bu işlem GERİ ALINAMAZ.`,
+      details: job ? `Makine: ${job.machine_name || '—'} · ${job.koli_count || 0} koli · Durum: ${job.status}` : null,
+      confirmText: "Evet, Sil",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await axios.delete(`${API}/jobs/${jobId}?deleted_by=Yonetim`);
       toast.success("İş silindi!");

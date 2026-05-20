@@ -15,6 +15,7 @@ import { requestNotificationPermission, showNotification, registerServiceWorker 
 import { requestNotificationPermission as requestFCMPermission, onMessageListener } from "../firebase";
 import { iosNotificationStatus } from "../utils/iosPwa";
 import IOSInstallGuide from "../components/IOSInstallGuide";
+import { useConfirm } from "../components/ConfirmProvider";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -40,6 +41,7 @@ const getDaysElapsedColor = (days) => {
 
 const OperatorFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [qrStartJobId, setQrStartJobId] = useState(null);
@@ -772,7 +774,20 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     toast.success("Çıkış yapıldı");
   };
 
-  const handleStartJob = async (job) => {
+  const handleStartJob = async (jobOrId) => {
+    // Geriye dönük uyumluluk: bazı yerler id, bazıları job objesi gönderir
+    const job = typeof jobOrId === "string"
+      ? jobs.find(j => j.id === jobOrId) || { id: jobOrId, name: "İş" }
+      : jobOrId;
+    const confirmed = await confirm({
+      title: "İşi Başlat",
+      description: `"${job?.name || 'İş'}" makinede başlatılacak. Devam edelim mi?`,
+      details: job?.koli_count ? `Hedef: ${job.koli_count} koli · Renkler: ${job.colors || '—'}` : null,
+      confirmText: "Evet, Başlat",
+      cancelText: "Vazgeç",
+      variant: "default",
+    });
+    if (!confirmed) return;
     // Optimistic update
     setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "in_progress", operator_name: operatorName, started_at: new Date().toISOString() } : j));
     try {
@@ -785,6 +800,15 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleCompleteJob = async (job) => {
+    const confirmed = await confirm({
+      title: "İşi Tamamla",
+      description: `"${job?.name || 'İş'}" tamamlandı olarak işaretlenecek. Bu işlem geri alınamaz.`,
+      details: job ? `Hedef: ${job.koli_count || 0} koli · Üretilen: ${job.completed_koli || 0} koli` : null,
+      confirmText: "Evet, Tamamla",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!confirmed) return;
     // Optimistic update
     setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "completed", completed_at: new Date().toISOString() } : j));
     try {

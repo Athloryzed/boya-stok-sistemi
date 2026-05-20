@@ -679,3 +679,26 @@ Bu değişiklik **geriye dönük tam uyumlu**: hiçbir mevcut handler güncellen
 - **iOS 16.4 altı** (~%5 saha): Web Push tamamen desteklenmiyor; Apple Developer + native iOS app ile çözülebilir (~$99/yıl + macOS gerekli — şu an mevcut değil)
 - Apple, native iOS app olmadan Safari standalone-dışı Web Push'a izin vermiyor — bu Apple kısıtı, atlatılamıyor
 
+
+
+## Global Onay (Confirmation) Sistemi — 20 May 2026
+
+### Çözüm
+**ConfirmProvider + useConfirm hook** — App.js root'una sarıldı, tüm panellerden tek satırla çağrılır.
+- 3 variant: default (mavi), warning (amber), destructive (kırmızı)
+- Klavye: Enter=onay, Esc=iptal, dış tıklama=iptal
+- Detay kutusu (opsiyonel context bilgisi)
+
+### Onaya Bağlanan Aksiyonlar (panel başına)
+- **Operator**: İşi Tamamla (warning), İşi Başlat (default)
+- **Plan**: İşi Sil (destructive), Hızlı Aktar (warning), Geçmiş İş Sil (destructive)
+- **Yönetim**: Rapor Onayla (warning), Tümünü Onayla & Vardiya Bitir (destructive), Kullanıcı Sil, İş Sil, Menü Sil, Yedek Sil, Bobin Yeniden Hesapla
+- **Depo**: Talep Tamamla (warning)
+- **Bobin**: Satış (warning), Makineye Ver (warning)
+
+### Eski `window.confirm` temizlendi
+Tüm yerli browser dialog'lar yeni hook'a yükseltildi → tutarlı UI + dark mode.
+
+### Test
+- Bobin Yeniden Hesapla → modal açıldı, başlık + açıklama + detay + 2 buton göründü ✅
+- Vazgeç → dialog kapandı, işlem yapılmadı ✅

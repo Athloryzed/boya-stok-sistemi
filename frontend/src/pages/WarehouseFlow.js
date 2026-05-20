@@ -15,9 +15,11 @@ import { API } from "../App";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
+import { useConfirm } from "../components/ConfirmProvider";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -263,6 +265,16 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleCompleteRequest = async (requestId) => {
+    const req = warehouseRequests.find(r => r.id === requestId);
+    const ok = await confirm({
+      title: "Talebi Tamamla",
+      description: `"${req?.material_name || req?.title || 'Bu talep'}" tamamlandı olarak işaretlenecek.`,
+      details: req ? `İsteyen: ${req.requested_by || '—'} · Miktar: ${req.quantity || '—'}` : null,
+      confirmText: "Evet, Tamamla",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
     try {
       await axios.put(`${API}/warehouse-requests/${requestId}/complete`);
       toast.success("Talep tamamlandı!");

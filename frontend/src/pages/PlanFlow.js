@@ -21,6 +21,7 @@ import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
+import { useConfirm } from "../components/ConfirmProvider";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -50,6 +51,7 @@ const SortableJobItem = ({ id, children }) => {
 
 const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -750,7 +752,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!window.confirm("Bu işi silmek istediğinizden emin misiniz?")) return;
+    const job = jobs.find(j => j.id === jobId) || allJobs.find(j => j.id === jobId);
+    const confirmed = await confirm({
+      title: "İşi Sil",
+      description: `"${job?.name || 'Bu iş'}" kalıcı olarak silinecek. Bu işlem GERİ ALINAMAZ.`,
+      details: job ? `Makine: ${job.machine_name || '—'} · ${job.koli_count || 0} koli · Durum: ${job.status}` : null,
+      confirmText: "Evet, Sil",
+      cancelText: "Vazgeç",
+      variant: "destructive",
+    });
+    if (!confirmed) return;
     try {
       await axios.delete(`${API}/jobs/${jobId}?deleted_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`);
       toast.success("İş silindi!");
@@ -775,6 +786,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       toast.error("Lütfen hedef makine seçin");
       return;
     }
+    const targetMachine = machines.find(m => m.id === quickTransferMachineId);
+    const confirmed = await confirm({
+      title: "İşi Başka Makineye Aktar",
+      description: `"${quickTransferJob?.name || 'İş'}" — "${quickTransferJob?.machine_name || '—'}" makinesinden "${targetMachine?.name || '—'}" makinesine aktarılacak.`,
+      details: quickTransferProducedKoli ? `Mevcut makinede üretilen: ${quickTransferProducedKoli} koli (kayıt edilecek)` : "Şu ana kadar üretilmiş koli sayısını girdiniz mi?",
+      confirmText: "Evet, Aktar",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!confirmed) return;
     setQuickTransferLoading(true);
     try {
       const response = await axios.post(`${API}/jobs/${quickTransferJob.id}/quick-transfer`, {
@@ -2175,14 +2196,21 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                             variant="outline"
                             size="sm"
                             onClick={async () => {
-                              if (window.confirm("Bu işi silmek istediğinizden emin misiniz?")) {
-                                try {
-                                  await axios.delete(`${API}/jobs/${job.id}?deleted_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`);
-                                  toast.success("İş silindi!");
-                                  fetchCompletedJobs();
-                                } catch (error) {
-                                  toast.error("İş silinemedi");
-                                }
+                              const ok = await confirm({
+                                title: "Tamamlanmış İşi Sil",
+                                description: `"${job.name}" tamamlanmış işi silinecek. Bu işlem GERİ ALINAMAZ.`,
+                                details: `Makine: ${job.machine_name || '—'} · ${job.koli_count || 0} koli`,
+                                confirmText: "Evet, Sil",
+                                cancelText: "Vazgeç",
+                                variant: "destructive",
+                              });
+                              if (!ok) return;
+                              try {
+                                await axios.delete(`${API}/jobs/${job.id}?deleted_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`);
+                                toast.success("İş silindi!");
+                                fetchCompletedJobs();
+                              } catch (error) {
+                                toast.error("İş silinemedi");
                               }
                             }}
                             className="border-error text-error hover:bg-error hover:text-white"
