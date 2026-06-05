@@ -157,19 +157,55 @@ async def get_daily_detail_analytics(date: str):
     operator_breakdown = {}
     job_details = []
 
+    # PERF: Bugün tamamlanan işler için önceki kısmi raporları batch çek
+    # (operatör değişimi yapıldıysa, eski operatöre kredi ayrılması için)
+    completed_job_ids = [j["id"] for j in completed_jobs]
+    same_day_partials_by_job = {}
+    if completed_job_ids:
+        same_day_partials = await db.shift_end_reports.find(
+            {
+                "job_id": {"$in": completed_job_ids},
+                "created_at": {"$gte": start_of_day.isoformat(), "$lt": end_of_day.isoformat()},
+                "operator_name": {"$nin": [None, ""]},
+            },
+            {"_id": 0, "job_id": 1, "operator_name": 1, "produced_koli": 1}
+        ).to_list(1000)
+        for r in same_day_partials:
+            jid = r.get("job_id")
+            if not jid:
+                continue
+            same_day_partials_by_job.setdefault(jid, []).append({
+                "operator_name": r.get("operator_name", ""),
+                "produced_koli": int(r.get("produced_koli", 0) or 0),
+            })
+
     for job in completed_jobs:
         machine = job.get("machine_name", "Bilinmiyor")
-        operator = job.get("operator_name", "Bilinmiyor")
+        operator = job.get("operator_name", "Bilinmiyor")  # nihai operatör
         koli = job.get("completed_koli", job.get("koli_count", 0))
 
         if machine not in machine_breakdown:
             machine_breakdown[machine] = 0
         machine_breakdown[machine] += koli
 
+        # Operatör değişimi yapıldıysa: eski operatörlere kendi kredilerini ver,
+        # nihai operatöre sadece kalan farkı yaz
+        partials = same_day_partials_by_job.get(job["id"], [])
+        partial_sum = 0
+        for p in partials:
+            op_old = p["operator_name"]
+            credit = max(0, p["produced_koli"])
+            if op_old and op_old != operator and credit > 0:
+                if op_old not in operator_breakdown:
+                    operator_breakdown[op_old] = {"jobs_count": 0, "total_koli": 0}
+                operator_breakdown[op_old]["total_koli"] += credit
+                partial_sum += credit
+
+        final_credit = max(0, koli - partial_sum)
         if operator not in operator_breakdown:
             operator_breakdown[operator] = {"jobs_count": 0, "total_koli": 0}
         operator_breakdown[operator]["jobs_count"] += 1
-        operator_breakdown[operator]["total_koli"] += koli
+        operator_breakdown[operator]["total_koli"] += final_credit
 
         duration_min = None
         if job.get("started_at") and job.get("completed_at"):
@@ -204,6 +240,13 @@ async def get_daily_detail_analytics(date: str):
             if machine:
                 machine_breakdown[machine] = machine_breakdown.get(machine, 0) + produced
                 partial_koli += produced
+            # Operator credit: partial üretim → operatör analizine de ekle
+            #   (operatör değişimi sonrası eski operatörün katkısı bu yolla görünür)
+            op_name = report.get("operator_name") or ""
+            if op_name:
+                if op_name not in operator_breakdown:
+                    operator_breakdown[op_name] = {"jobs_count": 0, "total_koli": 0}
+                operator_breakdown[op_name]["total_koli"] += produced
 
     total_defect_kg = 0.0
     defect_by_machine = {}

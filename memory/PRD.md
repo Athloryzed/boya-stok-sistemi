@@ -32,6 +32,13 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 - Live stats (audit chain, unack alarms, lockouts, failed attempts) refresh every 30s.
 - Inline actions: "Audit Doğrula" (chain check), "Kilidi Kaldır" per lockout, "Onayla" per alarm.
 
+### Operator Change on Active Jobs (Feb 5, 2026)
+- New endpoint `PUT /api/jobs/{job_id}/change-operator` — Yönetim panelinden aktif/duraklatılmış işin operatörü değiştirilebilir.
+- Modal: önceki operatörün ürettiği koli (opsiyonel) + kayıtlı operatör seçimi + serbest yazım + not.
+- Önceki operatöre kısmi üretim kredisi `shift_end_reports` koleksiyonuna `is_partial:true` ile yazılır → Analiz panelindeki `operator_breakdown` doğru kişiye yansır.
+- `transfer_history` array'i job belgesinde her değişimi kaydeder (audit + alarm + websocket broadcast).
+- Analytics fix: `routes/analytics.py` `daily-detail` artık aynı gün tamamlanan işlerde eski operatör/yeni operatör payını ayırıyor (çift kredi sorunu engellendi).
+
 ### New Indexes
 - `login_attempts.created_at` (TTL 24h), `(account, created_at)`
 - `account_lockouts.locked_until`

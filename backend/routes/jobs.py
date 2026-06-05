@@ -508,6 +508,137 @@ async def reorder_job(job_id: str, data: dict = Body(...), current_user: dict = 
     return {"success": True}
 
 
+@router.put("/jobs/{job_id}/change-operator")
+async def change_job_operator(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Aktif (devam eden veya durdurulmuş) bir işin operatörünü Yönetim panelinden değiştir.
+
+    Body:
+      - new_operator_name (str, required): Yeni operatör adı (kayıtlı veya serbest metin).
+      - prev_produced_koli (int, optional): Önceki operatörün şu ana kadar ürettiği koli sayısı.
+        Verilirse, önceki operatöre kısmi üretim kredisi (shift_end_reports) kaydedilir
+        → Analiz panelinde önceki operatörün katkısı görünür.
+      - note (str, optional): Değişiklik nedeni.
+
+    Etki:
+      - job.operator_name güncellenir
+      - job.completed_koli, prev_produced_koli verildiyse o değere set edilir
+      - shift_end_reports koleksiyonuna prev_op için partial kayıt yazılır (varsa)
+      - Audit log + alarm
+    """
+    new_op = (data.get("new_operator_name") or "").strip()
+    if not new_op or len(new_op) < 2:
+        raise HTTPException(status_code=400, detail="Geçerli bir operatör adı gerekli")
+    prev_produced = data.get("prev_produced_koli")
+    note = (data.get("note") or "").strip()
+
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    if job.get("status") not in ("in_progress", "paused"):
+        raise HTTPException(status_code=400, detail="Sadece aktif veya duraklatılmış işlerin operatörü değiştirilebilir")
+
+    prev_op = job.get("operator_name", "") or "—"
+    if new_op == prev_op:
+        raise HTTPException(status_code=400, detail="Yeni operatör eskisi ile aynı")
+
+    update_set = {
+        "operator_name": new_op,
+        "last_operator_change_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Kısmi üretim verilmişse: önceki operatöre kredi yaz + completed_koli güncelle
+    partial_record_id = None
+    if prev_produced is not None:
+        try:
+            prev_produced = int(prev_produced)
+        except Exception:
+            raise HTTPException(status_code=400, detail="prev_produced_koli sayı olmalı")
+        if prev_produced < 0:
+            raise HTTPException(status_code=400, detail="prev_produced_koli negatif olamaz")
+        target = int(job.get("koli_count", 0) or 0)
+        if prev_produced > target:
+            raise HTTPException(status_code=400, detail=f"prev_produced_koli ({prev_produced}) hedef koli sayısından büyük olamaz ({target})")
+
+        # Aktif vardiyayı bul
+        active_shift = await db.shifts.find_one({"status": "active"}, sort=[("started_at", -1)])
+
+        partial_record_id = str(uuid.uuid4())
+        partial_doc = {
+            "id": partial_record_id,
+            "shift_id": (active_shift or {}).get("id", ""),
+            "machine_id": job.get("machine_id", ""),
+            "machine_name": job.get("machine_name", ""),
+            "job_id": job_id,
+            "job_name": job.get("name", ""),
+            "operator_name": prev_op,  # Eski operatör kredisi
+            "target_koli": target,
+            "produced_koli": prev_produced,
+            "remaining_koli": max(0, target - prev_produced),
+            "defect_kg": 0.0,
+            "is_partial": True,
+            "transferred_to": new_op,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.shift_end_reports.insert_one(partial_doc)
+        update_set["completed_koli"] = prev_produced
+
+        # transfer_history (mevcut alanı kullan)
+        transfer_entry = {
+            "type": "operator_change",
+            "from_operator": prev_op,
+            "to_operator": new_op,
+            "produced_at_transfer": prev_produced,
+            "note": note,
+            "by": current_user.get("display_name", "Yonetim"),
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.jobs.update_one({"id": job_id}, {"$push": {"transfer_history": transfer_entry}})
+
+    await db.jobs.update_one({"id": job_id}, {"$set": update_set})
+
+    actor = current_user.get("display_name", "Yonetim")
+    details = f"{prev_op} → {new_op}"
+    if prev_produced is not None:
+        details += f" | önceki üretim: {prev_produced} koli"
+    if note:
+        details += f" | not: {note}"
+    await log_audit(actor, "change_operator", "job", job.get("name", ""), details)
+
+    try:
+        from services.alarms import raise_alarm
+        await raise_alarm(
+            "job_operator_change", actor=actor, entity_type="job",
+            entity_id=job_id, severity="info",
+            metadata={
+                "from": prev_op, "to": new_op,
+                "produced_credit": prev_produced,
+                "job_name": job.get("name", ""),
+                "machine": job.get("machine_name", ""),
+            }
+        )
+    except Exception:
+        pass
+
+    await ws_manager.broadcast({
+        "type": "job_operator_changed",
+        "data": {
+            "job_id": job_id, "job_name": job.get("name", ""),
+            "from_operator": prev_op, "to_operator": new_op,
+            "produced_credit": prev_produced,
+        }
+    })
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "from_operator": prev_op,
+        "to_operator": new_op,
+        "produced_credit": prev_produced,
+        "partial_record_id": partial_record_id,
+    }
+
+
 @router.post("/jobs/{job_id}/quick-transfer")
 async def quick_transfer_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Pending veya paused işi başka bir makineye aktar."""

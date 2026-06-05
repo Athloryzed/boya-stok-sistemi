@@ -183,6 +183,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [operatorsList, setOperatorsList] = useState([]);
   const [selectedOperatorName, setSelectedOperatorName] = useState("");
   const [customOperatorName, setCustomOperatorName] = useState("");
+
+  // Operatör değiştirme (aktif iş)
+  const [isChangeOperatorOpen, setIsChangeOperatorOpen] = useState(false);
+  const [changeOperatorJob, setChangeOperatorJob] = useState(null);
+  const [changeOpSelected, setChangeOpSelected] = useState("");
+  const [changeOpCustom, setChangeOpCustom] = useState("");
+  const [changeOpProduced, setChangeOpProduced] = useState("");
+  const [changeOpNote, setChangeOpNote] = useState("");
+  const [changeOpSubmitting, setChangeOpSubmitting] = useState(false);
   const [defectWeeklyAnalytics, setDefectWeeklyAnalytics] = useState(null);
   const [defectMonthlyAnalytics, setDefectMonthlyAnalytics] = useState(null);
   const [defectDailyAnalytics, setDefectDailyAnalytics] = useState(null);
@@ -1140,6 +1149,62 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  // === OPERATÖR DEĞİŞTİRME (aktif iş için) ===
+  const openChangeOperatorDialog = async (job) => {
+    try {
+      const res = await axios.get(`${API}/operators/list`);
+      setOperatorsList(res.data || []);
+    } catch {
+      setOperatorsList([]);
+    }
+    setChangeOperatorJob(job);
+    setChangeOpSelected("");
+    setChangeOpCustom("");
+    setChangeOpProduced("");
+    setChangeOpNote("");
+    setIsChangeOperatorOpen(true);
+  };
+
+  const confirmChangeOperator = async () => {
+    const job = changeOperatorJob;
+    if (!job) return;
+    const newOp = (changeOpCustom.trim() || changeOpSelected || "").trim();
+    if (!newOp) {
+      toast.error("Yeni operatörü seçin veya yazın");
+      return;
+    }
+    if (newOp === (job.operator_name || "")) {
+      toast.error("Yeni operatör eskisi ile aynı olamaz");
+      return;
+    }
+    const payload = { new_operator_name: newOp };
+    if (changeOpProduced !== "" && changeOpProduced !== null) {
+      const n = parseInt(changeOpProduced, 10);
+      if (Number.isNaN(n) || n < 0) {
+        toast.error("Üretilen koli geçerli bir sayı olmalı");
+        return;
+      }
+      payload.prev_produced_koli = n;
+    }
+    if (changeOpNote.trim()) payload.note = changeOpNote.trim();
+
+    setChangeOpSubmitting(true);
+    try {
+      await axios.put(`${API}/jobs/${job.id}/change-operator`, payload);
+      toast.success(`Operatör güncellendi: ${job.operator_name || "-"} → ${newOp}`);
+      setIsChangeOperatorOpen(false);
+      // Optimistic update
+      setJobs(prev => prev.map(j => j.id === job.id
+        ? { ...j, operator_name: newOp, ...(payload.prev_produced_koli !== undefined ? { completed_koli: payload.prev_produced_koli } : {}) }
+        : j));
+      fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Operatör değiştirilemedi");
+    } finally {
+      setChangeOpSubmitting(false);
+    }
+  };
+
   const handleCompleteJob = async (job) => {
     // Optimistic update
     setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "completed", completed_at: new Date().toISOString() } : j));
@@ -1788,6 +1853,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 className="border-warning text-warning hover:bg-warning/20 text-xs"
                               >
                                 <Pause className="h-3 w-3 mr-1" /> Durdur
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`change-operator-${currentJob.id}`}
+                                onClick={(e) => { e.stopPropagation(); openChangeOperatorDialog(currentJob); }}
+                                className="border-purple-500 text-purple-500 hover:bg-purple-500/20 text-xs"
+                                title="İşin operatörünü değiştir"
+                              >
+                                <Users className="h-3 w-3 mr-1" /> Operatör
                               </Button>
                             </div>
                           </div>
@@ -3531,6 +3606,121 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     className="flex-1 bg-warning text-black hover:bg-warning/90"
                   >
                     Durdur
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Operatör Değiştirme Dialog (Aktif/Durdurulmuş iş için) */}
+        <Dialog open={isChangeOperatorOpen} onOpenChange={setIsChangeOperatorOpen}>
+          <DialogContent className="bg-surface border-border max-w-md" data-testid="change-operator-dialog">
+            <DialogHeader>
+              <DialogTitle className="text-text-primary flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-400" />
+                Operatör Değiştir
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary text-xs">
+                Operatör vardiyada değiştiyse buradan kayıt geçişi yapabilirsiniz. Önceki üretim
+                Analiz panelinde eski operatöre kredi olarak işlenir.
+              </DialogDescription>
+            </DialogHeader>
+            {changeOperatorJob && (
+              <div className="space-y-4">
+                <div className="p-3 bg-background border border-border rounded-md text-xs space-y-1">
+                  <p><span className="text-text-secondary">İş: </span><span className="text-text-primary font-semibold">{changeOperatorJob.name}</span></p>
+                  <p><span className="text-text-secondary">Makine: </span><span className="text-text-primary">{changeOperatorJob.machine_name}</span></p>
+                  <p><span className="text-text-secondary">Mevcut operatör: </span><span className="text-text-primary font-mono">{changeOperatorJob.operator_name || "—"}</span></p>
+                  <p><span className="text-text-secondary">Hedef: </span><span className="text-text-primary">{changeOperatorJob.koli_count} koli</span></p>
+                </div>
+
+                <div>
+                  <Label className="text-text-primary text-sm">
+                    Önceki operatörün ürettiği koli <span className="text-text-secondary text-xs">(opsiyonel)</span>
+                  </Label>
+                  <Input
+                    data-testid="change-operator-produced-input"
+                    type="number"
+                    inputMode="numeric"
+                    value={changeOpProduced}
+                    onChange={(e) => setChangeOpProduced(e.target.value)}
+                    placeholder={`0 - ${changeOperatorJob.koli_count}`}
+                    min="0"
+                    max={changeOperatorJob.koli_count}
+                    className="bg-background border-border mt-1"
+                  />
+                  <p className="text-[10px] text-text-secondary mt-1">
+                    Girilirse, bu miktar eski operatöre kredi yazılır ve işin tamamlanan kolisi bu değere set edilir.
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="text-text-primary text-sm">Yeni operatör (kayıtlı)</Label>
+                  <Select value={changeOpSelected} onValueChange={setChangeOpSelected}>
+                    <SelectTrigger data-testid="change-operator-select" className="bg-background border-border text-text-primary mt-1">
+                      <SelectValue placeholder="Listeden seçin..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface border-border">
+                      {operatorsList.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-text-secondary">Liste boş</div>
+                      )}
+                      {operatorsList.map((op) => (
+                        <SelectItem key={op.id || op.name} value={op.name || op.display_name || op.username}>
+                          {op.name || op.display_name || op.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2 text-text-secondary text-[10px] font-mono uppercase tracking-wider">
+                  <div className="flex-1 h-px bg-border" />
+                  veya
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                <div>
+                  <Label className="text-text-primary text-sm">Yeni operatör (serbest yazım)</Label>
+                  <Input
+                    data-testid="change-operator-custom-input"
+                    value={changeOpCustom}
+                    onChange={(e) => setChangeOpCustom(e.target.value)}
+                    placeholder="Listede olmayan biri ise adını yazın"
+                    className="bg-background border-border mt-1"
+                  />
+                  <p className="text-[10px] text-text-secondary mt-1">
+                    Serbest yazım kayıtlı seçimden öncelikli olur.
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="text-text-primary text-sm">Not <span className="text-text-secondary text-xs">(opsiyonel)</span></Label>
+                  <Input
+                    data-testid="change-operator-note-input"
+                    value={changeOpNote}
+                    onChange={(e) => setChangeOpNote(e.target.value)}
+                    placeholder="Vardiya değişimi, izin, vs."
+                    className="bg-background border-border mt-1"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsChangeOperatorOpen(false)}
+                    className="flex-1"
+                    data-testid="change-operator-cancel"
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    data-testid="change-operator-confirm"
+                    onClick={confirmChangeOperator}
+                    disabled={changeOpSubmitting || (!changeOpCustom.trim() && !changeOpSelected)}
+                    className="flex-1 bg-purple-500 text-white hover:bg-purple-500/90"
+                  >
+                    {changeOpSubmitting ? "Kaydediliyor..." : "Operatörü Değiştir"}
                   </Button>
                 </div>
               </div>
