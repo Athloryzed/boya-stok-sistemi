@@ -189,11 +189,17 @@ class User(BaseModel):
     role: str  # Birincil rol (geriye dönük uyumluluk için)
     roles: List[str] = Field(default_factory=list)  # Tüm atanmış roller (multi-role desteği)
     display_name: Optional[str] = None
-    phone: Optional[str] = None
+    phone: Optional[str] = None  # PII — şifreli saklanır (enc:v1:...)
     is_active: bool = True
     current_location_lat: Optional[float] = None
     current_location_lng: Optional[float] = None
     location_updated_at: Optional[str] = None
+    # ─── 2FA Altyapı (henüz zorunlu DEĞİL, sadece DB alanları) ───
+    totp_enabled: bool = False
+    totp_secret: Optional[str] = None  # base32 secret (enable edilince üretilir)
+    totp_verified_at: Optional[str] = None
+    backup_codes: List[str] = Field(default_factory=list)  # hashed
+    last_login_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

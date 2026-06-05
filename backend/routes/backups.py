@@ -137,7 +137,8 @@ def _python_bson_backup(out_path: Path) -> dict:
 
 
 def run_backup_sync(upload_drive: bool = True) -> dict:
-    """Senkron yedekleme — mongodump varsa onu, yoksa Python fallback'ı kullanır."""
+    """Senkron yedekleme — mongodump varsa onu, yoksa Python fallback'ı kullanır.
+    Sonrasında AES-256-GCM ile şifrele + SHA-256 checksum + dry-run doğrulama."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"backup_{ts}.archive.gz"
     out_path = BACKUP_DIR / filename
@@ -168,27 +169,61 @@ def run_backup_sync(upload_drive: bool = True) -> dict:
         return {"success": False, "error": str(e)}
 
     size_mb = round(out_path.stat().st_size / 1024 / 1024, 2) if out_path.exists() else 0
+
+    # ──── AES-256-GCM Şifrele ────
+    try:
+        from services.backup_crypto import encrypt_file, write_checksum, restore_dryrun
+        enc_path = encrypt_file(out_path)
+        # Düz metni sil — yalnızca .enc kalır
+        out_path.unlink(missing_ok=True)
+        checksum_path = write_checksum(enc_path)
+        dryrun = restore_dryrun(enc_path)
+        enc_size_mb = round(enc_path.stat().st_size / 1024 / 1024, 2)
+        encrypted_filename = enc_path.name
+    except Exception as e:
+        logger.exception("Backup şifreleme/checksum hatası")
+        return {"success": False, "error": f"Şifreleme hatası: {e}"}
+
     _cleanup_old()
 
-    response = {"success": True, "filename": filename, "size_mb": size_mb,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "method": "python_bson" if used_fallback else "mongodump"}
+    response = {
+        "success": True,
+        "filename": encrypted_filename,
+        "size_mb": enc_size_mb,
+        "plain_size_mb": size_mb,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "method": "python_bson" if used_fallback else "mongodump",
+        "encrypted": True,
+        "checksum_file": checksum_path.name if checksum_path else None,
+        "dryrun": dryrun,
+    }
 
     if upload_drive:
         # Sadece Drive yapılandırması varsa upload denenir
         svc, _ = _drive_service()
         if svc is not None:
-            drive_res = upload_to_drive(out_path)
+            drive_res = upload_to_drive(enc_path)
             response["drive"] = drive_res
 
     return response
 
 
 def _cleanup_old():
-    files = sorted(BACKUP_DIR.glob("backup_*.archive.gz"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = sorted(
+        list(BACKUP_DIR.glob("backup_*.archive.gz.enc")) +
+        list(BACKUP_DIR.glob("backup_*.archive.gz")),
+        key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    # Eşleşen .sha256 dosyalarını da takip et
+    keep = set(files[:RETENTION_DAYS])
     for old in files[RETENTION_DAYS:]:
+        if old in keep:
+            continue
         try:
             old.unlink()
+            ck = old.with_suffix(old.suffix + ".sha256")
+            if ck.exists():
+                ck.unlink()
             logger.info(f"Silindi: {old.name}")
         except Exception as e:
             logger.warning(f"Silinemedi {old}: {e}")
@@ -214,13 +249,23 @@ def start_scheduler():
 async def list_backups(current_user: dict = Depends(get_current_user)):
     _require_yonetim(current_user)
     files = []
-    for p in sorted(BACKUP_DIR.glob("backup_*.archive.gz"), key=lambda p: p.stat().st_mtime, reverse=True):
-        st = p.stat()
-        files.append({
-            "filename": p.name,
-            "size_mb": round(st.st_size / 1024 / 1024, 2),
-            "created_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
-        })
+    # Hem yeni (.enc) hem eski (.gz) dosyaları listele
+    patterns = ["backup_*.archive.gz.enc", "backup_*.archive.gz"]
+    seen = set()
+    for pat in patterns:
+        for p in sorted(BACKUP_DIR.glob(pat), key=lambda p: p.stat().st_mtime, reverse=True):
+            if p.name in seen:
+                continue
+            seen.add(p.name)
+            st = p.stat()
+            files.append({
+                "filename": p.name,
+                "size_mb": round(st.st_size / 1024 / 1024, 2),
+                "created_at": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
+                "encrypted": p.name.endswith(".enc"),
+                "has_checksum": (BACKUP_DIR / (p.name + ".sha256")).exists(),
+            })
+    files.sort(key=lambda x: x["created_at"], reverse=True)
     next_run = None
     if _scheduler:
         job = _scheduler.get_job("nightly_backup")
@@ -269,7 +314,37 @@ async def download_backup(filename: str, current_user: dict = Depends(get_curren
     path = BACKUP_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="Yedek bulunamadı")
-    return FileResponse(path, filename=filename, media_type="application/gzip")
+    media = "application/octet-stream" if filename.endswith(".enc") else "application/gzip"
+    return FileResponse(path, filename=filename, media_type=media)
+
+
+@router.post("/admin/backups/verify/{filename}")
+async def verify_backup(filename: str, current_user: dict = Depends(get_current_user)):
+    """Restore dry-run + checksum doğrula (Madde 11)."""
+    _require_yonetim(current_user)
+    if "/" in filename or ".." in filename or not filename.startswith("backup_"):
+        raise HTTPException(status_code=400, detail="Geçersiz dosya adı")
+    path = BACKUP_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Yedek bulunamadı")
+    result = {"filename": filename}
+    # Checksum kontrolü
+    ck_path = path.with_suffix(path.suffix + ".sha256")
+    try:
+        from services.backup_crypto import verify_checksum, restore_dryrun
+        if ck_path.exists():
+            ok, actual = verify_checksum(path, ck_path)
+            result["checksum_ok"] = ok
+            result["checksum_actual"] = actual
+        else:
+            result["checksum_ok"] = None
+        if filename.endswith(".enc"):
+            result["dryrun"] = restore_dryrun(path)
+        else:
+            result["dryrun"] = {"success": True, "note": "şifresiz dosya, dryrun atlandı"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return result
 
 
 @router.delete("/admin/backups/{filename}")
@@ -281,6 +356,10 @@ async def delete_backup(filename: str, current_user: dict = Depends(get_current_
     if not path.exists():
         raise HTTPException(status_code=404, detail="Yedek bulunamadı")
     path.unlink()
+    # Eşleşen checksum dosyasını da sil
+    ck = path.with_suffix(path.suffix + ".sha256")
+    if ck.exists():
+        ck.unlink()
     return {"success": True}
 
 

@@ -5,7 +5,10 @@ from slowapi.util import get_remote_address
 from rate_limit_utils import get_real_client_ip
 
 from database import db
-from auth import get_current_user, create_token, DASHBOARD_PASSWORD
+from auth import get_current_user, create_token, create_token_pair, DASHBOARD_PASSWORD
+from services.account_lockout import assert_not_locked, record_failure, record_success, is_locked
+from services.alarms import raise_alarm
+from services.validators import PasswordRequest
 
 router = APIRouter()
 limiter = Limiter(key_func=get_real_client_ip)
@@ -13,13 +16,21 @@ limiter = Limiter(key_func=get_real_client_ip)
 
 @router.post("/dashboard/login")
 @limiter.limit("60/minute")
-async def dashboard_login(request: Request, data: dict = Body(...)):
+async def dashboard_login(request: Request, data: PasswordRequest = Body(...)):
     """Dashboard girisi - sifre dogrulama"""
-    password = data.get("password", "")
-    if password != DASHBOARD_PASSWORD:
+    await assert_not_locked("__dashboard__")
+    ip = get_real_client_ip(request) if hasattr(request, "client") else ""
+    if data.password != DASHBOARD_PASSWORD:
+        await record_failure("__dashboard__", ip=ip, reason="invalid_password")
+        locked, _ = await is_locked("__dashboard__")
+        if locked:
+            await raise_alarm("auth_failed_5x", actor="__dashboard__",
+                              entity_type="dashboard_login", severity="critical",
+                              metadata={"ip": ip})
         raise HTTPException(status_code=401, detail="Yanlis sifre")
-    token = create_token("dashboard", "dashboard", "dashboard", "Dashboard")
-    return {"success": True, "token": token}
+    await record_success("__dashboard__")
+    pair = create_token_pair("dashboard", "dashboard", "dashboard", "Dashboard")
+    return {"success": True, **pair}
 
 
 @router.get("/dashboard/live")

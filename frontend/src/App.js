@@ -140,6 +140,42 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// ─── JWT Refresh Token Yenileme ───
+// Access token 30 dakika kısa ömürlüdür. 401 alındığında refresh token ile
+// yeni bir access token almayı dener; başarısız olursa kullanıcıyı login'e atar.
+// Eşzamanlı 401'lerde çoklu refresh çağrısı önlemek için promise paylaşılır.
+let _refreshPromise = null;
+async function _tryRefreshAccessToken() {
+  if (_refreshPromise) return _refreshPromise;
+  const rt = localStorage.getItem("refresh_token");
+  if (!rt) return null;
+  _refreshPromise = (async () => {
+    try {
+      const resp = await axios.post(`${API}/auth/refresh`, { refresh_token: rt }, {
+        // Bu istek interceptor 401 yakalama döngüsüne girmesin
+        __skipAuthRefresh: true,
+        headers: { "Content-Type": "application/json" },
+      });
+      if (resp?.data?.token) {
+        localStorage.setItem("auth_token", resp.data.token);
+        if (resp.data.refresh_token) {
+          localStorage.setItem("refresh_token", resp.data.refresh_token);
+        }
+        return resp.data.token;
+      }
+      return null;
+    } catch (e) {
+      // Refresh de başarısız — temizle
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("refresh_token");
+      return null;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+  return _refreshPromise;
+}
+
 // 401 hatası alınca token temizle + Otomatik RETRY (mobile blokaj/timeout için)
 axios.interceptors.response.use(
   (response) => {
@@ -148,16 +184,46 @@ axios.interceptors.response.use(
       window.__apiOnline = true;
       window.dispatchEvent(new CustomEvent("api-online"));
     }
+    // Login yanıtlarından refresh_token'ı otomatik kaydet (URL desenine bakar)
+    try {
+      const url = response?.config?.url || "";
+      const data = response?.data;
+      const isLoginish = /\/(login|auth\/refresh)$/.test(url) ||
+                         /\/(users|management|dashboard|drivers)\/login$/.test(url);
+      if (isLoginish && data && typeof data === "object") {
+        if (data.token) localStorage.setItem("auth_token", data.token);
+        if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      }
+    } catch (e) {
+      // sessiz
+    }
     return response;
   },
   async (error) => {
-    if (error.response?.status === 401 && !error.config.url?.includes("/login")) {
+    const cfg = error.config || {};
+
+    // 401 → önce refresh token ile yeni access almayı dene (tek seferlik)
+    if (
+      error.response?.status === 401 &&
+      !cfg.url?.includes("/login") &&
+      !cfg.url?.includes("/auth/refresh") &&
+      !cfg.__skipAuthRefresh &&
+      !cfg.__authRetried
+    ) {
+      const newToken = await _tryRefreshAccessToken();
+      if (newToken) {
+        cfg.__authRetried = true;
+        cfg.headers = cfg.headers || {};
+        cfg.headers.Authorization = `Bearer ${newToken}`;
+        return axios(cfg);
+      }
+      // Refresh başarısız → token'ları temizle
       localStorage.removeItem("auth_token");
+      localStorage.removeItem("refresh_token");
       return Promise.reject(error);
     }
 
     // Network hatası / timeout retry — mobil ISP blokajına karşı dayanıklılık
-    const cfg = error.config || {};
     const isNetworkError =
       !error.response ||
       error.code === "ECONNABORTED" ||

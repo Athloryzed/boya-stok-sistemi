@@ -7,7 +7,11 @@ from rate_limit_utils import get_real_client_ip
 
 from database import db
 from models import Vehicle, Shipment, Driver
-from auth import get_current_user, hash_password, verify_password, create_token
+from auth import get_current_user, hash_password, verify_password, create_token, create_token_pair
+from services.account_lockout import assert_not_locked, record_failure, record_success, is_locked
+from services.alarms import raise_alarm
+from services.crypto_utils import encrypt_pii, decrypt_pii
+from services.validators import DriverLoginRequest, CreateDriverRequest
 
 router = APIRouter()
 limiter = Limiter(key_func=get_real_client_ip)
@@ -139,33 +143,62 @@ async def delete_shipment(shipment_id: str, current_user: dict = Depends(get_cur
 # ==================== ŞOFÖR YÖNETİMİ ====================
 
 @router.post("/drivers", response_model=Driver)
-async def create_driver(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    driver = Driver(name=data.get("name"), password=hash_password(data.get("password")), phone=data.get("phone"))
+async def create_driver(data: CreateDriverRequest = Body(...), current_user: dict = Depends(get_current_user)):
+    driver = Driver(
+        name=data.name,
+        password=hash_password(data.password),
+        phone=encrypt_pii(data.phone or ""),
+    )
     doc = driver.model_dump()
-    await db.drivers.insert_one(doc)
+    await db.drivers.insert_one(dict(doc))
+    actor = current_user.get("display_name", "Yonetim")
+    await raise_alarm("driver_create", actor=actor, entity_type="driver",
+                      entity_id=driver.id, severity="info",
+                      metadata={"name": data.name})
     doc.pop("password", None)
+    if "phone" in doc:
+        doc["phone"] = decrypt_pii(doc.get("phone"))
     return doc
 
 
 @router.get("/drivers")
 async def get_drivers(current_user: dict = Depends(get_current_user)):
     drivers = await db.drivers.find({"is_active": True}, {"_id": 0, "password": 0}).to_list(100)
+    for d in drivers:
+        if "phone" in d:
+            d["phone"] = decrypt_pii(d.get("phone"))
     return drivers
 
 
 @router.post("/drivers/login")
 @limiter.limit("120/minute")
-async def driver_login(request: Request, data: dict = Body(...)):
-    name = data.get("name")
-    password = data.get("password")
+async def driver_login(request: Request, data: DriverLoginRequest = Body(...)):
+    name = data.name
+    password = data.password
+    lockout_key = f"driver:{name}"
+    await assert_not_locked(lockout_key)
+    ip = get_real_client_ip(request) if hasattr(request, "client") else ""
+
     driver = await db.drivers.find_one(
         {"name": name, "is_active": True}, {"_id": 0}
     )
-    if not driver or not verify_password(password, driver.get("password", "")):
+    if not driver:
+        await record_failure(lockout_key, ip=ip, reason="user_not_found")
         raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
-    token = create_token(driver.get("id", ""), name, "sofor", name)
+    if not verify_password(password, driver.get("password", "")):
+        await record_failure(lockout_key, ip=ip, reason="invalid_password")
+        locked, _ = await is_locked(lockout_key)
+        if locked:
+            await raise_alarm("auth_failed_5x", actor=name, entity_type="driver",
+                              entity_id=driver.get("id", ""), severity="critical",
+                              metadata={"ip": ip})
+        raise HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+    await record_success(lockout_key)
+    pair = create_token_pair(driver.get("id", ""), name, "sofor", name)
     driver.pop("password", None)
-    return {**driver, "token": token}
+    if "phone" in driver:
+        driver["phone"] = decrypt_pii(driver.get("phone"))
+    return {**driver, **pair}
 
 
 @router.put("/drivers/{driver_id}/location")

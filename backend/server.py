@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from middleware.idempotency import IdempotencyMiddleware
+from middleware.security_headers import SecurityHeadersMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -52,6 +53,8 @@ from routes.menu import router as menu_router
 from routes.brand_stock import router as brand_stock_router
 from routes.koli_stock import router as koli_stock_router
 from routes.backups import router as backups_router, start_scheduler as start_backup_scheduler
+from routes.auth_refresh import router as auth_refresh_router
+from routes.security_admin import router as security_admin_router
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -103,6 +106,8 @@ api_router.include_router(menu_router)
 api_router.include_router(brand_stock_router)
 api_router.include_router(koli_stock_router)
 api_router.include_router(backups_router)
+api_router.include_router(auth_refresh_router)
+api_router.include_router(security_admin_router)
 
 
 @app.on_event("startup")
@@ -330,9 +335,68 @@ async def ensure_indexes():
         # Bu, ağ retry'ları ve hızlı çift-tıklama için yeterli pencere
         await db.idempotency_keys.create_index("created_at", expireAfterSeconds=3600)
 
+        # ─── Güvenlik Sertleştirme İndeksleri ───
+        # login_attempts: 24 saat sonra otomatik temizlensin (raporlama dışı)
+        await db.login_attempts.create_index("created_at", expireAfterSeconds=86400)
+        await db.login_attempts.create_index([("account", ASCENDING), ("created_at", DESCENDING)])
+
+        # account_lockouts: süresi dolan kilitler request anında temizlenir (TTL gerekmez)
+        await db.account_lockouts.create_index("locked_until")
+
+        # audit_logs: hash chain için created_at sıralı, ayrıca prev_hash arama için
+        await db.audit_logs.create_index([("created_at", ASCENDING)])
+
+        # audit_alarms: tarih ve onay durumu
+        await db.audit_alarms.create_index([("created_at", DESCENDING)])
+        await db.audit_alarms.create_index([("acknowledged", ASCENDING), ("severity", ASCENDING)])
+
+        # revoked_tokens: refresh token blacklist — expires_at ile TTL
+        await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
+
         logger.info("MongoDB indexes ensured for all collections")
     except Exception as e:
         logger.error(f"Index creation error: {e}")
+
+
+@app.on_event("startup")
+async def migrate_pii_encryption():
+    """Mevcut düz-metin phone alanlarını PII şifrelemesine taşır (idempotent).
+
+    Hassas alanlar: users.phone, drivers.phone
+    enc:v1: prefix'i olanlar atlanır.
+    """
+    try:
+        from services.crypto_utils import encrypt_pii, ENC_PREFIX
+
+        # Users
+        users = await db.users.find(
+            {"phone": {"$exists": True, "$nin": [None, ""]}},
+            {"_id": 0, "id": 1, "phone": 1}
+        ).to_list(20000)
+        u_migrated = 0
+        for u in users:
+            ph = u.get("phone", "")
+            if ph and not ph.startswith(ENC_PREFIX):
+                await db.users.update_one({"id": u["id"]}, {"$set": {"phone": encrypt_pii(ph)}})
+                u_migrated += 1
+        if u_migrated:
+            logger.info(f"PII migration: {u_migrated} users.phone encrypted")
+
+        # Drivers
+        drivers = await db.drivers.find(
+            {"phone": {"$exists": True, "$nin": [None, ""]}},
+            {"_id": 0, "id": 1, "phone": 1}
+        ).to_list(20000)
+        d_migrated = 0
+        for d in drivers:
+            ph = d.get("phone", "")
+            if ph and not ph.startswith(ENC_PREFIX):
+                await db.drivers.update_one({"id": d["id"]}, {"$set": {"phone": encrypt_pii(ph)}})
+                d_migrated += 1
+        if d_migrated:
+            logger.info(f"PII migration: {d_migrated} drivers.phone encrypted")
+    except Exception as e:
+        logger.error(f"PII migration error: {e}")
 
 # ==================== Compression Middleware (Mobil Veri Optimizasyonu) ====================
 # JSON yanıtları gzip ile sıkıştırır (>500B). Mobil bağlantılarda yanıt boyutunu %70-85 düşürür.
@@ -340,10 +404,11 @@ async def ensure_indexes():
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 
 # ==================== Idempotency Middleware (Çift-Submit Koruması) ====================
-# POST/PUT/PATCH/DELETE isteklerinde "Idempotency-Key" header varsa, response 1 saat cache'lenir
-# ve aynı key ile tekrar gelen istek cached yanıtı döndürür. Frontend axios interceptor
-# otomatik UUID üretir. Auth ve upload endpoint'leri hariç tutulur.
 app.add_middleware(IdempotencyMiddleware)
+
+# ==================== Security Headers Middleware (HSTS, CSP, XFO, ...) ====================
+# Tüm yanıtlara güvenlik header'ları ekler — XSS, clickjacking, MIME-sniffing korumaları.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ==================== CORS Middleware ====================
 
