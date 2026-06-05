@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -19,6 +19,7 @@ import { initializePushNotifications, isNativePlatform } from "../pushNotificati
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
+import SecurityDashboard from "../components/SecurityDashboard";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1621,6 +1622,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="audit-logs" data-testid="audit-logs-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Loglar
                 </TabsTrigger>
+                <TabsTrigger value="security" data-testid="security-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Güvenlik
+                </TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -1666,6 +1670,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </TabsTrigger>
               <TabsTrigger value="audit-logs" data-testid="audit-logs-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 <FileText className="h-4 w-4 mr-1" /> Loglar
+              </TabsTrigger>
+              <TabsTrigger value="security" data-testid="security-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
+                <Shield className="h-4 w-4 mr-1" /> Güvenlik
               </TabsTrigger>
             </TabsList>
           </div>
@@ -2669,6 +2676,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* GÜVENLİK PANOSU TAB */}
+          <TabsContent value="security" data-testid="security-content">
+            <SecurityDashboard />
           </TabsContent>
 
         </Tabs>

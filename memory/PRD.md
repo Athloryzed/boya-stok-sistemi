@@ -27,6 +27,11 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 - `GET /api/admin/security/status`
 - `POST /api/admin/backups/verify/{filename}`
 
+### Security Dashboard UI (Feb 5, 2026)
+- New `/app/frontend/src/components/SecurityDashboard.js` widget mounted as a "Güvenlik" tab in `/management`.
+- Live stats (audit chain, unack alarms, lockouts, failed attempts) refresh every 30s.
+- Inline actions: "Audit Doğrula" (chain check), "Kilidi Kaldır" per lockout, "Onayla" per alarm.
+
 ### New Indexes
 - `login_attempts.created_at` (TTL 24h), `(account, created_at)`
 - `account_lockouts.locked_until`
