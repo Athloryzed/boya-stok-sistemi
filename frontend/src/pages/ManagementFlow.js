@@ -192,6 +192,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [changeOpProduced, setChangeOpProduced] = useState("");
   const [changeOpNote, setChangeOpNote] = useState("");
   const [changeOpSubmitting, setChangeOpSubmitting] = useState(false);
+
+  // İş Hikayesi (Timeline) modal
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+  const [timelineJob, setTimelineJob] = useState(null);
   const [defectWeeklyAnalytics, setDefectWeeklyAnalytics] = useState(null);
   const [defectMonthlyAnalytics, setDefectMonthlyAnalytics] = useState(null);
   const [defectDailyAnalytics, setDefectDailyAnalytics] = useState(null);
@@ -1801,7 +1805,27 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 )}
                               </div>
                               <p className="text-sm text-text-secondary">{currentJob.name}</p>
-                              <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs text-text-secondary">Operatör: {currentJob.operator_name}</p>
+                                {(() => {
+                                  const opChanges = (currentJob.transfer_history || []).filter(
+                                    (h) => h && h.type === "operator_change"
+                                  );
+                                  if (opChanges.length === 0) return null;
+                                  return (
+                                    <button
+                                      type="button"
+                                      data-testid={`operator-history-badge-${currentJob.id}`}
+                                      onClick={(e) => { e.stopPropagation(); setTimelineJob(currentJob); setIsTimelineOpen(true); }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 text-[10px] font-mono hover:bg-purple-500/25 transition-colors"
+                                      title="Operatör değişim geçmişini görüntüle"
+                                    >
+                                      <Users className="h-3 w-3" />
+                                      {opChanges.length} değişim
+                                    </button>
+                                  );
+                                })()}
+                              </div>
                               {currentJob.notes && (
                                 <p className="text-xs text-info mt-1">📝 {currentJob.notes}</p>
                               )}
@@ -3610,6 +3634,157 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* İş Hikayesi (Timeline) Dialog */}
+        <Dialog open={isTimelineOpen} onOpenChange={setIsTimelineOpen}>
+          <DialogContent className="bg-surface border-border max-w-lg" data-testid="job-timeline-dialog">
+            <DialogHeader>
+              <DialogTitle className="text-text-primary flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-400" />
+                İş Hikayesi
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary text-xs">
+                {timelineJob ? `${timelineJob.name} — ${timelineJob.machine_name}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {timelineJob && (() => {
+              const target = timelineJob.koli_count || 0;
+              const finalOp = timelineJob.operator_name || "—";
+              const opChanges = (timelineJob.transfer_history || []).filter(h => h && h.type === "operator_change");
+              const machineMoves = (timelineJob.transfer_history || []).filter(h => h && !h.type && h.from_machine);
+
+              // İlk operatör = ilk operator_change'in from_operator'ı, yoksa job.operator_name
+              const firstOp = opChanges.length > 0 ? (opChanges[0].from_operator || "—") : finalOp;
+              const completed = timelineJob.completed_koli || 0;
+
+              // Timeline kayıtları (started, op_changes, machine_moves, current)
+              const events = [];
+              if (timelineJob.started_at) {
+                events.push({
+                  ts: timelineJob.started_at,
+                  type: "start",
+                  title: "İş Başlatıldı",
+                  detail: `Operatör: ${firstOp} · Hedef: ${target} koli`,
+                });
+              }
+              opChanges.forEach((c, i) => {
+                events.push({
+                  ts: c.at || c.transferred_at || "",
+                  type: "op_change",
+                  title: `Operatör #${i + 1}`,
+                  from: c.from_operator,
+                  to: c.to_operator,
+                  produced: c.produced_at_transfer,
+                  by: c.by || c.transferred_by || "",
+                  note: c.note || "",
+                });
+              });
+              machineMoves.forEach((m) => {
+                events.push({
+                  ts: m.transferred_at || "",
+                  type: "machine_move",
+                  title: "Makine Transferi",
+                  from: m.from_machine, to: m.to_machine,
+                  produced: m.produced_koli, by: m.transferred_by || "",
+                });
+              });
+              // Sırala
+              events.sort((a, b) => (a.ts || "").localeCompare(b.ts || ""));
+
+              return (
+                <div className="space-y-3 mt-2">
+                  {/* Zincir özeti */}
+                  {opChanges.length > 0 && (
+                    <div data-testid="operator-chain-summary" className="p-3 bg-background border border-purple-500/20 rounded-md">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-text-secondary mb-2">
+                        Operatör Zinciri
+                      </p>
+                      <div className="flex items-center flex-wrap gap-1 text-xs">
+                        {(() => {
+                          const chain = [];
+                          // Önce ilk operatör (0 üretimden başlar)
+                          let prevTotal = 0;
+                          chain.push({ name: firstOp, from: prevTotal, to: opChanges[0]?.produced_at_transfer ?? completed });
+                          opChanges.forEach((c, i) => {
+                            const startQty = c.produced_at_transfer ?? prevTotal;
+                            const endQty = opChanges[i + 1]?.produced_at_transfer ?? completed;
+                            chain.push({ name: c.to_operator || "—", from: startQty, to: endQty });
+                            prevTotal = startQty;
+                          });
+                          return chain.map((c, i) => (
+                            <React.Fragment key={i}>
+                              {i > 0 && <span className="text-purple-400 font-bold">→</span>}
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 font-mono">
+                                {c.name}
+                                <span className="text-purple-400/70">({c.from}→{c.to ?? "?"})</span>
+                              </span>
+                            </React.Fragment>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Olay listesi */}
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1" data-testid="timeline-events">
+                    {events.length === 0 && (
+                      <p className="text-xs text-text-secondary text-center py-4">Henüz değişim kaydı yok.</p>
+                    )}
+                    {events.map((ev, i) => {
+                      const iconBg = ev.type === "start" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                        ev.type === "op_change" ? "bg-purple-500/20 text-purple-400 border-purple-500/30" :
+                          "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                      const Icon = ev.type === "start" ? Play : ev.type === "op_change" ? Users : RefreshCw;
+                      return (
+                        <div key={i} className="flex gap-3 p-3 bg-background border border-border rounded-md" data-testid={`timeline-event-${i}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${iconBg} flex-shrink-0`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-text-primary">{ev.title}</p>
+                              <p className="text-[10px] text-text-secondary font-mono">
+                                {ev.ts ? new Date(ev.ts).toLocaleString("tr-TR") : ""}
+                              </p>
+                            </div>
+                            {ev.detail && <p className="text-xs text-text-secondary mt-0.5">{ev.detail}</p>}
+                            {ev.type !== "start" && (
+                              <p className="text-xs text-text-secondary mt-0.5">
+                                <span className="text-text-primary font-mono">{ev.from}</span>
+                                <span className="mx-1 text-purple-400">→</span>
+                                <span className="text-text-primary font-mono">{ev.to}</span>
+                                {ev.produced != null && (
+                                  <span className="ml-2 text-amber-400">· {ev.produced} koli ile</span>
+                                )}
+                              </p>
+                            )}
+                            {ev.by && (
+                              <p className="text-[10px] text-text-secondary mt-1">
+                                Kaydeden: <span className="font-mono">{ev.by}</span>
+                              </p>
+                            )}
+                            {ev.note && (
+                              <p className="text-[10px] text-info mt-1">📝 {ev.note}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Şu anki durum */}
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-md text-xs">
+                    <p className="text-text-secondary">Şu an aktif operatör:</p>
+                    <p className="text-green-400 font-bold font-mono mt-0.5">{finalOp}</p>
+                    <p className="text-text-secondary mt-1">
+                      İlerleme: <span className="text-text-primary font-bold">{completed} / {target} koli</span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </DialogContent>
         </Dialog>
 

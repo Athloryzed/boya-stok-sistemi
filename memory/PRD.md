@@ -39,6 +39,11 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 - `transfer_history` array'i job belgesinde her değişimi kaydeder (audit + alarm + websocket broadcast).
 - Analytics fix: `routes/analytics.py` `daily-detail` artık aynı gün tamamlanan işlerde eski operatör/yeni operatör payını ayırıyor (çift kredi sorunu engellendi).
 
+### Job Timeline & Operator Chain Badge (Feb 5, 2026)
+- Aktif iş kartında operatör değişimi varsa **"N değişim"** mor rozeti gösterilir (`data-testid="operator-history-badge-{jobId}"`).
+- Rozete tıklanınca **İş Hikayesi** modal'ı açılır: zaman sıralı tüm olaylar (başlatma, makine transferi, operatör değişimleri) + **Operatör Zinciri** özeti (ör. `Ali(0→25) → Mehmet(25→60) → Ahmet(60→100)`) + şu anki durum kartı.
+- Tek koleksiyon kullanılır: `jobs.transfer_history`. Geriye dönük uyumlu (eski makine-transfer kayıtları da timeline'da farklı ikonla görünür).
+
 ### New Indexes
 - `login_attempts.created_at` (TTL 24h), `(account, created_at)`
 - `account_lockouts.locked_until`
