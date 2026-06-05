@@ -44,6 +44,14 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 - Rozete tıklanınca **İş Hikayesi** modal'ı açılır: zaman sıralı tüm olaylar (başlatma, makine transferi, operatör değişimleri) + **Operatör Zinciri** özeti (ör. `Ali(0→25) → Mehmet(25→60) → Ahmet(60→100)`) + şu anki durum kartı.
 - Tek koleksiyon kullanılır: `jobs.transfer_history`. Geriye dönük uyumlu (eski makine-transfer kayıtları da timeline'da farklı ikonla görünür).
 
+### Job Thumbnails & Operator Chain Report (Feb 5, 2026)
+- **Backend**: `services/image_utils.create_thumb_data_url` Pillow ile 128x128 JPEG (Q70) thumb üretir (~3-8 KB/iş). `Job` modelinde `thumb_url` alanı eklendi. `create_job` + `update_job` (image_url değiştiğinde) otomatik thumb üretir. Startup'ta `backfill_job_thumbnails` mevcut image'ları olan işler için thumb hazırlar. `GET /api/jobs` artık `thumb_url`'ü liste yanıtında döner.
+- **Frontend**: Yeniden kullanılabilir `components/JobThumb.js` bileşeni — tüm panellerde (Operatör, Yönetim, Plan, Depo) iş kartlarında 40-96px arası küçük önizleme. Tıklanınca mevcut full-image preview modal'ı açılır (önce thumb gösterir, arka planda tam görsel çekilir).
+- Bug fix: PlanFlow ImagePreview Dialog `data:` URL src kontrolü eksikti — düzeltildi.
+- **Excel Operatör Zinciri Sayfası**: `GET /api/analytics/export` artık 5. sayfa olarak "Operator Zinciri" üretir. Operatör değişimi yapılmış tüm tamamlanmış işler için: Tarih · İş Adı · Makine · Toplam Koli · Değişim Sayısı · Zincir (`Ali(0→25) → Mehmet(25→60) → Ahmet(60→100)`) · Notlar.
+- **Operator Performansı çift kredi fix**: Excel sayfa 3 ve `/api/analytics/daily-detail` artık `shift_end_reports.is_partial` kayıtlarını kullanarak eski operatöre kısmi koli kredisi, yeni operatöre yalnızca kalan farkı verir.
+- **Yönetim Onay Bekleyen**: kısmi raporlar artık "operatör → yeni operatör" mor rozetiyle gösteriliyor (`data-testid="report-transferred-{id}"`).
+
 ### New Indexes
 - `login_attempts.created_at` (TTL 24h), `(account, created_at)`
 - `account_lockouts.locked_until`

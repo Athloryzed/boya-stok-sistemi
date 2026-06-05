@@ -2748,7 +2748,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             {selectedJobImage && (
               <div className="flex justify-center">
                 <img 
-                  src={selectedJobImage.startsWith('http') ? selectedJobImage : `${API.replace('/api', '')}${selectedJobImage}`} 
+                  src={selectedJobImage.startsWith('data:') || selectedJobImage.startsWith('http') ? selectedJobImage : `${API.replace('/api', '')}${selectedJobImage}`} 
                   alt="İş Görseli" 
                   className="max-w-full max-h-[80vh] object-contain rounded-lg"
                 />
