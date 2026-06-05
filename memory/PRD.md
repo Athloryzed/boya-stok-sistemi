@@ -3,37 +3,79 @@
 ## Original Problem Statement
 Factory management system for Buse Kagit paper company. Full-stack React + FastAPI + MongoDB PWA with AI assistants, Excel exports, live dashboards, QR codes, drag & drop, and secure JWT/bcrypt authentication.
 
+## Latest Update — Security Hardening Package (Feb 5, 2026) — Iteration 39
+Implemented enterprise-grade security in a single sweep (23/24 tests pass):
+1. **CSP/Security Headers** — `middleware/security_headers.py` adds HSTS (2y), CSP, X-Frame DENY, nosniff, Referrer-Policy, Permissions-Policy on every API response.
+2. **JWT Refresh Tokens** — 30 min access + 7 day refresh. New endpoints `/api/auth/refresh` (rotation + JTI revocation), `/api/auth/logout`, `/api/auth/me`. Frontend axios interceptor auto-refreshes on 401.
+3. **PII Encryption** — Fernet symmetric encryption for `users.phone` and `drivers.phone` (`enc:v1:` prefix, decrypted at API boundary). Auto-migration script encrypts existing plaintext on startup. Key at `/app/backend/.pii_key` (move to env `PII_ENCRYPTION_KEY` in prod).
+4. **Backup AES-256-GCM Encryption** — Every backup encrypted to `.archive.gz.enc` + SHA-256 checksum + restore dry-run validation. Endpoint `/api/admin/backups/verify/{filename}`. Key at `/app/backend/.backup_key` (move to env `BACKUP_ENCRYPTION_KEY`).
+5. **Per-Account Brute-Force Lockout** — 5 failed logins / 15 min → 15 min lock (HTTP 423). Works on user/driver/management/dashboard. Endpoints `/api/admin/lockouts` (list, clear).
+6. **2FA Infrastructure** — User model has `totp_enabled`, `totp_secret`, `backup_codes`, `last_login_at` fields. NOT enforced yet (per user request).
+7. **Critical Action Alarms** — `services/alarms.py` writes to `audit_alarms` collection on user_create/delete/role_change, driver_create, auth_failed_5x, etc. Endpoints `/api/admin/alarms` (GET, ACK). No SMS/Telegram yet (per user request).
+8. **Audit Log Immutability** — SHA-256 hash chain (prev_hash → entry_hash) makes tampering evident. Verify with `/api/admin/audit/verify`. Legacy pre-chain rows tolerated as genesis.
+9. **Strict Pydantic Input Validation** — All login/user-create endpoints now use typed request models (`LoginRequest`, `CreateUserRequest`, etc.) with regex constraints on username/phone.
+10. **Daily Backup Verification** — Restore dry-run + checksum compare on every backup run; available via `/api/admin/backups/verify/{filename}`.
+11. **MongoDB Auth** — SKIPPED per user request.
+
+### New Endpoints (Security)
+- `POST /api/auth/refresh` (rotated refresh token)
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/admin/audit/verify` (yonetim only)
+- `GET /api/admin/alarms`, `POST /api/admin/alarms/{id}/ack`
+- `GET /api/admin/lockouts`, `DELETE /api/admin/lockouts/{account}`
+- `GET /api/admin/security/status`
+- `POST /api/admin/backups/verify/{filename}`
+
+### New Indexes
+- `login_attempts.created_at` (TTL 24h), `(account, created_at)`
+- `account_lockouts.locked_until`
+- `audit_logs.created_at`
+- `audit_alarms.created_at`, `(acknowledged, severity)`
+- `revoked_tokens.expires_at` (TTL 0)
+
 ## Architecture (Post-Refactoring & Security Hardening - Feb 2026)
 
 ### Backend Structure
 ```
 /app/backend/
-├── server.py              # Main app (~160 lines) - FastAPI setup, routers, WebSockets, startup, CORS
+├── server.py              # Main app - FastAPI setup, routers, WebSockets, startup, CORS, security middleware
 ├── database.py            # MongoDB connection (client, db)
-├── auth.py                # JWT + bcrypt helpers + MANAGEMENT_PASSWORD + DASHBOARD_PASSWORD
-├── models.py              # All Pydantic models
-├── websocket_manager.py   # ConnectionManager instances (ws_manager, ws_manager_mgmt)
+├── auth.py                # JWT (access 30m + refresh 7d) + bcrypt helpers
+├── models.py              # All Pydantic models (User now has totp_* + last_login_at)
+├── websocket_manager.py
+├── middleware/
+│   ├── idempotency.py     # Idempotency-Key middleware
+│   └── security_headers.py # HSTS / CSP / XFO / nosniff / Referrer / Permissions
 ├── services/
-│   ├── audit.py           # log_audit function
-│   └── notifications.py   # Firebase FCM, Twilio WhatsApp, notification helpers
+│   ├── audit.py           # Hash-chained append-only audit log
+│   ├── alarms.py          # audit_alarms writer (critical action alarms)
+│   ├── account_lockout.py # 5x → 15min lockout
+│   ├── crypto_utils.py    # Fernet PII encryption (encrypt_pii/decrypt_pii)
+│   ├── backup_crypto.py   # AES-256-GCM backup encrypt + checksum + dry-run
+│   ├── validators.py      # Strict Pydantic request models
+│   └── notifications.py   # Firebase FCM, Twilio WhatsApp
 ├── routes/
-│   ├── health.py          # Public: /, /health
-│   ├── machines.py        # Protected: /machines CRUD, maintenance
-│   ├── jobs.py            # Mixed: /takip public, rest protected
-│   ├── shifts.py          # Protected (router-level)
-│   ├── defects.py         # Protected (router-level)
-│   ├── analytics.py       # Protected (router-level) + Excel export
-│   ├── users.py           # Mixed: login public, CRUD protected
-│   ├── warehouse.py       # Protected (router-level)
-│   ├── paints.py          # Protected (router-level) + AI forecast
-│   ├── ai.py              # Protected (router-level)
-│   ├── dashboard.py       # Mixed: /dashboard/login public, /dashboard/live protected
-│   ├── messages.py        # Protected (router-level)
-│   ├── visitors.py        # Mixed: /visitors/log public, rest protected
-│   ├── operators.py       # Protected (router-level)
-│   ├── pallets.py         # Protected (router-level)
-│   ├── logistics.py       # Mixed: /drivers/login public, rest protected
-│   └── misc.py            # Protected (router-level): audit-logs, FCM, manager registration
+│   ├── health.py
+│   ├── auth_refresh.py    # /auth/refresh, /auth/logout, /auth/me
+│   ├── security_admin.py  # /admin/audit/verify, /admin/alarms, /admin/lockouts, /admin/security/status
+│   ├── machines.py
+│   ├── jobs.py
+│   ├── shifts.py
+│   ├── defects.py
+│   ├── analytics.py
+│   ├── users.py           # Updated: lockout + validators + PII encryption + alarms
+│   ├── warehouse.py
+│   ├── paints.py
+│   ├── ai.py
+│   ├── dashboard.py       # Updated: lockout + token pair
+│   ├── messages.py
+│   ├── visitors.py
+│   ├── operators.py
+│   ├── pallets.py
+│   ├── logistics.py       # Updated: driver login lockout + PII encryption
+│   ├── backups.py         # Updated: AES-256-GCM + checksum + dry-run verify endpoint
+│   └── misc.py
 ```
 
 ### Security Model

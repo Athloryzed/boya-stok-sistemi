@@ -25,7 +25,7 @@ def _clean(v: Optional[str]) -> Optional[str]:
 
 class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
-    username: str = Field(..., min_length=1, max_length=64)
+    username: str = Field(..., min_length=2, max_length=64)
     password: str = Field(..., min_length=1, max_length=256)
     role: Optional[str] = None
 
@@ -41,7 +41,7 @@ class LoginRequest(BaseModel):
 
 class DriverLoginRequest(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
-    name: str = Field(..., min_length=1, max_length=64)
+    name: str = Field(..., min_length=2, max_length=64)
     password: str = Field(..., min_length=1, max_length=256)
 
 
