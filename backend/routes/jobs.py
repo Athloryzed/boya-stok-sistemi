@@ -16,6 +16,7 @@ from services.notifications import (
 )
 from websocket_manager import ws_manager, ws_manager_mgmt
 from auth import get_current_user
+from services.image_utils import create_thumb_data_url
 
 router = APIRouter()
 
@@ -91,8 +92,8 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
             {"name": {"$regex": search, "$options": "i"}},
             {"colors": {"$regex": search, "$options": "i"}}
         ]
-    # PERFORMANS: image_url base64 payload'ı şişiriyor (10x). Listede çıkarıp
-    # has_image flag bırak; detay için /api/jobs/{id}/image kullan.
+    # PERFORMANS: image_url base64 büyük (full image, ~50-300KB). Listeden çıkar.
+    # Ama thumb_url küçük (~3-8KB) — küçük önizleme için listede tut.
     projection = {"_id": 0, "image_url": 0}
     jobs = await db.jobs.find(query, projection).sort("created_at", 1).to_list(1000)
     # has_image alanını sonradan ekle (Pydantic image_url None döner)
@@ -197,6 +198,12 @@ async def get_job_image(job_id: str, current_user: dict = Depends(get_current_us
 
 @router.post("/jobs", response_model=Job)
 async def create_job(job: Job, created_by: str = None, current_user: dict = Depends(get_current_user)):
+    # image_url verildiyse thumb üret
+    if job.image_url and not job.thumb_url:
+        try:
+            job.thumb_url = create_thumb_data_url(job.image_url)
+        except Exception as e:
+            logging.warning(f"Thumb creation failed: {e}")
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
 
@@ -321,6 +328,12 @@ async def update_job(job_id: str, updates: dict = Body(...), current_user: dict 
         raise HTTPException(status_code=404, detail="Job not found")
 
     updated_by = updates.pop("updated_by", None) or "Yonetim"
+    # image_url değişiyorsa thumb_url'i de yeniden üret
+    if "image_url" in updates:
+        try:
+            updates["thumb_url"] = create_thumb_data_url(updates.get("image_url"))
+        except Exception as e:
+            logging.warning(f"Thumb regen failed: {e}")
     await db.jobs.update_one({"id": job_id}, {"$set": updates})
 
     await log_audit(updated_by, "update", "job", job.get("name", ""), f"Guncellenen: {', '.join(updates.keys())}")

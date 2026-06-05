@@ -20,6 +20,7 @@ import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from ".
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import SecurityDashboard from "../components/SecurityDashboard";
+import JobThumb from "../components/JobThumb";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -232,13 +233,23 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       setIsImagePreviewOpen(true);
       return;
     }
-    if (!job.has_image || !job.id) return;
-    setIsImagePreviewOpen(true);
-    setSelectedJobImage(null);
-    try {
-      const r = await axios.get(`${API}/jobs/${job.id}/image`);
-      setSelectedJobImage(r.data?.image_url || null);
-    } catch { setSelectedJobImage(null); }
+    // Tam görsel yokken thumb varsa anında onu göster (kullanıcı bekletme yok),
+    // sonra arka planda tam çözünürlüğü çek.
+    if (job.thumb_url) {
+      setSelectedJobImage(job.thumb_url);
+      setIsImagePreviewOpen(true);
+    } else if (!job.has_image || !job.id) {
+      return;
+    } else {
+      setIsImagePreviewOpen(true);
+      setSelectedJobImage(null);
+    }
+    if (job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        if (r.data?.image_url) setSelectedJobImage(r.data.image_url);
+      } catch { /* thumb zaten gösteriliyor */ }
+    }
   };
 
   // Yedekler
@@ -1830,26 +1841,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <p className="text-xs text-info mt-1">📝 {currentJob.notes}</p>
                               )}
                             </div>
-                            {(currentJob.image_url || currentJob.has_image) && (
-                              currentJob.image_url ? (
-                                <img 
-                                  src={currentJob.image_url?.startsWith('data:') || currentJob.image_url?.startsWith('http') ? currentJob.image_url : `${API.replace('/api', '')}${currentJob.image_url}`}
-                                  alt={currentJob.name}
-                                  className="w-14 h-14 object-cover rounded border-2 border-success cursor-pointer hover:scale-105 transition-transform"
-                                  onClick={(e) => { e.stopPropagation(); openImagePreview(currentJob); }}
-                                  data-testid={`mgmt-active-job-image-${currentJob.id}`}
-                                />
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="w-14 h-14 rounded border-2 border-success bg-success/10 hover:bg-success/20 flex items-center justify-center transition-colors"
-                                  onClick={(e) => { e.stopPropagation(); openImagePreview(currentJob); }}
-                                  data-testid={`mgmt-active-job-image-${currentJob.id}`}
-                                  title="Görseli aç"
-                                >
-                                  <ImageIcon className="h-5 w-5 text-success" />
-                                </button>
-                              )
+                            {(currentJob.thumb_url || currentJob.image_url || currentJob.has_image) && (
+                              <JobThumb job={currentJob} onOpen={() => openImagePreview(currentJob)} size={56} className="border-success" />
                             )}
                             <div className="flex flex-col gap-1">
                               <Button 
@@ -1926,26 +1919,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                           <div className="space-y-2 max-h-56 overflow-y-auto">
                             {upcomingJobs.slice(0, 5).map(uj => (
                               <div key={uj.id} className="p-2 bg-background/50 rounded border border-border/50 flex items-start gap-2">
-                                {(uj.image_url || uj.has_image) && (
-                                  uj.image_url ? (
-                                    <img
-                                      src={uj.image_url?.startsWith('data:') || uj.image_url?.startsWith('http') ? uj.image_url : `${API.replace('/api', '')}${uj.image_url}`}
-                                      alt={uj.name}
-                                      className="w-12 h-12 object-cover rounded border border-border cursor-pointer hover:scale-105 transition-transform shrink-0"
-                                      onClick={(e) => { e.stopPropagation(); openImagePreview(uj); }}
-                                      data-testid={`mgmt-pending-job-image-${uj.id}`}
-                                    />
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="w-12 h-12 rounded border border-border bg-surface/50 hover:bg-surface flex items-center justify-center transition-colors shrink-0"
-                                      onClick={(e) => { e.stopPropagation(); openImagePreview(uj); }}
-                                      data-testid={`mgmt-pending-job-image-${uj.id}`}
-                                      title="Görseli aç"
-                                    >
-                                      <ImageIcon className="h-4 w-4 text-text-secondary" />
-                                    </button>
-                                  )
+                                {(uj.thumb_url || uj.image_url || uj.has_image) && (
+                                  <JobThumb job={uj} onOpen={() => openImagePreview(uj)} size={48} />
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 text-xs text-text-secondary flex-wrap">
@@ -2645,10 +2620,17 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         <CardContent className="p-4">
                           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className={`px-2 py-1 rounded text-xs font-semibold ${report.is_completed ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                                   {report.is_completed ? 'TAMAMLANDI' : 'KISMİ'}
                                 </span>
+                                {report.is_partial && report.transferred_to && (
+                                  <span data-testid={`report-transferred-${report.id}`}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-purple-500/15 text-purple-400 border border-purple-500/30 font-mono">
+                                    <Users className="h-3 w-3" />
+                                    {report.operator_name} → {report.transferred_to}
+                                  </span>
+                                )}
                                 <span className="text-text-secondary text-sm">
                                   {new Date(report.created_at).toLocaleString("tr-TR")}
                                 </span>

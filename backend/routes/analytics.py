@@ -453,9 +453,6 @@ async def export_analytics(period: str = "weekly", week_offset: int = 0):
     started_jobs = await db.jobs.find(
         {"started_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
-    shift_reports = await db.shift_end_reports.find(
-        {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
-    ).to_list(1000)
     defects = await db.defect_logs.find(
         {"created_at": {"$gte": start_str, "$lt": end_str}}, {"_id": 0, "image_url": 0}
     ).to_list(1000)
@@ -591,18 +588,50 @@ async def export_analytics(period: str = "weekly", week_offset: int = 0):
     style_header(ws3, 3, 6)
 
     op_stats = {}
+
+    # Operatör değişimi içeren işler için: partial üretimleri eski operatörlere kredi yaz,
+    # yeni operatöre sadece kalan farkı yaz (çift kredi engellenir)
+    completed_job_ids_set = {j["id"] for j in completed_jobs if j.get("id")}
+    op_changes_by_job = {}
+    if completed_job_ids_set:
+        prior_partials = await db.shift_end_reports.find(
+            {"job_id": {"$in": list(completed_job_ids_set)},
+             "operator_name": {"$nin": [None, ""]}},
+            {"_id": 0, "job_id": 1, "operator_name": 1, "produced_koli": 1}
+        ).to_list(5000)
+        for p in prior_partials:
+            jid = p.get("job_id")
+            if jid:
+                op_changes_by_job.setdefault(jid, []).append(p)
+
     for job in completed_jobs:
-        op = job.get("operator_name", "Bilinmiyor")
-        if op not in op_stats:
-            op_stats[op] = {"jobs": 0, "koli": 0, "machines": set(), "durations": []}
-        op_stats[op]["jobs"] += 1
-        op_stats[op]["koli"] += job.get("completed_koli", job.get("koli_count", 0))
-        op_stats[op]["machines"].add(job.get("machine_name", ""))
+        final_op = job.get("operator_name", "Bilinmiyor")
+        full_koli = job.get("completed_koli", job.get("koli_count", 0))
+        partials = op_changes_by_job.get(job.get("id"), [])
+
+        # Her partial → eski operatöre kredi
+        partial_sum = 0
+        for p in partials:
+            op_old = p.get("operator_name", "")
+            credit = int(p.get("produced_koli", 0) or 0)
+            if op_old and op_old != final_op and credit > 0:
+                if op_old not in op_stats:
+                    op_stats[op_old] = {"jobs": 0, "koli": 0, "machines": set(), "durations": []}
+                op_stats[op_old]["koli"] += credit
+                op_stats[op_old]["machines"].add(job.get("machine_name", ""))
+                partial_sum += credit
+
+        # Final operatör: jobs sayacı + kalan koli
+        if final_op not in op_stats:
+            op_stats[final_op] = {"jobs": 0, "koli": 0, "machines": set(), "durations": []}
+        op_stats[final_op]["jobs"] += 1
+        op_stats[final_op]["koli"] += max(0, full_koli - partial_sum)
+        op_stats[final_op]["machines"].add(job.get("machine_name", ""))
         if job.get("started_at") and job.get("completed_at"):
             try:
                 s = datetime.fromisoformat(job["started_at"].replace("Z", "+00:00"))
                 e = datetime.fromisoformat(job["completed_at"].replace("Z", "+00:00"))
-                op_stats[op]["durations"].append((e - s).total_seconds() / 60)
+                op_stats[final_op]["durations"].append((e - s).total_seconds() / 60)
             except Exception:
                 pass
 
@@ -660,6 +689,67 @@ async def export_analytics(period: str = "weekly", week_offset: int = 0):
             ws4.cell(row=summary_row, column=col).fill = sub_header_fill
 
     auto_width(ws4, 5)
+
+    # SAYFA 5: OPERATÖR ZİNCİRİ (yeni)
+    # Operatör değişimi yapılmış işleri ve zincirini göster — vardiya analizi için kritik
+    chain_jobs = [j for j in completed_jobs if any(
+        h and h.get("type") == "operator_change" for h in (j.get("transfer_history") or [])
+    )]
+    ws5 = wb.create_sheet("Operator Zinciri")
+    ws5.merge_cells("A1:G1")
+    title5 = ws5.cell(row=1, column=1, value=f"Operator Zinciri / Vardiya Devri ({period_label})")
+    title5.font = title_font
+    title5.fill = title_fill
+    title5.alignment = center_align
+    ws5.row_dimensions[1].height = 30
+
+    headers5 = ["Tarih", "Is Adi", "Makine", "Toplam Koli", "Degisim Sayisi", "Operator Zinciri", "Notlar"]
+    for col, h in enumerate(headers5, 1):
+        ws5.cell(row=3, column=col, value=h)
+    style_header(ws5, 3, 7)
+
+    if not chain_jobs:
+        ws5.cell(row=4, column=1, value="Bu donemde operator degisimi yapilan tamamlanmis is bulunmamaktadir.")
+    else:
+        for idx, job in enumerate(chain_jobs):
+            row = 4 + idx
+            op_changes = [h for h in (job.get("transfer_history") or []) if h.get("type") == "operator_change"]
+            final_op = job.get("operator_name", "—")
+            final_qty = job.get("completed_koli", job.get("koli_count", 0))
+
+            # Zinciri kur: ilk_op(0→x) → op2(x→y) → ... → son_op(z→toplam)
+            chain_parts = []
+            first_from = op_changes[0].get("from_operator", "—") if op_changes else final_op
+            prev_qty = 0
+            chain_parts.append(f"{first_from}(0→{op_changes[0].get('produced_at_transfer', '?')})")
+            for i, c in enumerate(op_changes):
+                start_qty = c.get("produced_at_transfer", prev_qty)
+                next_change = op_changes[i + 1] if (i + 1) < len(op_changes) else None
+                end_qty = next_change.get("produced_at_transfer") if next_change else final_qty
+                chain_parts.append(f"{c.get('to_operator', '—')}({start_qty}→{end_qty})")
+                prev_qty = start_qty
+            chain_str = " → ".join(chain_parts)
+
+            notes = " | ".join([c.get("note", "") for c in op_changes if c.get("note")])
+
+            completed_at = job.get("completed_at", "")
+            try:
+                dt = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                date_str = dt.strftime("%d.%m.%Y %H:%M")
+            except Exception:
+                date_str = completed_at[:16] if completed_at else "-"
+
+            ws5.cell(row=row, column=1, value=date_str)
+            ws5.cell(row=row, column=2, value=job.get("name", "-"))
+            ws5.cell(row=row, column=3, value=job.get("machine_name", "-"))
+            ws5.cell(row=row, column=4, value=final_qty).alignment = center_align
+            ws5.cell(row=row, column=5, value=len(op_changes)).alignment = center_align
+            ws5.cell(row=row, column=6, value=chain_str)
+            ws5.cell(row=row, column=7, value=notes or "-")
+
+    # Sütun genişlikleri (zincir uzun olabilir)
+    for col_idx, width in enumerate([16, 24, 16, 14, 16, 60, 30], 1):
+        ws5.column_dimensions[get_column_letter(col_idx)].width = width
 
     output = BytesIO()
     wb.save(output)

@@ -22,6 +22,7 @@ import { initializePushNotifications, isNativePlatform } from "../pushNotificati
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
+import JobThumb from "../components/JobThumb";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -382,21 +383,27 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       setIsImagePreviewOpen(true);
       return;
     }
-    // Job objesi geldi → image_url varsa kullan, yoksa has_image ile lazy fetch
+    // Job objesi geldi → image_url varsa kullan, yoksa thumb göster + arka planda fetch
     const job = jobOrUrl || {};
     if (job.image_url) {
       setSelectedJobImage(job.image_url);
       setIsImagePreviewOpen(true);
       return;
     }
-    if (!job.has_image || !job.id) return;
-    setIsImagePreviewOpen(true);
-    setSelectedJobImage(null); // loading
-    try {
-      const r = await axios.get(`${API}/jobs/${job.id}/image`);
-      setSelectedJobImage(r.data?.image_url || null);
-    } catch {
+    if (job.thumb_url) {
+      setSelectedJobImage(job.thumb_url);
+      setIsImagePreviewOpen(true);
+    } else if (!job.has_image || !job.id) {
+      return;
+    } else {
+      setIsImagePreviewOpen(true);
       setSelectedJobImage(null);
+    }
+    if (job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        if (r.data?.image_url) setSelectedJobImage(r.data.image_url);
+      } catch { /* thumb shown */ }
     }
   };
 
@@ -1962,23 +1969,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                                   )}
                           </div>
                           {/* İş Resmi Thumbnail */}
-                          {(job.image_url || job.has_image) && (
-                            <div 
-                              className="mt-3 mb-3 cursor-pointer"
-                              onClick={() => openImagePreview(job)}
-                            >
-                              {job.image_url ? (
-                                <img 
-                                  src={job.image_url.startsWith('data:') ? job.image_url : (job.image_url.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`)}
-                                  alt={job.name}
-                                  className="w-32 h-24 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity"
-                                />
-                              ) : (
-                                <div className="w-32 h-24 rounded-lg border border-border bg-surface/40 flex flex-col items-center justify-center hover:bg-surface/60 transition-colors">
-                                  <ImageIcon className="h-6 w-6 text-text-secondary" />
-                                  <span className="text-[10px] text-text-secondary mt-1">Resmi göster</span>
-                                </div>
-                              )}
+                          {(job.thumb_url || job.image_url || job.has_image) && (
+                            <div className="mt-3 mb-3">
+                              <JobThumb job={job} onOpen={() => openImagePreview(job)} size={96} />
                               <p className="text-xs text-text-secondary mt-1">Büyütmek için tıklayın</p>
                             </div>
                           )}

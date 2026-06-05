@@ -398,6 +398,29 @@ async def migrate_pii_encryption():
     except Exception as e:
         logger.error(f"PII migration error: {e}")
 
+
+@app.on_event("startup")
+async def backfill_job_thumbnails():
+    """image_url'u olup thumb_url'i olmayan işler için bir defalık thumb üret.
+    Bu sayede tüm aktif iş kartlarında küçük önizleme görünür."""
+    try:
+        from services.image_utils import create_thumb_data_url
+        cursor = db.jobs.find(
+            {"image_url": {"$exists": True, "$nin": [None, ""]},
+             "$or": [{"thumb_url": {"$exists": False}}, {"thumb_url": None}, {"thumb_url": ""}]},
+            {"_id": 0, "id": 1, "image_url": 1},
+        )
+        count = 0
+        async for j in cursor:
+            thumb = create_thumb_data_url(j.get("image_url"))
+            if thumb:
+                await db.jobs.update_one({"id": j["id"]}, {"$set": {"thumb_url": thumb}})
+                count += 1
+        if count:
+            logger.info(f"Thumbnail backfill: {count} jobs updated")
+    except Exception as e:
+        logger.error(f"Thumb backfill error: {e}")
+
 # ==================== Compression Middleware (Mobil Veri Optimizasyonu) ====================
 # JSON yanıtları gzip ile sıkıştırır (>500B). Mobil bağlantılarda yanıt boyutunu %70-85 düşürür.
 # Bu sadece taşıma katmanını değiştirir — saklanan veride sıfır değişiklik.

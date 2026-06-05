@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import JobThumb from "../components/JobThumb";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -43,6 +44,32 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [completedSearch, setCompletedSearch] = useState("");
   const [completedMachineFilter, setCompletedMachineFilter] = useState("all");
   const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
+  // İş görseli önizleme
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [selectedJobImage, setSelectedJobImage] = useState(null);
+  const openImagePreview = async (job) => {
+    if (!job) return;
+    if (job.image_url) {
+      setSelectedJobImage(job.image_url);
+      setIsImagePreviewOpen(true);
+      return;
+    }
+    if (job.thumb_url) {
+      setSelectedJobImage(job.thumb_url);
+      setIsImagePreviewOpen(true);
+    } else if (!job.has_image || !job.id) {
+      return;
+    } else {
+      setIsImagePreviewOpen(true);
+      setSelectedJobImage(null);
+    }
+    if (job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        if (r.data?.image_url) setSelectedJobImage(r.data.image_url);
+      } catch { /* thumb shown */ }
+    }
+  };
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
@@ -821,7 +848,12 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                             className="p-4 bg-background border border-border rounded-lg"
                           >
                             <div className="flex items-start justify-between gap-3 mb-2">
-                              <h3 className="font-bold text-text-primary text-base">{job.name}</h3>
+                              <div className="flex items-start gap-3 min-w-0 flex-1">
+                                {(job.thumb_url || job.image_url || job.has_image) && (
+                                  <JobThumb job={job} onOpen={() => openImagePreview(job)} size={44} />
+                                )}
+                                <h3 className="font-bold text-text-primary text-base">{job.name}</h3>
+                              </div>
                               <span className="shrink-0 bg-success/15 text-success px-2 py-1 rounded text-xs font-semibold">
                                 {job.completed_koli || job.koli_count} Koli
                               </span>
@@ -870,7 +902,14 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                                 className="border-b border-border hover:bg-surface-highlight/40 transition-colors"
                                 data-testid={`completed-job-row-${job.id}`}
                               >
-                                <td className="p-3 text-text-primary font-semibold">{job.name}</td>
+                                <td className="p-3 text-text-primary font-semibold">
+                                  <div className="flex items-center gap-2">
+                                    {(job.thumb_url || job.image_url || job.has_image) && (
+                                      <JobThumb job={job} onOpen={() => openImagePreview(job)} size={40} />
+                                    )}
+                                    <span>{job.name}</span>
+                                  </div>
+                                </td>
                                 <td className="p-3">
                                   <span className="px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-sm">
                                     {job.machine_name || "—"}
@@ -983,6 +1022,26 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* İş Görseli Önizleme Dialog */}
+        <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+          <DialogContent className="bg-surface border-border max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading text-text-primary">İş Görseli</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center min-h-[200px]">
+              {selectedJobImage ? (
+                <img
+                  src={selectedJobImage.startsWith('data:') || selectedJobImage.startsWith('http') ? selectedJobImage : `${API.replace('/api', '')}${selectedJobImage}`}
+                  alt="İş görseli"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              ) : (
+                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Sevkiyat Teslim Dialog */}
         <Dialog open={isShipmentLogDialogOpen} onOpenChange={setIsShipmentLogDialogOpen}>

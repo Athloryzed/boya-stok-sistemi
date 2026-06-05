@@ -16,6 +16,7 @@ import { requestNotificationPermission as requestFCMPermission, onMessageListene
 import { iosNotificationStatus } from "../utils/iosPwa";
 import IOSInstallGuide from "../components/IOSInstallGuide";
 import { useConfirm } from "../components/ConfirmProvider";
+import JobThumb from "../components/JobThumb";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -116,13 +117,21 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       setIsImagePreviewOpen(true);
       return;
     }
-    if (!job.has_image || !job.id) return;
-    setIsImagePreviewOpen(true);
-    setSelectedJobImage(null);
-    try {
-      const r = await axios.get(`${API}/jobs/${job.id}/image`);
-      setSelectedJobImage(r.data?.image_url || null);
-    } catch { setSelectedJobImage(null); }
+    if (job.thumb_url) {
+      setSelectedJobImage(job.thumb_url);
+      setIsImagePreviewOpen(true);
+    } else if (!job.has_image || !job.id) {
+      return;
+    } else {
+      setIsImagePreviewOpen(true);
+      setSelectedJobImage(null);
+    }
+    if (job.id) {
+      try {
+        const r = await axios.get(`${API}/jobs/${job.id}/image`);
+        if (r.data?.image_url) setSelectedJobImage(r.data.image_url);
+      } catch { /* thumb already shown */ }
+    }
   };
 
   // QR Scanner
@@ -1263,25 +1272,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       <p className="text-text-secondary">Renkler: {currentJobOnMachine.colors}</p>
                       {currentJobOnMachine.format && <p className="text-text-secondary">Format: {currentJobOnMachine.format}</p>}
                     </div>
-                    {(currentJobOnMachine.image_url || currentJobOnMachine.has_image) && (
-                      <div 
-                        className="cursor-pointer flex-shrink-0"
-                        onClick={() => openImagePreview(currentJobOnMachine)}
-                        data-testid="active-job-image-thumb"
-                      >
-                        {currentJobOnMachine.image_url ? (
-                          <img 
-                            src={currentJobOnMachine.image_url?.startsWith('data:') || currentJobOnMachine.image_url?.startsWith('http') ? currentJobOnMachine.image_url : `${API.replace('/api', '')}${currentJobOnMachine.image_url}`}
-                            alt={currentJobOnMachine.name}
-                            className="w-24 h-24 object-cover rounded-lg border-2 border-success hover:opacity-80 transition-opacity"
-                          />
-                        ) : (
-                          <div className="w-24 h-24 rounded-lg border-2 border-success flex items-center justify-center bg-success/10 hover:bg-success/20 transition-colors">
-                            <Image className="h-8 w-8 text-success" />
-                          </div>
-                        )}
-                        <p className="text-xs text-center text-success mt-1">Görseli Aç</p>
-                      </div>
+                    {(currentJobOnMachine.thumb_url || currentJobOnMachine.image_url || currentJobOnMachine.has_image) && (
+                      <JobThumb job={currentJobOnMachine} onOpen={() => openImagePreview(currentJobOnMachine)} size={96} className="border-success border-2" />
                     )}
                   </div>
                   {currentJobOnMachine.notes && (
@@ -1426,33 +1418,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                               <GripVertical className="h-5 w-5 text-text-secondary" />
                               <span className="text-xs text-text-secondary mt-1">#{index + 1}</span>
                             </div>
-                            {(job.image_url || job.has_image) && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openImagePreview(job); }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onTouchStart={(e) => e.stopPropagation()}
-                                draggable={false}
-                                className="relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-secondary/40 hover:border-secondary hover:scale-105 transition-all bg-background group"
-                                data-testid={`job-image-thumb-${job.id}`}
-                                aria-label="Görseli büyüt"
-                              >
-                                {job.image_url ? (
-                                  <img
-                                    src={job.image_url?.startsWith('data:') || job.image_url?.startsWith('http') ? job.image_url : `${API.replace('/api', '')}${job.image_url}`}
-                                    alt={job.name}
-                                    draggable={false}
-                                    className="w-full h-full object-cover pointer-events-none"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-surface-highlight/40">
-                                    <Image className="h-6 w-6 text-text-secondary" />
-                                  </div>
-                                )}
-                                <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
-                                  <Image className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </span>
-                              </button>
+                            {(job.thumb_url || job.image_url || job.has_image) && (
+                              <JobThumb job={job} onOpen={() => openImagePreview(job)} size={72} />
                             )}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
