@@ -487,9 +487,10 @@ const BrandSection = ({ userData, role }) => {
       <AnimatePresence>
         {detailStock && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-end md:items-center justify-center bg-black/60" onClick={() => setDetailStock(null)}>
-            <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }}
-              className="bg-surface w-full md:max-w-2xl max-h-[80vh] rounded-t-2xl md:rounded-2xl border border-border overflow-hidden flex flex-col"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailStock(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 12 }}
+              transition={{ type: "spring", damping: 24, stiffness: 280 }}
+              className="bg-surface w-full max-w-2xl max-h-[85vh] rounded-2xl border border-border overflow-hidden flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 border-b border-border bg-gradient-to-r from-emerald-500/15 to-transparent">
                 <div>
@@ -880,9 +881,10 @@ const KoliSection = ({ userData }) => {
       <AnimatePresence>
         {detailStock && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 flex items-end md:items-center justify-center bg-black/60" onClick={() => setDetailStock(null)}>
-            <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }}
-              className="bg-surface w-full md:max-w-2xl max-h-[80vh] rounded-t-2xl md:rounded-2xl border border-border overflow-hidden flex flex-col"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailStock(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 12 }}
+              transition={{ type: "spring", damping: 24, stiffness: 280 }}
+              className="bg-surface w-full max-w-2xl max-h-[85vh] rounded-2xl border border-border overflow-hidden flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center p-4 border-b border-border bg-gradient-to-r from-sky-500/15 to-transparent">
                 <div>

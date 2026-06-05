@@ -429,14 +429,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
         setLastNotificationMessage(newMessage);
         setShowNotificationBanner(true);
         
-        // Tarayıcı push bildirimi gönder
-        if (notificationPermission === 'granted') {
-          showNotification(
-            `Yeni Mesaj - ${newMessage.sender_name || 'Yönetim'}`,
-            newMessage.message,
-            { tag: `message-${newMessage.id}` }
-          );
-        }
+        // NOT: Local `showNotification` KALDIRILDI — backend FCM zaten OS-level bildirim gönderiyor.
+        // Burada da göstermek aynı bildirimi 2 kez ortaya çıkarıyordu.
         
         // Ses çal (opsiyonel)
         try {
@@ -488,14 +482,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               setShiftEndIsCompleted(false);
               setIsShiftEndDialogOpen(true);
               
-              // Push bildirimi
-              if (notificationPermission === 'granted') {
-                showNotification(
-                  "⏰ Vardiya Sonu!",
-                  notification.message,
-                  { tag: 'shift-end' }
-                );
-              }
+              // Local showNotification kaldırıldı — backend FCM zaten OS-level bildirim gönderiyor
               
               toast.warning("Vardiya sonu bildirimi geldi!", { duration: 10000 });
               notifyAlert("urgent");
@@ -510,14 +497,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               // Mesajları yenile
               fetchMessages();
               
-              // Push bildirimi
-              if (notificationPermission === 'granted') {
-                showNotification(
-                  `💬 Yeni Mesaj - ${msgData.sender_name}`,
-                  msgData.message,
-                  { tag: 'new-message' }
-                );
-              }
+              // Local showNotification kaldırıldı — backend FCM zaten OS-level bildirim gönderiyor
+              toast.info(`💬 ${msgData.sender_name}: ${msgData.message}`, { duration: 6000 });
+              notifyAlert("info");
               
               toast.info(`Yeni mesaj: ${msgData.message.substring(0, 50)}...`, { duration: 5000 });
               notifyAlert("default");

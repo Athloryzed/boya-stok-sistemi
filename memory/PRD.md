@@ -702,3 +702,29 @@ Tüm yerli browser dialog'lar yeni hook'a yükseltildi → tutarlı UI + dark mo
 ### Test
 - Bobin Yeniden Hesapla → modal açıldı, başlık + açıklama + detay + 2 buton göründü ✅
 - Vazgeç → dialog kapandı, işlem yapılmadı ✅
+
+## 2 Bug Fix — Çoklu Bildirim + Marka/Koli Detay Modal Pozisyonu — 20 May 2026
+
+### Bug A: Aynı bildirim 2-3 kez geliyordu
+**Sebep:** Backend FCM zaten OS-level push gönderiyordu, ek olarak frontend WebSocket event'i alıp `new Notification(...)` / `showNotification(...)` çağırıyordu → çakışma.
+
+**Düzeltme:**
+- `ManagementFlow.js` — WebSocket `job_completed` handler'ındaki `new Notification("İş Tamamlandı!", ...)` çağrısı KALDIRILDI
+- `OperatorFlow.js` — 3 yerdeki `showNotification(...)` çağrıları kaldırıldı:
+  - Yeni mesaj bildirimi (2 yer)
+  - Vardiya sonu bildirimi (1 yer)
+- Artık tek kanal: backend FCM push → OS-level bildirim + foreground'da `onMessageListener` → toast.success
+- WebSocket event'leri sadece UI güncelleme + in-app toast/banner için kullanılıyor
+
+### Bug B: Marka/Koli detay drawer'ı sayfanın altında açılıyor
+**Sebep:** `MarkaStokFlow.js`'de detay drawer'ı `flex items-end md:items-center` ile mobil için bottom-sheet tasarımındaydı. Pek çok ekranda ekranın altına denk geliyordu.
+
+**Düzeltme:**
+- Hem **Marka sekmesindeki** hem **Koli sekmesindeki** detay drawer'ı **merkezi modal**'a dönüştürüldü
+- `fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm`
+- Yumuşak spring animasyonu (scale + y) ile açılıp kapanır
+- Bobin drawer'ının z-index'i 50 → 9999'a yükseltildi (Confirm dialog + toaster üstüne gelmemesi için)
+
+### Test
+- Marka Stok > "Deniz 33" kartına tıkla → ekran merkezinde detay modal açıldı, satış/giriş hareketleri görünür ✅
+

@@ -518,13 +518,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             style: { whiteSpace: "pre-line" }
           });
           
-          // Tarayıcı bildirimi (izin varsa)
-          if (Notification.permission === "granted") {
-            new Notification("İş Tamamlandı!", {
-              body: `${data.job_name} - ${data.machine_name}\nKoli: ${data.completed_koli}`,
-              icon: "/logo192.png"
-            });
-          }
+          // NOT: Tarayıcı `new Notification(...)` çağrısı KALDIRILDI.
+          // Backend FCM push (firebase-messaging-sw.js) zaten arka planda OS-level bildirim gösteriyor;
+          // foreground'da onMessageListener bunu toast.success'a düşürüyor.
+          // Burada da new Notification çağırmak aynı bildirimi 2-3 kez göstermeye neden oluyordu.
           
           // Verileri yenile
           fetchData();
