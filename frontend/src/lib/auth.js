@@ -42,6 +42,7 @@ export const ROLE_DEFAULT_ROUTE = {
 const PANEL_SESSION_KEYS = [
   "operator_session", "plan_session", "depo_session",
   "warehouse_session", "bobin_session", "yonetim_master",
+  "paint_session", "marka_stok_session",
 ];
 
 export function getSession() {
