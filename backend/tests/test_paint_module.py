@@ -232,7 +232,7 @@ class TestPaintTransactions:
         })
         
         assert response.status_code == 400
-        print(f"Correctly rejected invalid movement type")
+        print("Correctly rejected invalid movement type")
     
     def test_paint_not_found(self):
         """POST /api/paints/transaction - Non-existent paint should fail"""
@@ -243,7 +243,7 @@ class TestPaintTransactions:
         })
         
         assert response.status_code == 404
-        print(f"Correctly rejected non-existent paint")
+        print("Correctly rejected non-existent paint")
 
 
 class TestPaintMovements:

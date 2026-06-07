@@ -50,7 +50,7 @@ class TestAuthenticationEndpoints:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["success"] == True
+        assert data["success"]
         assert "token" in data
         assert data["role"] == "management"
         # Verify JWT format (3 parts separated by dots)

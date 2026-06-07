@@ -194,7 +194,7 @@ class TestLockoutsAdmin:
         lst = requests.get(f"{BASE_URL}/api/admin/lockouts", headers=auth(tok))
         assert lst.status_code == 200, lst.text
         data = lst.json() if isinstance(lst.json(), list) else lst.json().get("lockouts", [])
-        accounts = [it.get("account") for it in data]
+        _ = [it.get("account") for it in data]
         # account may be the username directly; not strictly required - just attempt cleanup
         d = requests.delete(f"{BASE_URL}/api/admin/lockouts/{uname}", headers=auth(tok))
         assert d.status_code in (200, 204), d.text

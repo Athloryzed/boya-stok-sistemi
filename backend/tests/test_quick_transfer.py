@@ -46,7 +46,7 @@ class TestQuickTransferFeature:
         for job_id in self.created_job_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/jobs/{job_id}")
-            except:
+            except Exception:
                 pass
     
     def create_test_job(self, status="pending", machine=None, koli_count=100, produced_before_pause=0):
@@ -102,9 +102,9 @@ class TestQuickTransferFeature:
         result = response.json()
         
         # Verify response
-        assert result["success"] == True
+        assert result["success"]
         assert "split" in result
-        assert result["split"] == False  # No split for simple transfer
+        assert not result["split"]  # No split for simple transfer
         assert self.target_machine["name"] in result["message"]
         
         # Verify job was updated
@@ -138,8 +138,8 @@ class TestQuickTransferFeature:
         result = response.json()
         
         # Verify split occurred
-        assert result["success"] == True
-        assert result["split"] == True
+        assert result["success"]
+        assert result["split"]
         assert "new_job_id" in result
         
         # Track new job for cleanup
@@ -185,8 +185,8 @@ class TestQuickTransferFeature:
         result = response.json()
         
         # Verify job was completed (not split)
-        assert result["success"] == True
-        assert result["split"] == False
+        assert result["success"]
+        assert not result["split"]
         assert "tamamlandı" in result["message"].lower() or "completed" in result["message"].lower()
         
         # Verify job status
@@ -370,7 +370,7 @@ class TestQuickTransferEdgeCases:
         for job_id in self.created_job_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/jobs/{job_id}")
-            except:
+            except Exception:
                 pass
     
     def create_test_job(self, **kwargs):

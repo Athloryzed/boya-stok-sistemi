@@ -155,7 +155,7 @@ class TestJobManagement:
         complete_resp = api_client.put(f"{BASE_URL}/api/jobs/{job['id']}/complete", json={})
         assert complete_resp.status_code == 200
         data = complete_resp.json()
-        assert data.get("success") == True or "message" in data
+        assert data.get("success") is True or "message" in data
         print(f"✓ Completed job: {job['name']}")
         
         # Verify job status
@@ -164,7 +164,7 @@ class TestJobManagement:
         completed_job = next((j for j in jobs if j["id"] == job["id"]), None)
         assert completed_job is not None
         assert completed_job["status"] == "completed"
-        print(f"✓ Verified job completed status")
+        print("✓ Verified job completed status")
     
     def test_edit_job(self, api_client, test_machine):
         """Test PUT /api/jobs/{job_id} - edit job"""
@@ -243,7 +243,7 @@ class TestUserLogins:
         })
         # May fail if user doesn't exist - check status
         if response.status_code == 200:
-            print(f"✓ Operator login successful")
+            print("✓ Operator login successful")
         else:
             print(f"⚠ Operator login returned {response.status_code}: {response.json()}")
     
@@ -255,7 +255,7 @@ class TestUserLogins:
             "role": "operator"
         })
         assert response.status_code in [401, 404]
-        print(f"✓ Invalid password correctly rejected")
+        print("✓ Invalid password correctly rejected")
     
     def test_get_users_list(self, api_client):
         """Test GET /api/users"""

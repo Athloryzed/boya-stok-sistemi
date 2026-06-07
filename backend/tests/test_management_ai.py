@@ -18,7 +18,7 @@ class TestManagementAIOverview:
         """Test that management overview endpoint returns 200"""
         response = requests.get(f"{BASE_URL}/api/ai/management-overview", timeout=60)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        print(f"✓ Management overview returned 200")
+        print("✓ Management overview returned 200")
     
     def test_management_overview_has_overview_text(self):
         """Test that response contains overview text"""
@@ -48,7 +48,7 @@ class TestManagementAIOverview:
             assert field in stats, f"Stats missing required field: {field}"
             print(f"  ✓ stats.{field} = {stats[field]}")
         
-        print(f"✓ All required stats fields present")
+        print("✓ All required stats fields present")
     
     def test_management_overview_stats_are_numeric(self):
         """Test that stats values are numeric"""
@@ -60,7 +60,7 @@ class TestManagementAIOverview:
         for key, value in stats.items():
             assert isinstance(value, (int, float)), f"stats.{key} should be numeric, got {type(value)}"
         
-        print(f"✓ All stats values are numeric")
+        print("✓ All stats values are numeric")
     
     def test_management_overview_turkish_response(self):
         """Test that AI response is in Turkish"""
@@ -73,7 +73,7 @@ class TestManagementAIOverview:
         turkish_indicators = ["makine", "üretim", "iş", "koli", "fabrika", "durum", "verimlilik", "operatör"]
         found_turkish = any(word in overview for word in turkish_indicators)
         assert found_turkish, f"Response doesn't appear to be in Turkish: {overview[:200]}"
-        print(f"✓ Response is in Turkish")
+        print("✓ Response is in Turkish")
 
 
 class TestManagementAIChat:
@@ -87,7 +87,7 @@ class TestManagementAIChat:
         }
         response = requests.post(f"{BASE_URL}/api/ai/management-chat", json=payload, timeout=60)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        print(f"✓ Management chat returned 200")
+        print("✓ Management chat returned 200")
     
     def test_management_chat_response_structure(self):
         """Test that chat response has correct structure"""
@@ -103,7 +103,7 @@ class TestManagementAIChat:
         assert "session_id" in data, "Response missing 'session_id' field"
         assert isinstance(data["response"], str), "Response should be a string"
         assert len(data["response"]) > 10, "Response should be substantial"
-        print(f"✓ Chat response structure correct")
+        print("✓ Chat response structure correct")
         print(f"  Response: {data['response'][:150]}...")
     
     def test_management_chat_turkish_response(self):
@@ -124,7 +124,7 @@ class TestManagementAIChat:
         has_turkish_chars = any(c in data["response"] for c in "ğüşıöçĞÜŞİÖÇ")
         
         assert found_turkish or has_turkish_chars, f"Response doesn't appear to be in Turkish: {response_text[:200]}"
-        print(f"✓ Chat response is in Turkish")
+        print("✓ Chat response is in Turkish")
     
     def test_management_chat_session_continuity(self):
         """Test that chat session maintains context"""
@@ -139,7 +139,7 @@ class TestManagementAIChat:
         assert response1.status_code == 200
         data1 = response1.json()
         assert data1["session_id"] == session_id
-        print(f"✓ First message sent, session_id preserved")
+        print("✓ First message sent, session_id preserved")
         
         # Second message in same session
         payload2 = {
@@ -150,8 +150,8 @@ class TestManagementAIChat:
         assert response2.status_code == 200
         data2 = response2.json()
         assert data2["session_id"] == session_id
-        print(f"✓ Second message sent, session_id preserved")
-        print(f"✓ Chat session continuity works")
+        print("✓ Second message sent, session_id preserved")
+        print("✓ Chat session continuity works")
     
     def test_management_chat_missing_message_returns_422(self):
         """Test that missing message field returns 422"""
@@ -160,7 +160,7 @@ class TestManagementAIChat:
         }
         response = requests.post(f"{BASE_URL}/api/ai/management-chat", json=payload, timeout=30)
         assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-        print(f"✓ Missing message returns 422")
+        print("✓ Missing message returns 422")
     
     def test_management_chat_empty_message_handled(self):
         """Test that empty message is handled"""
@@ -194,7 +194,7 @@ class TestOperatorAIRegression:
         assert response.status_code == 200, f"Operator suggestion failed: {response.status_code}"
         data = response.json()
         assert "suggestions" in data
-        print(f"✓ Operator AI suggestion endpoint still works")
+        print("✓ Operator AI suggestion endpoint still works")
     
     def test_operator_chat_still_works(self):
         """Test that operator chat endpoint still works"""
@@ -213,7 +213,7 @@ class TestOperatorAIRegression:
         assert response.status_code == 200, f"Operator chat failed: {response.status_code}"
         data = response.json()
         assert "response" in data
-        print(f"✓ Operator AI chat endpoint still works")
+        print("✓ Operator AI chat endpoint still works")
 
 
 if __name__ == "__main__":

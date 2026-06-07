@@ -25,7 +25,7 @@ def depo_token():
     if response.status_code == 200:
         data = response.json()
         assert data.get("role") == "depo", f"Expected role=depo, got {data.get('role')}"
-        print(f"PASS: Login with depo1/depo123 successful (role=depo)")
+        print("PASS: Login with depo1/depo123 successful (role=depo)")
         return data.get("token")
     pytest.skip(f"Depo authentication failed: {response.status_code} - {response.text}")
 
@@ -40,7 +40,7 @@ def plan_token():
     if response.status_code == 200:
         data = response.json()
         assert data.get("role") == "plan", f"Expected role=plan, got {data.get('role')}"
-        print(f"PASS: Login with emrecan/testtest12 successful (role=plan)")
+        print("PASS: Login with emrecan/testtest12 successful (role=plan)")
         return data.get("token")
     pytest.skip(f"Plan authentication failed: {response.status_code} - {response.text}")
 
@@ -55,7 +55,7 @@ def operator_token():
     if response.status_code == 200:
         data = response.json()
         assert data.get("role") == "operator", f"Expected role=operator, got {data.get('role')}"
-        print(f"PASS: Login with ali/134679 successful (role=operator)")
+        print("PASS: Login with ali/134679 successful (role=operator)")
         return data.get("token"), data.get("role")
     pytest.skip(f"Operator authentication failed: {response.status_code} - {response.text}")
 
@@ -135,7 +135,7 @@ class TestBarcodeEndpoint:
         assert data["brand"] == "TEST_BarcodeLookup", "Brand should match"
         assert data["width_cm"] == 30, "Width should match"
         assert data["grammage"] == 20, "Grammage should match"
-        print(f"PASS: GET /api/bobins/barcode/TEST_BARCODE_LOOKUP returns correct bobin")
+        print("PASS: GET /api/bobins/barcode/TEST_BARCODE_LOOKUP returns correct bobin")
     
     def test_create_bobin_with_existing_barcode_merges_stock(self, depo_headers):
         """POST /api/bobins with existing barcode merges stock"""

@@ -83,7 +83,7 @@ class TestCustomerTracking:
         assert response.status_code == 200
         data = response.json()
         assert data.get("job_name") == "Et Yiyelim", f"Expected 'Et Yiyelim', got {data.get('job_name')}"
-        print(f"PASS: Sample tracking code QPF64LLJ returns 'Et Yiyelim' job")
+        print("PASS: Sample tracking code QPF64LLJ returns 'Et Yiyelim' job")
 
 
 class TestDragDropReorder:
@@ -121,7 +121,7 @@ class TestDragDropReorder:
         assert response.status_code == 200, f"Reorder failed: {response.text}"
         
         data = response.json()
-        assert data.get("success") == True, f"Reorder did not return success: {data}"
+        assert data.get("success") is True, f"Reorder did not return success: {data}"
         print("PASS: Reorder batch updates job order successfully")
     
     def test_reorder_batch_with_invalid_job_id(self):

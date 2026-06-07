@@ -96,7 +96,7 @@ class TestJobCreationAuditLog:
         print(f"✓ Audit log created for job: {job_create_log}")
         
         # Cleanup - delete the test job
-        delete_response = requests.delete(f"{BASE_URL}/api/jobs/{created_job['id']}")
+        _ = requests.delete(f"{BASE_URL}/api/jobs/{created_job['id']}")
         print(f"✓ Cleaned up test job: {created_job['id']}")
 
 
@@ -141,7 +141,7 @@ class TestJobStartAuditLog:
         audit_response = requests.get(f"{BASE_URL}/api/audit-logs")
         new_count = audit_response.json()["total"]
         
-        assert new_count > initial_count, f"Audit log count should increase after job start"
+        assert new_count > initial_count, "Audit log count should increase after job start"
         
         # Verify the audit log entry
         logs = audit_response.json()["logs"]

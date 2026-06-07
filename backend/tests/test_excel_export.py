@@ -26,13 +26,13 @@ class TestExcelExport:
         """Test GET /api/analytics/export?period=weekly returns 200"""
         response = requests.get(f"{BASE_URL}/api/analytics/export?period=weekly&week_offset=-1")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        print(f"✓ Weekly export returns 200")
+        print("✓ Weekly export returns 200")
     
     def test_monthly_export_returns_200(self):
         """Test GET /api/analytics/export?period=monthly returns 200"""
         response = requests.get(f"{BASE_URL}/api/analytics/export?period=monthly")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        print(f"✓ Monthly export returns 200")
+        print("✓ Monthly export returns 200")
     
     def test_export_content_type_is_excel(self):
         """Test that response content type is Excel"""

@@ -108,8 +108,8 @@ class TestManagementAuditLogs:
         d1 = r1.json()
         assert d0.get("total") == d1.get("total"), "Total should be consistent"
         if d0.get("total", 0) > 100:
-            ids0 = {l.get("id") for l in d0.get("logs", [])}
-            ids1 = {l.get("id") for l in d1.get("logs", [])}
+            ids0 = {log.get("id") for log in d0.get("logs", [])}
+            ids1 = {log.get("id") for log in d1.get("logs", [])}
             assert ids0 != ids1, "Page 0 and page 1 should have different logs"
         else:
             pytest.skip(f"Not enough audit logs to test pagination (total={d0.get('total')})")

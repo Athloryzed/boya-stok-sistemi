@@ -145,7 +145,7 @@ class TestShiftApprovalWorkflow:
         pending = pending_response.json()
         pending_ids = [r.get("id") for r in pending]
         assert report_id not in pending_ids, "Approved report should not be in pending list"
-        print(f"✓ Approved report removed from pending list")
+        print("✓ Approved report removed from pending list")
         
     def test_07_approve_nonexistent_report(self):
         """Test approving non-existent report returns 404"""
@@ -299,7 +299,7 @@ class TestPendingReportsDataStructure:
             assert our_report["target_koli"] == 100
             assert our_report["produced_koli"] == 75
             assert our_report["defect_kg"] == 2.5
-            assert our_report["is_completed"] == False
+            assert not our_report["is_completed"]
             assert our_report["status"] == "pending"
             
             print("✓ Pending report has correct structure and values")

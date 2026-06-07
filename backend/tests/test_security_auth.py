@@ -24,13 +24,13 @@ class TestPublicEndpoints:
         """GET /api/health should be public"""
         response = requests.get(f"{BASE_URL}/api/health")
         assert response.status_code == 200, f"Health endpoint failed: {response.text}"
-        print(f"✓ GET /api/health returns 200 (public)")
+        print("✓ GET /api/health returns 200 (public)")
     
     def test_root_endpoint_public(self):
         """GET /api/ should be public"""
         response = requests.get(f"{BASE_URL}/api/")
         assert response.status_code == 200, f"Root endpoint failed: {response.text}"
-        print(f"✓ GET /api/ returns 200 (public)")
+        print("✓ GET /api/ returns 200 (public)")
     
     def test_operator_login_public(self):
         """POST /api/users/login should be public and return token"""
@@ -38,7 +38,7 @@ class TestPublicEndpoints:
         assert response.status_code == 200, f"Operator login failed: {response.text}"
         data = response.json()
         assert "token" in data, "No token in response"
-        print(f"✓ POST /api/users/login (operator ali/134679) returns 200 with token")
+        print("✓ POST /api/users/login (operator ali/134679) returns 200 with token")
     
     def test_management_login_public(self):
         """POST /api/management/login should be public and return token"""
@@ -46,7 +46,7 @@ class TestPublicEndpoints:
         assert response.status_code == 200, f"Management login failed: {response.text}"
         data = response.json()
         assert "token" in data, "No token in response"
-        print(f"✓ POST /api/management/login with buse11993 returns 200 with token")
+        print("✓ POST /api/management/login with buse11993 returns 200 with token")
     
     def test_dashboard_login_public(self):
         """POST /api/dashboard/login should be public and return token"""
@@ -54,21 +54,21 @@ class TestPublicEndpoints:
         assert response.status_code == 200, f"Dashboard login failed: {response.text}"
         data = response.json()
         assert "token" in data, "No token in response"
-        assert data.get("success") == True, "Success flag not set"
-        print(f"✓ POST /api/dashboard/login with buse4 returns 200 with token")
+        assert data.get("success") is True, "Success flag not set"
+        print("✓ POST /api/dashboard/login with buse4 returns 200 with token")
     
     def test_dashboard_login_wrong_password(self):
         """POST /api/dashboard/login with wrong password should return 401"""
         response = requests.post(f"{BASE_URL}/api/dashboard/login", json={"password": "wrongpassword"})
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ POST /api/dashboard/login with wrong password returns 401")
+        print("✓ POST /api/dashboard/login with wrong password returns 401")
     
     def test_tracking_endpoint_public(self):
         """GET /api/takip/nonexistent should return 404 (not 401)"""
         response = requests.get(f"{BASE_URL}/api/takip/nonexistent_token_12345")
         # Should return 404 for invalid tracking token, NOT 401 (auth error)
         assert response.status_code == 404, f"Expected 404, got {response.status_code}: {response.text}"
-        print(f"✓ GET /api/takip/nonexistent returns 404 (not 401 - public endpoint)")
+        print("✓ GET /api/takip/nonexistent returns 404 (not 401 - public endpoint)")
     
     def test_visitors_log_public(self):
         """POST /api/visitors/log should be public"""
@@ -77,7 +77,7 @@ class TestPublicEndpoints:
             "page_visited": "/test"
         })
         assert response.status_code == 200, f"Visitors log failed: {response.status_code}: {response.text}"
-        print(f"✓ POST /api/visitors/log returns 200 without token (public)")
+        print("✓ POST /api/visitors/log returns 200 without token (public)")
     
     def test_drivers_login_wrong_creds(self):
         """POST /api/drivers/login with wrong creds should return 401 (not auth error)"""
@@ -87,7 +87,7 @@ class TestPublicEndpoints:
         })
         # Should return 401 for invalid credentials, not a different auth error
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ POST /api/drivers/login with wrong creds returns 401 (credential error, not auth error)")
+        print("✓ POST /api/drivers/login with wrong creds returns 401 (credential error, not auth error)")
 
 
 class TestProtectedEndpointsWithoutToken:
@@ -97,73 +97,73 @@ class TestProtectedEndpointsWithoutToken:
         """GET /api/machines without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/machines")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/machines without token returns 401")
+        print("✓ SECURITY: GET /api/machines without token returns 401")
     
     def test_jobs_requires_auth(self):
         """GET /api/jobs without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/jobs")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/jobs without token returns 401")
+        print("✓ SECURITY: GET /api/jobs without token returns 401")
     
     def test_dashboard_live_requires_auth(self):
         """GET /api/dashboard/live without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/dashboard/live")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/dashboard/live without token returns 401")
+        print("✓ SECURITY: GET /api/dashboard/live without token returns 401")
     
     def test_analytics_weekly_requires_auth(self):
         """GET /api/analytics/weekly without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/analytics/weekly")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/analytics/weekly without token returns 401")
+        print("✓ SECURITY: GET /api/analytics/weekly without token returns 401")
     
     def test_paints_requires_auth(self):
         """GET /api/paints without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/paints")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/paints without token returns 401")
+        print("✓ SECURITY: GET /api/paints without token returns 401")
     
     def test_shifts_current_requires_auth(self):
         """GET /api/shifts/current without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/shifts/current")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/shifts/current without token returns 401")
+        print("✓ SECURITY: GET /api/shifts/current without token returns 401")
     
     def test_defects_requires_auth(self):
         """GET /api/defects without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/defects")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/defects without token returns 401")
+        print("✓ SECURITY: GET /api/defects without token returns 401")
     
     def test_audit_logs_requires_auth(self):
         """GET /api/audit-logs without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/audit-logs")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/audit-logs without token returns 401")
+        print("✓ SECURITY: GET /api/audit-logs without token returns 401")
     
     def test_vehicles_requires_auth(self):
         """GET /api/vehicles without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/vehicles")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/vehicles without token returns 401")
+        print("✓ SECURITY: GET /api/vehicles without token returns 401")
     
     def test_drivers_requires_auth(self):
         """GET /api/drivers without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/drivers")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/drivers without token returns 401")
+        print("✓ SECURITY: GET /api/drivers without token returns 401")
     
     def test_visitors_stats_requires_auth(self):
         """GET /api/visitors/stats without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/visitors/stats")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/visitors/stats without token returns 401")
+        print("✓ SECURITY: GET /api/visitors/stats without token returns 401")
     
     def test_pallets_requires_auth(self):
         """GET /api/pallets without token should return 401"""
         response = requests.get(f"{BASE_URL}/api/pallets")
         assert response.status_code == 401, f"Expected 401, got {response.status_code}: {response.text}"
-        print(f"✓ SECURITY: GET /api/pallets without token returns 401")
+        print("✓ SECURITY: GET /api/pallets without token returns 401")
 
 
 class TestProtectedEndpointsWithToken:
@@ -207,7 +207,7 @@ class TestProtectedEndpointsWithToken:
         data = response.json()
         assert "summary" in data, "Expected summary in dashboard data"
         assert "machines" in data, "Expected machines in dashboard data"
-        print(f"✓ AUTH: GET /api/dashboard/live with dashboard token returns 200")
+        print("✓ AUTH: GET /api/dashboard/live with dashboard token returns 200")
     
     def test_analytics_weekly_with_token(self):
         """GET /api/analytics/weekly with valid JWT should return 200"""
@@ -215,7 +215,7 @@ class TestProtectedEndpointsWithToken:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         assert "machine_stats" in data, "Expected machine_stats in analytics"
-        print(f"✓ AUTH: GET /api/analytics/weekly with valid JWT returns 200")
+        print("✓ AUTH: GET /api/analytics/weekly with valid JWT returns 200")
     
     def test_paints_with_token(self):
         """GET /api/paints with valid JWT should return 200"""
@@ -229,7 +229,7 @@ class TestProtectedEndpointsWithToken:
         """GET /api/shifts/current with valid JWT should return 200"""
         response = requests.get(f"{BASE_URL}/api/shifts/current", headers=self.headers)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        print(f"✓ AUTH: GET /api/shifts/current with valid JWT returns 200")
+        print("✓ AUTH: GET /api/shifts/current with valid JWT returns 200")
     
     def test_defects_with_token(self):
         """GET /api/defects with valid JWT should return 200"""
@@ -237,7 +237,7 @@ class TestProtectedEndpointsWithToken:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         assert isinstance(data, list), "Expected list of defects"
-        print(f"✓ AUTH: GET /api/defects with valid JWT returns 200")
+        print("✓ AUTH: GET /api/defects with valid JWT returns 200")
     
     def test_audit_logs_with_token(self):
         """GET /api/audit-logs with valid JWT should return 200"""
@@ -246,7 +246,7 @@ class TestProtectedEndpointsWithToken:
         data = response.json()
         # Audit logs returns {"logs": [...], "total": N}
         assert "logs" in data or isinstance(data, list), "Expected logs in audit response"
-        print(f"✓ AUTH: GET /api/audit-logs with valid JWT returns 200")
+        print("✓ AUTH: GET /api/audit-logs with valid JWT returns 200")
 
 
 class TestAllLoginFlows:
@@ -263,7 +263,7 @@ class TestAllLoginFlows:
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/machines", headers=headers)
         assert verify.status_code == 200, "Operator token should work for protected endpoints"
-        print(f"✓ Operator login flow complete - token works for protected endpoints")
+        print("✓ Operator login flow complete - token works for protected endpoints")
     
     def test_plan_login_flow(self):
         """Plan user login should return valid token"""
@@ -276,7 +276,7 @@ class TestAllLoginFlows:
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/jobs", headers=headers)
         assert verify.status_code == 200, "Plan token should work for protected endpoints"
-        print(f"✓ Plan login flow complete - token works for protected endpoints")
+        print("✓ Plan login flow complete - token works for protected endpoints")
     
     def test_warehouse_login_flow(self):
         """Warehouse user login should return valid token"""
@@ -289,7 +289,7 @@ class TestAllLoginFlows:
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/pallets", headers=headers)
         assert verify.status_code == 200, "Warehouse token should work for protected endpoints"
-        print(f"✓ Warehouse login flow complete - token works for protected endpoints")
+        print("✓ Warehouse login flow complete - token works for protected endpoints")
     
     def test_management_login_flow(self):
         """Management login should return valid token"""
@@ -302,7 +302,7 @@ class TestAllLoginFlows:
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/analytics/weekly", headers=headers)
         assert verify.status_code == 200, "Management token should work for protected endpoints"
-        print(f"✓ Management login flow complete - token works for protected endpoints")
+        print("✓ Management login flow complete - token works for protected endpoints")
     
     def test_dashboard_login_flow(self):
         """Dashboard login should return valid token"""
@@ -310,13 +310,13 @@ class TestAllLoginFlows:
         assert response.status_code == 200
         data = response.json()
         assert "token" in data
-        assert data.get("success") == True
+        assert data.get("success") is True
         
         # Verify token works for dashboard endpoint
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/dashboard/live", headers=headers)
         assert verify.status_code == 200, "Dashboard token should work for dashboard/live"
-        print(f"✓ Dashboard login flow complete - token works for dashboard/live")
+        print("✓ Dashboard login flow complete - token works for dashboard/live")
 
 
 if __name__ == "__main__":

@@ -127,7 +127,7 @@ class TestAIOperatorChat:
         # Verify session_id is returned
         assert data["session_id"] == session_id, f"Session ID mismatch: expected {session_id}, got {data['session_id']}"
         
-        print(f"✓ Chat response structure valid, session_id preserved")
+        print("✓ Chat response structure valid, session_id preserved")
     
     def test_chat_response_is_turkish(self):
         """Test that chat response is in Turkish"""

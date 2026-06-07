@@ -50,7 +50,7 @@ class TestTransferHistory:
             })
             assert transfer_res.status_code == 200
             transfer_data = transfer_res.json()
-            assert transfer_data["success"] == True
+            assert transfer_data["success"]
             
             # Verify transfer_history was recorded
             job_res = requests.get(f"{BASE_URL}/api/jobs")
@@ -104,7 +104,7 @@ class TestTransferHistory:
             })
             assert transfer_res.status_code == 200
             transfer_data = transfer_res.json()
-            assert transfer_data["split"] == True
+            assert transfer_data["split"]
             assert "new_job_id" in transfer_data
             
             new_job_id = transfer_data["new_job_id"]

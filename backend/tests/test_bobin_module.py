@@ -53,7 +53,7 @@ def auth_token():
     })
     if response.status_code == 200:
         token = response.json().get("token")
-        print(f"PASS: Login with depo1/depo123 successful, got token")
+        print("PASS: Login with depo1/depo123 successful, got token")
         return token
     pytest.skip(f"Authentication failed: {response.status_code} - {response.text}")
 
@@ -251,7 +251,7 @@ class TestBobinStockOperations:
         response = requests.post(f"{BASE_URL}/api/bobins/{bobin_id}/to-machine", json=payload, headers=auth_headers)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
-        assert data["new_quantity"] == initial_qty - 2, f"Stock should decrease by 2"
+        assert data["new_quantity"] == initial_qty - 2, "Stock should decrease by 2"
         print(f"PASS: To-machine deducted stock: {data['message']}")
     
     def test_to_machine_insufficient_stock(self, auth_headers):
@@ -311,7 +311,7 @@ class TestBobinStockOperations:
         response = requests.post(f"{BASE_URL}/api/bobins/{bobin_id}/sale", json=payload, headers=auth_headers)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
-        assert data["new_quantity"] == initial_qty - 2, f"Stock should decrease by 2"
+        assert data["new_quantity"] == initial_qty - 2, "Stock should decrease by 2"
         print(f"PASS: Sale deducted stock: {data['message']}")
     
     def test_sale_requires_customer_name(self, auth_headers):
