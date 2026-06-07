@@ -23,6 +23,7 @@ import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from ".
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
+import UserMenu from "../components/UserMenu";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -1352,6 +1353,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <UserMenu />
           </div>
         </div>
       </div>

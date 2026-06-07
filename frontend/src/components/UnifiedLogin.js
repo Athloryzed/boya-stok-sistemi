@@ -93,8 +93,9 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
     try {
       const res = await axios.post(`${API}/dashboard/login`, { password: tvPwd });
       if (res.data?.token) {
-        localStorage.setItem("dashboard_token", res.data.token);
-        localStorage.setItem("dashboard_session", JSON.stringify(res.data));
+        // LiveDashboard sessionStorage'dan okur — bu yüzden sessionStorage'a yazıyoruz
+        sessionStorage.setItem("dashboard_token", res.data.token);
+        sessionStorage.setItem("dashboard_session", JSON.stringify(res.data));
         navigate("/dashboard");
       }
     } catch (err) {

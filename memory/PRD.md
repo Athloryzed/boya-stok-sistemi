@@ -55,6 +55,14 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
   - `/driver`: yonetim, plan, sofor
 - **Plan kullanıcısı**: Geri tuşuyla anasayfaya dönerse sadece erişebileceği panelleri görür (Yönetim hariç).
 
+### UserMenu + TV Login Bug Fix (Feb 7, 2026)
+- **Bug fix**: Canlı Pano şifresi yazıldıktan sonra tekrar şifre sormuyor — `UnifiedLogin.handleTvLogin` artık LiveDashboard'ın okuduğu `sessionStorage` anahtarına yazıyor.
+- **UserMenu component** (`components/UserMenu.js`): Sağ üst köşede avatar + dropdown. Header: avatar (baş harfi + hash-renkli gradient), display_name, roller, giriş tarihi/saati, Beni Hatırla badge'i. Dropdown: erişilebilir tüm paneller 2 sütunlu grid (mevcut sayfa highlighted), Anasayfa shortcut, Çıkış Yap.
+- **Entegrasyon**: ManagementFlow, OperatorFlow, PlanFlow, WarehouseFlow, PaintFlow, BobinFlow, DriverFlow, MarkaStokFlow — hepsinin header'ında theme-toggle yanına eklendi.
+- **Auth uyumluluk düzeltmesi**: `saveSession` artık panel session keylerine `login_time` ve `expiry` alanlarını da yazıyor; `management_session` ayrıca yazılıyor → tüm panellerin mevcut 24h auth check'leri merkezi session ile uyumlu çalışıyor.
+- ManagementFlow auth check `app_session`'a düştü → Yönetim girişinden sonra `/management` direkt açılır.
+- `clearSession` artık dashboard_token (sessionStorage), management_session ve tüm panel anahtarlarını temizler.
+
 ### Job Timeline & Operator Chain Badge (Feb 5, 2026)
 - Aktif iş kartında operatör değişimi varsa **"N değişim"** mor rozeti gösterilir (`data-testid="operator-history-badge-{jobId}"`).
 - Rozete tıklanınca **İş Hikayesi** modal'ı açılır: zaman sıralı tüm olaylar (başlatma, makine transferi, operatör değişimleri) + **Operatör Zinciri** özeti (ör. `Ali(0→25) → Mehmet(25→60) → Ahmet(60→100)`) + şu anki durum kartı.

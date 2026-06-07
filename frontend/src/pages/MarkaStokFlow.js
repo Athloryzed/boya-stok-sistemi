@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
+import UserMenu from "../components/UserMenu";
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -1028,6 +1029,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-text-secondary hidden md:inline px-2 py-1 rounded-full bg-surface border border-border">{userData?.display_name || userData?.username} · {role}</span>
             <Button variant="outline" size="icon" onClick={toggleTheme}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
+            <UserMenu />
             <Button variant="outline" onClick={handleLogout} className="text-error border-error/40">Çıkış</Button>
           </div>
         </div>

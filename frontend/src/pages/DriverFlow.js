@@ -11,6 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
+import UserMenu from "../components/UserMenu";
 
 const DriverFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -310,6 +311,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>
+          <UserMenu />
           <Button variant="outline" size="sm" onClick={handleLogout}>
             Çıkış
           </Button>

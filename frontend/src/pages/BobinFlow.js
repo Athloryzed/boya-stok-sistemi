@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { useConfirm } from "../components/ConfirmProvider";
+import UserMenu from "../components/UserMenu";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
 const LAYER_OPTIONS = [
@@ -494,6 +495,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             <Button variant="ghost" size="sm" onClick={toggleTheme} className="text-zinc-400 hover:text-white">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <UserMenu />
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-zinc-400 hover:text-white" data-testid="bobin-logout-btn">
               <LogOut className="h-4 w-4" />
             </Button>

@@ -21,6 +21,7 @@ import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import SecurityDashboard from "../components/SecurityDashboard";
 import JobThumb from "../components/JobThumb";
+import UserMenu from "../components/UserMenu";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -110,8 +111,22 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
-  // 1 günlük oturum kontrolü
+  // 1 günlük oturum kontrolü — yeni merkezi app_session VEYA eski management_session
   useEffect(() => {
+    // Önce yeni merkezi session
+    try {
+      const central = JSON.parse(localStorage.getItem("app_session") || "null");
+      if (central && central.token) {
+        const roles = (central.roles && central.roles.length ? central.roles : [central.role]).filter(Boolean);
+        if (roles.includes("yonetim")) {
+          setAuthenticated(true);
+          setManagerId(central.id || central.username || "yonetim");
+          localStorage.setItem("auth_token", central.token);
+          return;
+        }
+      }
+    } catch (_) { /* noop */ }
+
     const savedSession = localStorage.getItem("management_session");
     if (savedSession) {
       try {
@@ -1445,6 +1460,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <UserMenu />
             <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
               <LogOut className="h-4 w-4 md:mr-1.5" />
               <span className="hidden md:inline">Çıkış</span>

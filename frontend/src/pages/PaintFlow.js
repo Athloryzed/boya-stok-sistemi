@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import UserMenu from "../components/UserMenu";
 
 // Boya renk haritası (gerçek renklere yakın)
 const PAINT_COLORS = {
@@ -331,6 +332,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
+          <UserMenu />
         </div>
 
         <h1 className="text-4xl md:text-5xl font-heading font-black text-pink-500 mb-4">

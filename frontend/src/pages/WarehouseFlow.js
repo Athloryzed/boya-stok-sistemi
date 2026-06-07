@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import JobThumb from "../components/JobThumb";
+import UserMenu from "../components/UserMenu";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -509,6 +510,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
+            <UserMenu />
           </div>
         </div>
 

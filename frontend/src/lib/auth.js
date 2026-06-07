@@ -105,13 +105,26 @@ export function saveSession({
       localStorage.setItem(REMEMBER_USERNAME_KEY, username);
     }
     // Geriye dönük uyumluluk: panel-bazlı session keylerini de yaz
+    const nowMs = Date.now();
     const compat = {
       username, display_name: display_name || username,
       roles: session.roles, role: session.role,
       token, refresh_token,
+      // Panel session formatları için ek alanlar
+      login_time: nowMs,
+      expiry: nowMs + (remember_me ? 7 * 86400000 : 86400000),
     };
     for (const k of PANEL_SESSION_KEYS) {
       localStorage.setItem(k, JSON.stringify(compat));
+    }
+    // Yönetim rolü için management_session (expiry formatlı) ek olarak yaz
+    if (session.roles.includes("yonetim")) {
+      const expiry = Date.now() + (remember_me ? 7 * 86400000 : 86400000);
+      localStorage.setItem("management_session", JSON.stringify({
+        managerId: username || "yonetim",
+        token,
+        expiry,
+      }));
     }
     return session;
   } catch (e) {
@@ -128,6 +141,10 @@ export function clearSession() {
     for (const k of PANEL_SESSION_KEYS) {
       localStorage.removeItem(k);
     }
+    localStorage.removeItem("management_session");
+    localStorage.removeItem("dashboard_token");
+    sessionStorage.removeItem("dashboard_token");
+    sessionStorage.removeItem("dashboard_session");
   } catch (_) {
     /* noop */
   }

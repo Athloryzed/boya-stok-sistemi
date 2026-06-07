@@ -17,6 +17,7 @@ import { iosNotificationStatus } from "../utils/iosPwa";
 import IOSInstallGuide from "../components/IOSInstallGuide";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
+import UserMenu from "../components/UserMenu";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -1028,6 +1029,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <UserMenu />
             {step > 1 && (
               <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
                 <span className="hidden sm:inline">Çıkış</span>
