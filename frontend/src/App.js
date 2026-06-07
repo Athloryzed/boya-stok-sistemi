@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ConnectionBanner from "./components/ConnectionBanner";
 import { Toaster } from "./components/ui/sonner";
 import { ConfirmProvider } from "./components/ConfirmProvider";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // ResizeObserver loop uyarısını bastır.
 // Bu, Radix Select / Dialog gibi bileşenlerin layout sırasında
@@ -347,14 +348,14 @@ function App() {
             <Suspense fallback={<RouteLoading />}>
               <Routes>
                 <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} />} />
-                <Route path="/operator" element={<ErrorBoundary><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/plan" element={<ErrorBoundary><PlanFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/management" element={<ErrorBoundary><ManagementFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/warehouse" element={<ErrorBoundary><WarehouseFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/paint" element={<ErrorBoundary><PaintFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/driver" element={<ErrorBoundary><DriverFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/bobin" element={<ErrorBoundary><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
-                <Route path="/marka-stok" element={<ErrorBoundary><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ErrorBoundary>} />
+                <Route path="/operator" element={<ErrorBoundary><ProtectedRoute><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/plan" element={<ErrorBoundary><ProtectedRoute><PlanFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/management" element={<ErrorBoundary><ProtectedRoute><ManagementFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/warehouse" element={<ErrorBoundary><ProtectedRoute><WarehouseFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/paint" element={<ErrorBoundary><ProtectedRoute><PaintFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/driver" element={<ErrorBoundary><ProtectedRoute><DriverFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/bobin" element={<ErrorBoundary><ProtectedRoute><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/marka-stok" element={<ErrorBoundary><ProtectedRoute><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/dashboard" element={<LiveDashboard />} />
                 <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
               </Routes>

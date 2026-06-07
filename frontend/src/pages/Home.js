@@ -2,8 +2,11 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut } from "lucide-react";
 import { API } from "../App";
+import UnifiedLogin from "../components/UnifiedLogin";
+import { getSession, isSessionValid, clearSession, canAccessRoute } from "../lib/auth";
+import { toast } from "sonner";
 
 // Dalgalanan Türk Bayrağı bileşeni
 const WavingFlag = () => (
@@ -128,33 +131,33 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
-  const [isYonetimUser, setIsYonetimUser] = useState(false);
+  const [session, setSession] = useState(() => (isSessionValid() ? getSession() : null));
+  const isYonetimUser = !!(session && (session.role === "yonetim" || (session.roles || []).includes("yonetim")));
   const [todayMenu, setTodayMenu] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
-    // Bugünün yemek menüsü (auth gerekmez, herkese açık)
     axios.get(`${API}/menu/today`)
       .then(res => setTodayMenu(res.data))
       .catch(() => setTodayMenu(null));
-    // Yonetim kullanicisi mi kontrol et (herhangi bir panele kayitli session)
-    const checkYonetim = () => {
-      const keys = ["bobin_session", "operator_session", "plan_session", "depo_session", "warehouse_session", "yonetim_master"];
-      for (const k of keys) {
-        try {
-          const s = JSON.parse(localStorage.getItem(k) || "null");
-          if (s && Array.isArray(s.roles) && s.roles.includes("yonetim")) {
-            setIsYonetimUser(true);
-            return;
-          }
-        } catch {}
-      }
-      setIsYonetimUser(false);
-    };
-    checkYonetim();
-    window.addEventListener("storage", checkYonetim);
-    return () => { clearInterval(t); window.removeEventListener("storage", checkYonetim); };
+    const reloadSession = () => setSession(isSessionValid() ? getSession() : null);
+    window.addEventListener("storage", reloadSession);
+    return () => { clearInterval(t); window.removeEventListener("storage", reloadSession); };
   }, []);
+
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+    toast.info("Çıkış yapıldı");
+  };
+
+  const handleModuleClick = (path) => {
+    if (!canAccessRoute(path)) {
+      toast.error("Bu panele erişim yetkiniz yok");
+      return;
+    }
+    navigate(path);
+  };
 
   const hour = time.getHours();
   const minutes = time.getMinutes();
@@ -493,29 +496,69 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         )}
 
 
-        {/* Module cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full">
-          {modules.map((mod, i) => (
-            <motion.div key={mod.path}
-              initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 + i * 0.08, ease: "easeOut" }}
-              onClick={() => navigate(mod.path)}
-              data-testid={`module-${mod.path.slice(1)}`}
-              className="group cursor-pointer">
-              <div className={`relative p-5 sm:p-6 rounded-2xl backdrop-blur-md border transition-all duration-300
-                ${isNight
-                  ? "bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/40"
-                  : "bg-white/60 border-white/80 hover:bg-white/80 hover:border-white shadow-lg hover:shadow-xl"
-                } hover:-translate-y-1 active:scale-95`}>
-                <mod.icon className="h-7 w-7 sm:h-8 sm:w-8 mx-auto mb-2" style={{ color: mod.color }} />
-                <h3 className={`text-xs sm:text-sm font-bold text-center ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
-                <p className={`text-[10px] text-center mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ boxShadow: `0 0 30px ${mod.color}30, 0 0 60px ${mod.color}10` }} />
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        {/* Module cards - Sadece erişebileceği paneller görünür */}
+        {(() => {
+          // Auth durumuna göre modülleri filtrele
+          const visibleModules = session
+            ? modules.filter((m) => m.path === "/dashboard" || canAccessRoute(m.path))
+            : [];
+          if (!session) return null;
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full">
+              {visibleModules.map((mod, i) => (
+                <motion.div key={mod.path}
+                  initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 + i * 0.08, ease: "easeOut" }}
+                  onClick={() => handleModuleClick(mod.path)}
+                  data-testid={`module-${mod.path.slice(1)}`}
+                  className="group cursor-pointer">
+                  <div className={`relative p-5 sm:p-6 rounded-2xl backdrop-blur-md border transition-all duration-300
+                    ${isNight
+                      ? "bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/40"
+                      : "bg-white/60 border-white/80 hover:bg-white/80 hover:border-white shadow-lg hover:shadow-xl"
+                    } hover:-translate-y-1 active:scale-95`}>
+                    <mod.icon className="h-7 w-7 sm:h-8 sm:w-8 mx-auto mb-2" style={{ color: mod.color }} />
+                    <h3 className={`text-xs sm:text-sm font-bold text-center ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
+                    <p className={`text-[10px] text-center mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
+                    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{ boxShadow: `0 0 30px ${mod.color}30, 0 0 60px ${mod.color}10` }} />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Giriş kartı — auth yoksa göster */}
+        {!session && (
+          <UnifiedLogin isNight={isNight} onAuthenticated={(u) => setSession(getSession())} />
+        )}
+
+        {/* Hoşgeldin + Çıkış (auth varsa) */}
+        {session && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            data-testid="welcome-bar"
+            className={`mt-2 flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-md border ${
+              isNight ? "bg-white/10 border-white/20 text-white" : "bg-white/70 border-white/80 text-zinc-800"
+            }`}
+          >
+            <span className="text-xs">
+              <span className="opacity-70">Giriş:</span>{" "}
+              <span className="font-semibold">{session.display_name || session.username}</span>{" "}
+              <span className="text-amber-400/90 font-mono text-[10px]">
+                ({(session.roles || [session.role]).join(", ")})
+              </span>
+            </span>
+            <button
+              onClick={handleLogout}
+              data-testid="home-logout-btn"
+              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
+            >
+              <LogOut className="w-3 h-3" /> Çıkış
+            </button>
+          </motion.div>
+        )}
       </div>
 
       {/* YONETIM HIZLI PANEL */}

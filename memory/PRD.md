@@ -39,6 +39,22 @@ Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 - `transfer_history` array'i job belgesinde her değişimi kaydeder (audit + alarm + websocket broadcast).
 - Analytics fix: `routes/analytics.py` `daily-detail` artık aynı gün tamamlanan işlerde eski operatör/yeni operatör payını ayırıyor (çift kredi sorunu engellendi).
 
+### Unified Home Login & Role-Based Access Control (Feb 7, 2026)
+- **Tek giriş noktası**: Anasayfada (`/`) merkezi giriş kartı (`components/UnifiedLogin.js`) — kullanıcı adı + şifre + Beni Hatırla + Canlı Pano (TV) alt linki.
+- Atatürk + Türk Bayrağı + 23 Nisan teması korunur. Glass-morphism + framer-motion animasyonlar.
+- **Rol bazlı landing**: Login sonrası rolün varsayılan paneline yönlendirilir (yonetim → /management, plan → /plan, operator → /operator, sofor → /driver).
+- **Auth lib** (`lib/auth.js`): `saveSession`, `getSession`, `isSessionValid`, `canAccessRoute`, `clearSession`, `getRememberedUsername`, `ROUTE_ROLES` haritası.
+- **24h politikası**: `remember_me=false` ise 24 saat sonra session geçersiz; `remember_me=true` ise refresh token süresine kadar (7 gün) geçerli, username localStorage'a kaydedilir.
+- **ProtectedRoute** (`components/ProtectedRoute.js`): App.js'te tüm panel route'larını sarar. Geçersiz session veya yetersiz rolde anasayfaya redirect + toast.
+- **Geriye dönük uyumluluk**: `saveSession` aynı verileri eski panel-bazlı session anahtarlarına da yazar → mevcut panel akışları değişmeden çalışır.
+- **Rol erişim haritası** (ROUTE_ROLES):
+  - `/management`: yonetim
+  - `/operator`: yonetim, operator
+  - `/plan`: yonetim, plan
+  - `/warehouse`, `/paint`, `/bobin`, `/marka-stok`: yonetim, plan, depo
+  - `/driver`: yonetim, plan, sofor
+- **Plan kullanıcısı**: Geri tuşuyla anasayfaya dönerse sadece erişebileceği panelleri görür (Yönetim hariç).
+
 ### Job Timeline & Operator Chain Badge (Feb 5, 2026)
 - Aktif iş kartında operatör değişimi varsa **"N değişim"** mor rozeti gösterilir (`data-testid="operator-history-badge-{jobId}"`).
 - Rozete tıklanınca **İş Hikayesi** modal'ı açılır: zaman sıralı tüm olaylar (başlatma, makine transferi, operatör değişimleri) + **Operatör Zinciri** özeti (ör. `Ali(0→25) → Mehmet(25→60) → Ahmet(60→100)`) + şu anki durum kartı.
