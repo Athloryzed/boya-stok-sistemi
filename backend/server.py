@@ -32,6 +32,7 @@ from websocket_manager import ws_manager, ws_manager_mgmt
 
 # Route modules
 from routes.health import router as health_router
+from routes.weather import router as weather_router
 from routes.machines import router as machines_router
 from routes.jobs import router as jobs_router
 from routes.shifts import router as shifts_router
@@ -85,6 +86,7 @@ async def health_check():
 # API Router - tüm route modüllerini dahil et
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health_router)
+api_router.include_router(weather_router)
 api_router.include_router(machines_router)
 api_router.include_router(jobs_router)
 api_router.include_router(shifts_router)

@@ -862,3 +862,31 @@ Her panel kendi `*_session` (bobin_session, depo_session, plan_session, marka_st
 ### Backlog notları
 - (P3, mevcut durum) Plan "Yeni İş" dialogundaki tarih alanı native date input — shadcn Calendar'a geçirilebilir.
 - /management'taki legacy şifre ekranı artık görünmüyor (tasarım gereği: yönetim girişi anasayfa unified login'den). Yönetim rollü bir test kullanıcısı test_credentials.md'ye eklenebilir.
+
+---
+
+## Oturum Devamı: Dinamik Hava Durumu Arka Planı (11 Haziran 2026)
+
+**Kullanıcı isteği:** Anasayfa arka planı İstanbul'un anlık hava durumuna göre şekillensin; saatlik güncellensin; animasyonlu sahneler olsun (Atatürk + Türk Bayrağı korunarak).
+
+### Yapılanlar
+- **Backend:** `routes/weather.py` → `GET /api/weather/istanbul` (auth gerekmez, anasayfa login öncesi de çağrılır). Open-Meteo ücretsiz API proxy'si (API anahtarı GEREKMEZ), 30 dk bellek içi önbellek, sağlayıcı hatasında son bilinen veri (stale=true). Veri: temperature_c, weather_code (WMO), is_day, wind_speed_kmh.
+- **Home.js:** WMO kodu → sahne kategorisi (clear/partly/cloudy/fog/rain/snow/thunder). Her kategori için:
+  - Gökyüzü gradyanı değişir (yağmur=gri, kar=beyaz-mavi, fırtına=koyu, sis=gri)
+  - YAĞMUR: 38 düşen damla (rüzgâr >30 km/s ise eğik), koyu bulutlar, güneş gizli
+  - KAR: 30 salınan kar tanesi + zemin beyaza döner, çiçekler gizlenir
+  - FIRTINA: yağmur + periyodik tam ekran şimşek parlaması + parlayan şimşek oku
+  - SİS: 3 süzülen bulanık sis bandı, güneş gizli
+  - KAPALI: 7 bulut + soluk güneş; yıldızlar yalnız açık gecelerde
+  - Kelebek/yaprak animasyonları yalnız sakin havada
+- **Hava rozeti:** Saat altında `[ikon] 20°C · Açık · İstanbul` (data-testid="weather-chip"), rüzgârlıysa 💨 hız gösterir.
+- **Önizleme:** `/?hava=rain|snow|thunder|fog|cloudy|partly|clear` ile tüm sahneler manuel test edilebilir.
+- **Lite mod + prefers-reduced-motion:** tüm hava efektleri kapanır.
+
+### Test
+- Backend curl: gerçek veri + 30 dk önbellek doğrulandı.
+- Screenshot: thunder/snow/fog/clear sahneleri ?hava= parametresiyle görsel doğrulandı; rain/snow/thunder/fog katman testid'leri DOM'da mevcut.
+- Bug düzeltildi: güneş/ay bloğu koşul sarmalayıcısının açılışı uygulanmamıştı → ekranda ")}"" metni görünüyordu; düzeltildi ve doğrulandı.
+
+### Not
+- Open-Meteo verisi CC BY 4.0 — ticari olmayan kullanımda günde ~10.000 çağrı limiti var; 30 dk önbellekle günde en fazla ~48 çağrı yapılır.

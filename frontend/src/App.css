@@ -1066,3 +1066,93 @@ h1, h2, h3, .font-heading {
     animation: none !important;
   }
 }
+
+/* ===================================================================
+   HAVA DURUMU SAHNESİ (Anasayfa — İstanbul canlı hava durumu)
+   =================================================================== */
+
+/* Yağmur damlası */
+.rain-drop {
+  position: absolute;
+  top: -30px;
+  width: 1.5px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(200, 225, 255, 0.75));
+  border-radius: 2px;
+  animation: rainFall linear infinite;
+  will-change: transform;
+}
+@keyframes rainFall {
+  0% { transform: translate3d(0, -6vh, 0); opacity: 0; }
+  8% { opacity: 1; }
+  100% { transform: translate3d(var(--rain-drift, 20px), 106vh, 0); opacity: 0.6; }
+}
+
+/* Kar tanesi */
+.snow-flake {
+  position: absolute;
+  top: -12px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  filter: blur(0.5px);
+  animation: snowFall linear infinite;
+  will-change: transform;
+}
+@keyframes snowFall {
+  0%   { transform: translate3d(0, -6vh, 0); }
+  25%  { transform: translate3d(18px, 25vh, 0); }
+  50%  { transform: translate3d(-14px, 50vh, 0); }
+  75%  { transform: translate3d(16px, 75vh, 0); }
+  100% { transform: translate3d(-10px, 106vh, 0); }
+}
+
+/* Şimşek parlaması (tam ekran) */
+.lightning-flash {
+  background: radial-gradient(ellipse at 30% 10%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 45%, transparent 75%);
+  animation: lightningFlash 7s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes lightningFlash {
+  0%, 86%, 92%, 100% { opacity: 0; }
+  87%, 89% { opacity: 0.55; }
+  88% { opacity: 0.15; }
+  90% { opacity: 0.4; }
+}
+
+/* Şimşek oku */
+.lightning-bolt {
+  animation: boltFlash 7s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(255, 224, 138, 0.9));
+  opacity: 0;
+}
+@keyframes boltFlash {
+  0%, 84%, 93%, 100% { opacity: 0; }
+  86%, 91% { opacity: 1; }
+}
+
+/* Sis bandı */
+.fog-band {
+  position: absolute;
+  left: -60%;
+  width: 160%;
+  height: 22vh;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85) 25%, rgba(255, 255, 255, 0.7) 75%, transparent);
+  filter: blur(26px);
+  border-radius: 50%;
+  animation: fogDrift ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes fogDrift {
+  0% { transform: translateX(-12%); }
+  50% { transform: translateX(14%); }
+  100% { transform: translateX(-12%); }
+}
+
+/* Lite mod + erişilebilirlik: hava efektleri kapanır */
+.lite-mode .rain-drop,
+.lite-mode .snow-flake,
+.lite-mode .lightning-flash,
+.lite-mode .lightning-bolt,
+.lite-mode .fog-band { animation: none !important; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .rain-drop, .snow-flake, .lightning-flash, .lightning-bolt, .fog-band { animation: none !important; }
+}

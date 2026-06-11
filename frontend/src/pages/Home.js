@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
 import { getSession, isSessionValid, clearSession, canAccessRoute } from "../lib/auth";
@@ -127,6 +127,27 @@ const modules = [
   { name: "Canli Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];
 
+// WMO hava kodu → sahne kategorisi
+const weatherCategory = (code) => {
+  if (code === null || code === undefined) return "clear";
+  if (code === 0) return "clear";
+  if (code === 1 || code === 2) return "partly";
+  if (code === 3) return "cloudy";
+  if (code === 45 || code === 48) return "fog";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
+  if (code >= 95) return "thunder";
+  return "clear";
+};
+const WEATHER_LABEL_TR = {
+  clear: "Açık", partly: "Parçalı Bulutlu", cloudy: "Kapalı", fog: "Sisli",
+  rain: "Yağmurlu", snow: "Karlı", thunder: "Gök Gürültülü",
+};
+const WEATHER_ICON = {
+  clear: Sun, partly: CloudSun, cloudy: Cloud, fog: CloudFog,
+  rain: CloudRain, snow: CloudSnow, thunder: CloudLightning,
+};
+
 const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
@@ -134,15 +155,23 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const [session, setSession] = useState(() => (isSessionValid() ? getSession() : null));
   const isYonetimUser = !!(session && (session.role === "yonetim" || (session.roles || []).includes("yonetim")));
   const [todayMenu, setTodayMenu] = useState(null);
+  const [weather, setWeather] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
     axios.get(`${API}/menu/today`)
       .then(res => setTodayMenu(res.data))
       .catch(() => setTodayMenu(null));
+    // İstanbul hava durumu — 30 dakikada bir yenile (backend 30 dk önbellekli)
+    const fetchWeather = () =>
+      axios.get(`${API}/weather/istanbul`)
+        .then(res => setWeather(res.data))
+        .catch(() => {});
+    fetchWeather();
+    const w = setInterval(fetchWeather, 30 * 60000);
     const reloadSession = () => setSession(isSessionValid() ? getSession() : null);
     window.addEventListener("storage", reloadSession);
-    return () => { clearInterval(t); window.removeEventListener("storage", reloadSession); };
+    return () => { clearInterval(t); clearInterval(w); window.removeEventListener("storage", reloadSession); };
   }, []);
 
   const handleLogout = () => {
@@ -164,6 +193,15 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const isNight = hour < 6 || hour >= 20;
   const isDusk = (hour >= 18 && hour < 20) || (hour >= 6 && hour < 8);
 
+  // Hava durumu türevleri (?hava=rain|snow|thunder|fog|cloudy|partly|clear ile önizleme yapılabilir)
+  const forcedWcat = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("hava") : null;
+  const wcat = forcedWcat && WEATHER_LABEL_TR[forcedWcat] ? forcedWcat : weatherCategory(weather?.weather_code);
+  const windy = (weather?.wind_speed_kmh || 0) >= 30;
+  const hideSun = wcat === "rain" || wcat === "thunder" || wcat === "fog";
+  const groundFills = wcat === "snow"
+    ? (isNight ? ["#39414f", "#2c3340", "#212733"] : ["#F1F5F9", "#E2E8F0", "#CBD5E1"])
+    : (isNight ? ["#1a3a1a", "#0f2a0f", "#0a1f0a"] : ["#4ade80", "#22c55e", "#16a34a"]);
+
   // 23 Nisan teması: yalnızca Nisan ayı boyunca (1-30 Nisan) aktif.
   // Mayıs sonrası balon yağmuru, çocuk siluetleri, bayraklı çocuklar gizlenir.
   const isAprilTheme = time.getMonth() === 3; // 0=Ocak, 3=Nisan
@@ -178,11 +216,19 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const sunX = 10 + dayProgress * 80;
   const sunY = 15 + Math.sin(dayProgress * Math.PI) * -10;
 
-  const skyGradient = isNight
-    ? "from-slate-900 via-indigo-950 to-slate-900"
-    : isDusk
-    ? "from-orange-300 via-pink-300 to-purple-400"
-    : "from-sky-300 via-sky-200 to-emerald-100";
+  // Gökyüzü: hava durumu + saat kombinasyonu
+  const skyGradient = (() => {
+    if (wcat === "thunder") return isNight ? "from-slate-950 via-slate-900 to-indigo-950" : "from-slate-800 via-slate-600 to-slate-500";
+    if (wcat === "rain") return isNight ? "from-slate-900 via-slate-800 to-slate-700" : "from-slate-600 via-slate-400 to-slate-300";
+    if (wcat === "snow") return isNight ? "from-slate-900 via-indigo-900 to-slate-700" : "from-slate-400 via-blue-100 to-white";
+    if (wcat === "fog") return isNight ? "from-gray-900 via-gray-800 to-gray-700" : "from-gray-400 via-gray-300 to-gray-200";
+    if (wcat === "cloudy") return isNight ? "from-slate-900 via-slate-800 to-slate-800" : "from-sky-400 via-gray-200 to-gray-100";
+    return isNight
+      ? "from-slate-900 via-indigo-950 to-slate-900"
+      : isDusk
+      ? "from-orange-300 via-pink-300 to-purple-400"
+      : "from-sky-300 via-sky-200 to-emerald-100";
+  })();
 
   // Petals
   const petals = useMemo(() =>
@@ -199,6 +245,20 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
       id: i, startX: 10 + Math.random() * 80, startY: 30 + Math.random() * 30,
       delay: Math.random() * 5,
       color: ["#FFBF00", "#60A5FA", "#F97316", "#A78BFA", "#34D399"][i]
+    })), []);
+
+  // Yağmur damlaları
+  const rainDrops = useMemo(() =>
+    Array.from({ length: 38 }, (_, i) => ({
+      id: i, left: Math.random() * 100, delay: Math.random() * 1.4,
+      duration: 0.9 + Math.random() * 0.6, len: 14 + Math.random() * 12,
+    })), []);
+
+  // Kar taneleri
+  const snowFlakes = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i, left: Math.random() * 100, delay: Math.random() * 10,
+      duration: 9 + Math.random() * 7, size: 4 + Math.random() * 5,
     })), []);
 
   // Dusen balonlar (yumurtalar yerine)
@@ -263,8 +323,9 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         </button>
       </div>
 
-      {/* Sun / Moon */}
-      <motion.div className="absolute z-10 pointer-events-none" style={{ left: `${sunX}%`, top: `${sunY}%` }}
+      {/* Sun / Moon — yağmur/fırtına/sis varken gizli, kapalı havada soluk */}
+      {!hideSun && (
+      <motion.div className="absolute z-10 pointer-events-none" style={{ left: `${sunX}%`, top: `${sunY}%`, opacity: wcat === "cloudy" ? 0.4 : 1 }}
         animate={{ left: `${sunX}%`, top: `${sunY}%` }} transition={{ duration: 2, ease: "easeInOut" }}>
         {isNight ? (
           <div className="w-16 h-16 rounded-full bg-gray-200 shadow-[0_0_40px_rgba(255,255,255,0.3)] relative">
@@ -281,28 +342,80 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           </div>
         )}
       </motion.div>
+      )}
 
-      {/* Stars */}
-      {isNight && [...Array(30)].map((_, i) => (
+      {/* Stars — sadece açık/az bulutlu gecelerde */}
+      {isNight && (wcat === "clear" || wcat === "partly") && [...Array(30)].map((_, i) => (
         <motion.div key={`star-${i}`} className="absolute w-1 h-1 bg-white rounded-full pointer-events-none"
           style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 40}%` }}
           animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.5 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 3 }} />
       ))}
 
-      {/* Clouds */}
-      {!isNight && [...Array(4)].map((_, i) => (
-        <motion.div key={`cloud-${i}`} className="absolute pointer-events-none" style={{ top: `${8 + i * 7}%` }}
-          animate={{ x: ["-20vw", "120vw"] }} transition={{ duration: 40 + i * 15, repeat: Infinity, ease: "linear", delay: i * 8 }}>
-          <div className="flex gap-0">
-            <div className={`rounded-full bg-white/60 ${i % 2 === 0 ? "w-20 h-8" : "w-16 h-6"}`} />
-            <div className={`rounded-full bg-white/50 -ml-4 mt-1 ${i % 2 === 0 ? "w-14 h-6" : "w-10 h-5"}`} />
-            <div className="rounded-full bg-white/40 -ml-3 mt-2 w-10 h-5" />
-          </div>
-        </motion.div>
-      ))}
+      {/* Clouds — hava durumuna göre yoğunluk, renk ve hız */}
+      {(() => {
+        if (wcat === "fog") return null;
+        const showClouds = !isNight || wcat === "rain" || wcat === "thunder" || wcat === "cloudy";
+        if (!showClouds) return null;
+        const count = wcat === "cloudy" ? 7 : (wcat === "rain" || wcat === "thunder" || wcat === "snow") ? 6 : 4;
+        const dark = wcat === "rain" || wcat === "thunder";
+        const c1 = dark ? "bg-slate-500/70" : "bg-white/60";
+        const c2 = dark ? "bg-slate-600/60" : "bg-white/50";
+        const c3 = dark ? "bg-slate-700/50" : "bg-white/40";
+        return [...Array(count)].map((_, i) => (
+          <motion.div key={`cloud-${i}`} className="absolute pointer-events-none" style={{ top: `${6 + i * 6}%` }}
+            animate={{ x: ["-20vw", "120vw"] }}
+            transition={{ duration: (40 + i * 12) / (windy ? 2 : 1), repeat: Infinity, ease: "linear", delay: i * (windy ? 3 : 7) }}>
+            <div className="flex gap-0">
+              <div className={`rounded-full ${c1} ${i % 2 === 0 ? "w-20 h-8" : "w-16 h-6"}`} />
+              <div className={`rounded-full ${c2} -ml-4 mt-1 ${i % 2 === 0 ? "w-14 h-6" : "w-10 h-5"}`} />
+              <div className={`rounded-full ${c3} -ml-3 mt-2 w-10 h-5`} />
+            </div>
+          </motion.div>
+        ));
+      })()}
 
-      {/* Cherry blossom petals */}
-      {!isNight && petals.map(p => (
+      {/* YAĞMUR — İstanbul'da yağmur/fırtına varsa */}
+      {(wcat === "rain" || wcat === "thunder") && !liteMode && (
+        <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden" data-testid="weather-rain">
+          {rainDrops.map(d => (
+            <span key={`rd-${d.id}`} className="rain-drop"
+              style={{ left: `${d.left}%`, height: d.len, animationDelay: `${d.delay}s`, animationDuration: `${d.duration}s`, "--rain-drift": windy ? "70px" : "22px" }} />
+          ))}
+        </div>
+      )}
+
+      {/* KAR */}
+      {wcat === "snow" && !liteMode && (
+        <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden" data-testid="weather-snow">
+          {snowFlakes.map(f => (
+            <span key={`sf-${f.id}`} className="snow-flake"
+              style={{ left: `${f.left}%`, width: f.size, height: f.size, animationDelay: `${f.delay}s`, animationDuration: `${f.duration}s` }} />
+          ))}
+        </div>
+      )}
+
+      {/* ŞİMŞEK */}
+      {wcat === "thunder" && !liteMode && (
+        <>
+          <div className="lightning-flash absolute inset-0 z-30 pointer-events-none" data-testid="weather-thunder" />
+          <svg className="lightning-bolt absolute z-20 pointer-events-none" style={{ left: "28%", top: "8%" }} width="46" height="90" viewBox="0 0 46 90">
+            <path d="M28 0 L8 44 L20 44 L12 90 L40 36 L26 36 Z" fill="#FFE08A" opacity="0.9" />
+          </svg>
+        </>
+      )}
+
+      {/* SİS */}
+      {wcat === "fog" && !liteMode && (
+        <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden" data-testid="weather-fog">
+          {[0, 1, 2].map(i => (
+            <div key={`fb-${i}`} className="fog-band"
+              style={{ top: `${26 + i * 22}%`, animationDuration: `${36 + i * 14}s`, animationDelay: `${i * -12}s`, opacity: 0.34 - i * 0.06 }} />
+          ))}
+        </div>
+      )}
+
+      {/* Cherry blossom petals — sadece sakin havada */}
+      {!isNight && (wcat === "clear" || wcat === "partly") && petals.map(p => (
         <motion.div key={`petal-${p.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${p.left}%`, top: -20, width: p.size, height: p.size * 0.7 }}
           animate={{ y: ["0vh", "110vh"], x: [0, Math.sin(p.id) * 60], rotate: [p.rotate, p.rotate + 360] }}
@@ -311,8 +424,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         </motion.div>
       ))}
 
-      {/* Butterflies */}
-      {!isNight && butterflies.map(b => (
+      {/* Butterflies — sadece sakin havada */}
+      {!isNight && (wcat === "clear" || wcat === "partly") && butterflies.map(b => (
         <motion.div key={`bf-${b.id}`} className="absolute z-20 pointer-events-none"
           style={{ left: `${b.startX}%`, top: `${b.startY}%` }}
           animate={{ x: [0, 80, -40, 60, 0], y: [0, -30, 20, -50, 0] }}
@@ -359,15 +472,15 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
       <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none">
         <svg viewBox="0 0 1440 200" className="w-full" preserveAspectRatio="none">
           <path d="M0,120 C200,80 400,140 600,100 C800,60 1000,130 1200,90 C1300,70 1400,110 1440,100 L1440,200 L0,200 Z"
-            fill={isNight ? "#1a3a1a" : "#4ade80"} />
+            fill={groundFills[0]} />
           <path d="M0,150 C300,120 500,160 800,130 C1000,110 1200,155 1440,140 L1440,200 L0,200 Z"
-            fill={isNight ? "#0f2a0f" : "#22c55e"} />
+            fill={groundFills[1]} />
           <path d="M0,170 C200,160 600,180 900,165 C1100,155 1300,175 1440,170 L1440,200 L0,200 Z"
-            fill={isNight ? "#0a1f0a" : "#16a34a"} />
+            fill={groundFills[2]} />
         </svg>
 
-        {/* Cicekler */}
-        {!isNight && [...Array(12)].map((_, i) => (
+        {/* Cicekler — karda gizli */}
+        {!isNight && wcat !== "snow" && [...Array(12)].map((_, i) => (
           <motion.div key={`flower-${i}`} className="absolute"
             style={{ left: `${5 + i * 8}%`, bottom: `${20 + Math.sin(i) * 15}px` }}
             animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
@@ -421,6 +534,27 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           <p className={`text-xs mt-1 ${isNight ? "text-gray-400" : "text-gray-500"}`}>
             {time.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
           </p>
+          {/* İstanbul canlı hava durumu rozeti */}
+          {weather && weather.temperature_c !== null && weather.temperature_c !== undefined && (() => {
+            const WIcon = WEATHER_ICON[wcat] || Sun;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                data-testid="weather-chip"
+                className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border text-xs font-semibold ${
+                  isNight ? "bg-white/10 border-white/20 text-white" : "bg-white/60 border-white/80 text-gray-700"
+                }`}
+              >
+                <WIcon className="w-3.5 h-3.5 text-amber-400" />
+                <span>{Math.round(weather.temperature_c)}°C</span>
+                <span className="opacity-60">·</span>
+                <span>{WEATHER_LABEL_TR[wcat]}</span>
+                <span className="opacity-60">·</span>
+                <span className="opacity-80">İstanbul</span>
+                {windy && <span className="ml-1 text-[10px] opacity-70">💨 {Math.round(weather.wind_speed_kmh)} km/s</span>}
+              </motion.div>
+            );
+          })()}
         </motion.div>
 
         {/* Bugünün Yemek Menüsü — tüm çalışanlara açık */}
