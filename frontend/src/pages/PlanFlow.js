@@ -24,6 +24,7 @@ import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -162,8 +163,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   }, []);
 
-  // Oturum kontrolü - 24 saatlik kalıcı oturum
+  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
   useEffect(() => {
+    // 1) Merkezi oturum — tek doğruluk kaynağı (Beni Hatırla / 24h politikası)
+    const central = resumeCentralSession("/plan");
+    if (central) {
+      setUserData(central);
+      setAuthenticated(true);
+      return;
+    }
+    // 2) Geriye dönük: eski plan_session (24 saatlik)
     const savedSession = localStorage.getItem("plan_session");
     if (savedSession) {
       try {
@@ -656,11 +665,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.removeItem("plan_session");
     setUserData(null);
     setAuthenticated(false);
     setUsername("");
     setPassword("");
+    navigate("/");
     toast.success("Çıkış yapıldı");
   };
 

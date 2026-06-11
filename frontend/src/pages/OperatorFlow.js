@@ -18,6 +18,7 @@ import IOSInstallGuide from "../components/IOSInstallGuide";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -286,6 +287,44 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   // Oturum kontrolü - localStorage'dan
   useEffect(() => {
     const checkSession = async () => {
+      // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı.
+      //    Geçerliyse şifre SORMADAN devam et; makine seçimi panel session'da
+      //    varsa korunur (yoksa makine seçim adımına geçilir).
+      const central = resumeCentralSession("/operator");
+      if (central) {
+        let panel = null;
+        try { panel = JSON.parse(localStorage.getItem("operator_session") || "null"); } catch (_) { panel = null; }
+        const merged = {
+          ...central,
+          machine_id: panel?.machine_id,
+          machine_name: panel?.machine_name,
+        };
+        setUserData(merged);
+        setOperatorName(central.display_name || central.username);
+        // operator_session'ı tazele (makine bilgisi korunur, login_time yenilenir)
+        localStorage.setItem("operator_session", JSON.stringify({ ...merged, login_time: Date.now() }));
+        await fetchMachinesData();
+        setStep(merged.machine_id ? 3 : 2);
+        // Push setup (best-effort)
+        try {
+          if (isNativePlatform()) {
+            await initializePushNotifications(merged.id, "operator");
+          } else {
+            const fcmToken = await requestFCMPermission();
+            if (fcmToken) {
+              await axios.post(`${API}/notifications/register-token`, {
+                token: fcmToken, user_type: "operator", user_id: merged.id, platform: "web",
+              });
+            }
+          }
+        } catch (pushError) {
+          console.error("Push notification setup error:", pushError);
+        }
+        setSessionChecked(true);
+        return;
+      }
+
+      // 2) Geriye dönük: eski operator_session (24 saatlik)
       const savedSession = localStorage.getItem("operator_session");
       if (savedSession) {
         try {
@@ -757,12 +796,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.removeItem("operator_session");
     setUserData(null);
     setSelectedMachine(null);
     setOperatorName("");
     setOperatorPassword("");
     setStep(1);
+    navigate("/");
     toast.success("Çıkış yapıldı");
   };
 

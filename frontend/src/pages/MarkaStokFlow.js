@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import UserMenu from "../components/UserMenu";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -945,6 +946,18 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   }, []);
 
   useEffect(() => {
+    // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı
+    const central = resumeCentralSession("/marka-stok");
+    if (central) {
+      setUserData(central);
+      const r = central.roles.includes("yonetim") ? "yonetim"
+        : central.roles.includes("plan") ? "planlama"
+        : "depo";
+      setRole(r);
+      setAuthenticated(true);
+      return;
+    }
+    // 2) Geriye dönük: eski marka_stok_session (24 saatlik)
     const sess = localStorage.getItem("marka_stok_session");
     if (sess) {
       try {
@@ -982,9 +995,11 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.removeItem("marka_stok_session");
     setUserData(null); setAuthenticated(false);
     setUsername(""); setPassword("");
+    navigate("/");
     toast.success("Çıkış yapıldı");
   };
 

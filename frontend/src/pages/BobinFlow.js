@@ -13,6 +13,7 @@ import axios from "axios";
 import { API } from "../App";
 import { useConfirm } from "../components/ConfirmProvider";
 import UserMenu from "../components/UserMenu";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
 const LAYER_OPTIONS = [
@@ -74,6 +75,14 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   // ============ SESSION ============
   useEffect(() => {
+    // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı.
+    const central = resumeCentralSession("/bobin");
+    if (central) {
+      setUserData(central);
+      setAuthenticated(true);
+      return;
+    }
+    // 2) Geriye dönük: eski panel-bazlı oturum
     const saved = localStorage.getItem("bobin_session");
     if (saved) {
       try {
@@ -112,10 +121,12 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.removeItem("bobin_session");
     localStorage.removeItem("auth_token");
     setAuthenticated(false);
     setUserData(null);
+    navigate("/");
   };
 
   // ============ DATA ============

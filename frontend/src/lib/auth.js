@@ -158,3 +158,38 @@ export function getRememberedUsername() {
     return "";
   }
 }
+
+/**
+ * Panellerin TEK doğruluk kaynağı.
+ * Merkezi oturum geçerliyse (remember_me / 24h politikasına göre) ve kullanıcı
+ * verilen route'a erişebiliyorsa, panelde kullanılacak normalize kullanıcı
+ * verisini döner. Aksi halde null döner.
+ *
+ * Yan etki: auth_token localStorage'da yoksa merkezi token'ı yazar
+ * (mevcut taze token'ı ASLA ezmeden — interceptor refresh'i korunur).
+ *
+ * Bu sayede ana sayfada bir kez giriş yapan kullanıcı, rolünün eriştiği
+ * panellerde tekrar şifre sormadan açılır.
+ */
+export function resumeCentralSession(routePath) {
+  if (!isSessionValid()) return null;
+  if (routePath && !canAccessRoute(routePath)) return null;
+  const s = getSession();
+  if (!s || !s.token) return null;
+  try {
+    if (!localStorage.getItem("auth_token")) {
+      localStorage.setItem("auth_token", s.token);
+    }
+  } catch (_) { /* noop */ }
+  const roles = (s.roles && s.roles.length) ? s.roles : (s.role ? [s.role] : []);
+  return {
+    token: s.token,
+    username: s.username || "",
+    display_name: s.display_name || s.username || "",
+    roles,
+    role: s.role || roles[0] || "",
+    id: s.id || s.username || "",
+    login_time: new Date(s.login_at || Date.now()).getTime(),
+    remember_me: !!s.remember_me,
+  };
+}

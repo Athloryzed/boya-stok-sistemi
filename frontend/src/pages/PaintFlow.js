@@ -14,6 +14,7 @@ import axios from "axios";
 import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import UserMenu from "../components/UserMenu";
+import { resumeCentralSession } from "../lib/auth";
 
 // Boya renk haritası (gerçek renklere yakın)
 const PAINT_COLORS = {
@@ -64,8 +65,15 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [paintForecast, setPaintForecast] = useState(null);
   const [paintAILoading, setPaintAILoading] = useState(false);
 
-  // Oturum kontrolü - 24 saatlik kalıcı oturum
+  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
   useEffect(() => {
+    // 1) Merkezi oturum — tek doğruluk kaynağı; /paint yonetim/plan/depo'ya açık
+    const central = resumeCentralSession("/paint");
+    if (central) {
+      setAuthenticated(true);
+      return;
+    }
+    // 2) Geriye dönük: eski paint_session (24 saatlik)
     const savedSession = localStorage.getItem("paint_session");
     if (savedSession) {
       try {

@@ -7,6 +7,7 @@ import ConnectionBanner from "./components/ConnectionBanner";
 import { Toaster } from "./components/ui/sonner";
 import { ConfirmProvider } from "./components/ConfirmProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { clearSession } from "./lib/auth";
 
 // ResizeObserver loop uyarısını bastır.
 // Bu, Radix Select / Dialog gibi bileşenlerin layout sırasında
@@ -166,9 +167,8 @@ async function _tryRefreshAccessToken() {
       }
       return null;
     } catch (e) {
-      // Refresh de başarısız — temizle
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("refresh_token");
+      // Refresh de başarısız — merkezi oturumu tamamen temizle
+      clearSession();
       return null;
     } finally {
       _refreshPromise = null;
@@ -218,9 +218,8 @@ axios.interceptors.response.use(
         cfg.headers.Authorization = `Bearer ${newToken}`;
         return axios(cfg);
       }
-      // Refresh başarısız → token'ları temizle
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("refresh_token");
+      // Refresh başarısız → merkezi oturumu temizle
+      clearSession();
       return Promise.reject(error);
     }
 

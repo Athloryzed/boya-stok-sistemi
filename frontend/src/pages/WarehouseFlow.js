@@ -18,6 +18,7 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -89,8 +90,16 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     }
   }, []);
 
-  // Oturum kontrolü - 24 saatlik kalıcı oturum
+  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
   useEffect(() => {
+    // 1) Merkezi oturum — tek doğruluk kaynağı (Beni Hatırla / 24h politikası)
+    const central = resumeCentralSession("/warehouse");
+    if (central) {
+      setUserData(central);
+      setAuthenticated(true);
+      return;
+    }
+    // 2) Geriye dönük: eski depo_session (24 saatlik)
     const savedSession = localStorage.getItem("depo_session");
     if (savedSession) {
       try {
@@ -145,11 +154,13 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.removeItem("depo_session");
     setUserData(null);
     setAuthenticated(false);
     setUsername("");
     setPassword("");
+    navigate("/");
     toast.success("Çıkış yapıldı");
   };
 

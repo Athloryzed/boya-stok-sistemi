@@ -807,6 +807,25 @@ Tüm yerli browser dialog'lar yeni hook'a yükseltildi → tutarlı UI + dark mo
 - Artık tek kanal: backend FCM push → OS-level bildirim + foreground'da `onMessageListener` → toast.success
 - WebSocket event'leri sadece UI güncelleme + in-app toast/banner için kullanılıyor
 
+## Birleşik Giriş — Tekrar Şifre Sorma Bug Fix (11 Haz 2026)
+
+### Sorun
+Ana sayfada (UnifiedLogin) bir kez giriş yapılmasına rağmen, zaman içinde paneller (Bobin, Depo, Plan, Marka/Stok, Boya, Operatör) kullanıcıdan tekrar şifre istiyordu.
+
+### Kök Sebep
+Her panel kendi `*_session` (bobin_session, depo_session, plan_session, marka_stok_session, paint_session, operator_session) anahtarına bakıyor ve **sabit 24 saat** `login_time` kontrolü uyguluyordu — merkezi `app_session`'ı ve "Beni Hatırla" (7 gün) politikasını yok sayıyordu. 24 saat dolunca veya panel anahtarı temizlenince/eviction olunca panel kendi giriş formuna düşüyordu. Ayrıca PaintFlow giriş formu `/management/login` (yönetim şifresi) gerektiriyordu → depo/plan kullanıcısı giremiyordu.
+
+### Çözüm (frontend-only, veri kaybı yok)
+- `lib/auth.js` → yeni `resumeCentralSession(routePath)`: merkezi oturum geçerli (isSessionValid: remember_me/24h) ve role route erişimi varsa (canAccessRoute) normalize kullanıcı verisi döner; `auth_token` yoksa merkezi token'ı yazar (taze token'ı ezmez).
+- Tüm paneller (Bobin, Warehouse, Plan, MarkaStok, Paint, Operator) session useEffect'i artık ÖNCE merkezi oturumdan hidratlanıyor; eski panel-key kontrolü yalnızca geriye dönük fallback. → Rolün eriştiği paneller bir daha şifre sormuyor.
+- Operatör özel: merkezi oturumdan hidratlanır, makine seçimi panel session'da varsa korunur (step 3), yoksa makine seçim adımına (step 2) geçer — şifre sorulmaz.
+- Panel `handleLogout`'ları artık `clearSession()` (merkezi) çağırıp ana sayfaya yönlendiriyor → çıkış gerçekten çıkış yapıyor.
+- `App.js` axios interceptor: refresh token reddedilince (gerçek expiry) `clearSession()` ile tüm oturum temizleniyor.
+
+### Doğrulama (e2e screenshot)
+- depo1 ile ana sayfadan giriş → tüm panel-key'ler silindi (24h/eviction simülasyonu) → /bobin, /marka-stok, /warehouse, /paint hepsi ŞİFRESİZ açıldı ✅ (Paint artık yönetim şifresi istemiyor).
+- ali (operator) ile giriş → /operator şifresiz makine seçim ekranı; /management'a gidince ana sayfaya redirect (RBAC korundu) ✅
+
 ### Bug B: Marka/Koli detay drawer'ı sayfanın altında açılıyor
 **Sebep:** `MarkaStokFlow.js`'de detay drawer'ı `flex items-end md:items-center` ile mobil için bottom-sheet tasarımındaydı. Pek çok ekranda ekranın altına denk geliyordu.
 
