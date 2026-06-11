@@ -15,7 +15,7 @@ import pytest
 import requests
 from openpyxl import load_workbook
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://bobin-tracker-pro.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://papermill-pro.preview.emergentagent.com").rstrip("/")
 
 
 @pytest.fixture(scope="module")
