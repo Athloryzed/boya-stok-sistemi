@@ -1,107 +1,94 @@
 {
-  "identity": {
-    "name": "Buse Kağıt",
-    "mission": "Industrial Precision meets Digital Efficiency.",
-    "archetype": "The Performance Pro (Industrial Safety + Fintech Clarity)",
-    "tone": "Robust, Reliable, High-Contrast, Efficient"
+  "theme": "Dark",
+  "archetype": "Archetype 2: Performance Pro (Industrial Precision)",
+  "color_palette": {
+    "primary": "#FFBF00",
+    "primary_hover": "#FFD24C",
+    "background": "#09090B",
+    "surface": "#18181B",
+    "surface_elevated": "#27272A",
+    "accents": [
+      {
+        "name": "Steel Blue",
+        "value": "#334E68"
+      },
+      {
+        "name": "Success",
+        "value": "#10B981"
+      },
+      {
+        "name": "Error",
+        "value": "#EF4444"
+      }
+    ],
+    "text": {
+      "primary": "#FAFAFA",
+      "secondary": "#A1A1AA",
+      "muted": "#71717A"
+    }
   },
   "typography": {
     "headings": {
-      "family": "Barlow Condensed, sans-serif",
+      "font": "Barlow Condensed",
       "weights": ["600", "700", "900"],
-      "usage": "All section titles, machine names, and key metrics."
+      "tracking": "tracking-tight",
+      "instruction": "Use for all module titles, panel headers, and large metric numbers. Apply uppercase for section headers."
     },
     "body": {
-      "family": "Inter, sans-serif",
+      "font": "Inter",
+      "weights": ["400", "500", "600"],
+      "instruction": "Left-align dense content. Use for descriptions, lists, standard buttons, and input fields."
+    },
+    "data_points": {
+      "font": "JetBrains Mono",
       "weights": ["400", "500"],
-      "usage": "General text, instructions, form labels."
-    },
-    "mono": {
-      "family": "JetBrains Mono, monospace",
-      "usage": "Machine IDs, Order Codes, Barcode values."
-    },
-    "import_url": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-  },
-  "colors": {
-    "palette": {
-      "primary": "#FFBF00",
-      "primary_foreground": "#000000",
-      "secondary": "#007AFF",
-      "background": "#09090B",
-      "surface": "#18181B",
-      "surface_highlight": "#27272A",
-      "text_primary": "#FAFAFA",
-      "text_secondary": "#A1A1AA",
-      "border": "#27272A"
-    },
-    "semantic": {
-      "success": "#10B981",
-      "warning": "#F59E0B",
-      "error": "#EF4444",
-      "info": "#3B82F6",
-      "maintenance": "repeating-linear-gradient(45deg, #FACC15, #FACC15 10px, #000000 10px, #000000 20px)"
-    },
-    "theme_strategy": "Dark Mode Default for Operators (Eye strain reduction), Light Mode Toggle for Office."
-  },
-  "layout": {
-    "spacing_scale": "Generous. Use p-6 or p-8 for containers. Gap-4 for dense grids, Gap-8 for layout sections.",
-    "grid_system": {
-      "home": "Bento Grid (1x4 or 2x2 depending on screen). Each module (Yönetim, Operatör, Plan, Depo) gets a massive card.",
-      "dashboard": "Dense Grid. 12-column system. Charts span 4-8 cols. Stats span 2-3 cols.",
-      "operator": "Touch-First Grid. Large buttons (min-height 64px). 2 columns max on mobile."
-    },
-    "container_style": "Rounded-xl. 1px Border (Zinc-800). Subtle inner glow for active states."
-  },
-  "components": {
-    "buttons": {
-      "style": "Sharp or slightly rounded (rounded-md). High contrast. Primary buttons use Safety Amber (#FFBF00) with Black text.",
-      "hover": "Transform -translate-y-1. Shadow-lg."
-    },
-    "cards": {
-      "style": "Flat background (Zinc-900). 1px Border. No heavy drop shadows, use 'inner glow' or border highlight.",
-      "interaction": "Hover: Border color changes to Primary (#FFBF00)."
-    },
-    "inputs": {
-      "style": "Filled background (Zinc-950). Border-b-2 (Underline style) or Full Border. Large text size (16px) to prevent zoom on mobile."
-    },
-    "tables": {
-      "style": "Compact. Zebra striping optional. Header uppercase + tracking-widest (Barlow Condensed)."
-    },
-    "modals": {
-      "style": "Backdrop blur-xl. Border-1px. Dark overlay."
+      "instruction": "Use tabular-nums for all live counters, statistics, and IDs to prevent layout shift during live updates."
     }
   },
-  "assets": {
-    "images": {
-      "home_bg": "https://images.unsplash.com/photo-1767294274634-613a3545e36d?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "operator_bg": "https://images.unsplash.com/photo-1693031630177-b897fb9d7154?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "warehouse_bg": "https://images.unsplash.com/photo-1729551610640-e8adee1172e3?crop=entropy&cs=srgb&fm=jpg&q=85",
-      "plan_bg": "https://images.unsplash.com/photo-1761819951977-022b27502018?crop=entropy&cs=srgb&fm=jpg&q=85"
-    },
-    "icons": "Lucide React. Use 'Factory', 'Settings', 'ClipboardList', 'Package', 'Wrench', 'AlertTriangle'."
+  "layout_and_spacing": {
+    "grid_system": "Bento Grid Protocol (Control Room Mode)",
+    "spacing_scale": "Generous spacing philosophy: Use p-4 to p-8 inside cards. For touch targets (mobile), min height must be 44px (h-11 or h-12).",
+    "home_page": "Implement a staggered bento grid for the 9 panels. Break perfect symmetry. For example, Yönetim and Canlı Pano can take col-span-2 or row-span-2. Provide 'breathing room' between cards (gap-4 or gap-6).",
+    "tv_dashboard": "Scale typography fluidly (e.g., text-[4vw] to text-[8vw]) so it spans the factory floor. Maximize contrast. Use massive spacing (p-12, gap-8) to separate data zones."
   },
-  "motion": {
-    "library": "Framer Motion",
-    "transitions": "Spring physics (stiffness: 300, damping: 30). No linear easings.",
-    "micro_interactions": "Buttons scale down (0.95) on click. Cards lift on hover.",
-    "page_transitions": "Slide in from right for drill-down. Fade in for tabs."
-  },
-  "functionality_rules": {
-    "passwords": {
-      "plan": "12341",
-      "management": "432122"
+  "components": {
+    "cards": {
+      "style": "Industrial Glassmorphism",
+      "classes": "panel-industrial bg-zinc-900/80 backdrop-blur-md border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5)] rounded-xl relative overflow-hidden",
+      "hover": "hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(255,191,0,0.15)] transition-all duration-300"
     },
-    "machines": [
-      "40x40", "40x40 ICM", "33x33 (Büyük)", "33x33 ICM", 
-      "33x33 (Eski)", "30x30", "24x24", "Dispanser"
+    "buttons": {
+      "primary": "bg-[#FFBF00] text-black font-semibold rounded-md px-6 py-3 shadow-[0_0_15px_rgba(255,191,0,0.3)] hover:shadow-[0_0_25px_rgba(255,191,0,0.5)] transition-all",
+      "secondary": "bg-zinc-800 text-white border border-zinc-700 hover:bg-zinc-700 hover:border-zinc-500 transition-all rounded-md px-6 py-3"
+    },
+    "inputs": {
+      "style": "bg-zinc-950 border border-zinc-800 rounded-md focus:ring-2 focus:ring-[#FFBF00]/50 focus:border-[#FFBF00] text-white p-3 h-11"
+    }
+  },
+  "motion_and_animations": {
+    "intensity": "High",
+    "entrance": "Staggered fade-slide-up for grid items. Implement using framer-motion with variants { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } } and staggerChildren.",
+    "live_indicators": "Pulse animations for active machine statuses and 'Canlı Pano' live dots.",
+    "interactions": "Scale down slightly on click (`active:scale-95`). Icons bounce slightly on hover.",
+    "lite_mode_handling": "Detect existing `lite-mode` state. If active, set framer-motion transitions to 0s duration or disable them completely. Respect `prefers-reduced-motion`."
+  },
+  "media": {
+    "preservation_rules": "CRITICAL: MUST PRESERVE Atatürk portrait (top-left) and waving Turkish flag (top-right) exactly as they are on the Home page.",
+    "image_urls": [
+      {
+        "category": "background",
+        "url": "https://images.unsplash.com/photo-1710438399422-2fca27686bcd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwxfHxkYXJrJTIwbWV0YWxsaWMlMjBhYnN0cmFjdCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzgxMjA1MTUyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract dark metallic wavy background. Use as a very low-opacity (10-15%) overlay for the TV Dashboard (Canlı Pano) or high-impact hero headers."
+      }
     ]
   },
-  "universal_guidelines": {
-    "design_philosophy": "Avoid 'AI Slop'. No generic gradients. Use texture, noise, and precise borders.",
-    "accessibility": "All interactive elements MUST have data-testid. Contrast ratio > 4.5:1.",
-    "code_style": "Use Shadcn components but customize them via Tailwind classes. Do not use default Vercel look.",
-    "responsive": "Mobile-first. Touch targets > 44px. No horizontal scroll on mobile.",
-    "testing": "Add data-testid to every button, input, and card."
-  },
-  "instructions_to_main_agent": "1. Install 'framer-motion' and 'lucide-react'. 2. Set up the Tailwind config with the custom colors. 3. Create the 'Layout' component with the industrial theme (Sidebar/Navbar). 4. Implement the 4 main modules as separate routes. 5. Use the provided images for section backgrounds with a dark overlay (bg-black/60) to ensure text readability."
+  "instructions_to_main_agent": [
+    "Do not remove or alter any `data-testid` attributes.",
+    "Zero functionality changes allowed. All data mapping, API calls, and logic must remain exactly as is.",
+    "Refactor the Home page to use an asymmetrical Bento grid layout instead of basic equal columns. Highlight 'Canlı Pano' and 'Yönetim' with larger spans.",
+    "Enhance the 'Industrial Glass' aesthetic by refining `.panel-industrial` borders and shadows in Tailwind.",
+    "Ensure touch targets are universally min 44px for gloved factory operators on tablets.",
+    "Maximize contrast and scale for Canlı Pano (TV mode) so it's readable from a distance.",
+    "Apply Framer Motion staggered entrance animations but handle the 'lite mode' graceful degradation correctly."
+  ]
 }
