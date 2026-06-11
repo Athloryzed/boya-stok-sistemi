@@ -1084,9 +1084,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-md"
         >
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center">PLAN GİRİŞİ</CardTitle>
+              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">PLAN GİRİŞİ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -1150,7 +1150,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-success to-teal-700 flex items-center justify-center text-white font-black text-sm shadow-lg">P</div>
+              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-success to-teal-700 flex items-center justify-center text-white font-black text-sm" style={{ "--glow-rgb": "16,185,129" }}>P</div>
               <div className="hidden sm:block">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
                 <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Planlama Paneli</h1>

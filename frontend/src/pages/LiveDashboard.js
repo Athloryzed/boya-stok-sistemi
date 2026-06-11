@@ -67,15 +67,17 @@ const LiveDashboard = () => {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen tv-bg flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 w-80"
+          className="panel-industrial login-glow rounded-2xl p-8 w-80"
         >
           <div className="text-center mb-6">
-            <Lock className="h-10 w-10 mx-auto mb-3 text-amber-400" />
-            <h1 className="text-xl font-bold text-white">Canlı Pano</h1>
+            <div className="icon-tile-glow w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-600/5 border border-amber-500/40 flex items-center justify-center mx-auto mb-3">
+              <Lock className="h-7 w-7 text-amber-400" />
+            </div>
+            <h1 className="text-2xl font-heading font-bold text-white tracking-tight">Canlı Pano</h1>
             <p className="text-zinc-400 text-sm mt-1">Şifre gerekli</p>
           </div>
           <form onSubmit={handleLogin}>
@@ -92,7 +94,7 @@ const LiveDashboard = () => {
             <button
               data-testid="dashboard-login-btn"
               type="submit"
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg transition-colors"
+              className="shine-sweep w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-bold rounded-lg transition-all shadow-lg shadow-amber-500/25"
             >
               Giriş
             </button>
@@ -104,7 +106,7 @@ const LiveDashboard = () => {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen tv-bg flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-amber-400 border-t-transparent" />
       </div>
     );
@@ -123,18 +125,20 @@ const LiveDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-6 overflow-hidden" data-testid="live-dashboard">
+    <div className="min-h-screen tv-bg text-white p-4 md:p-6 overflow-hidden" data-testid="live-dashboard">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Monitor className="h-8 w-8 text-amber-400" />
+          <div className="icon-tile-glow w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-amber-400/25 to-amber-600/5 border border-amber-500/40 flex items-center justify-center shrink-0">
+            <Monitor className="h-6 w-6 text-amber-400" />
+          </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">BUSE KAGIT</h1>
-            <p className="text-zinc-500 text-sm">Canli Uretim Panosu</p>
+            <h1 className="text-2xl md:text-4xl font-heading font-black tracking-tight text-gradient-gold">BUSE KAGIT</h1>
+            <p className="text-zinc-500 text-sm flex items-center"><span className="live-dot" />Canli Uretim Panosu</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-3xl md:text-4xl font-mono font-bold text-amber-400" data-testid="dashboard-clock">
+          <p className="text-3xl md:text-5xl font-mono font-bold text-amber-400 num-tabular drop-shadow-[0_0_18px_rgba(255,191,0,0.3)]" data-testid="dashboard-clock">
             {clock.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </p>
           <p className="text-zinc-500 text-sm">
@@ -158,33 +162,33 @@ const LiveDashboard = () => {
 
       {/* Özet Kartları */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="dashboard-summary">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[#111118] rounded-xl p-4 border border-zinc-800">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="tv-stat p-4" style={{ "--accent-rgb": "34,197,94" }}>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="h-4 w-4 text-green-400" />
-            <span className="text-zinc-400 text-xs">Calisan Makine</span>
+            <span className="text-zinc-400 text-xs uppercase tracking-wider">Calisan Makine</span>
           </div>
-          <p className="text-3xl font-black text-green-400">{data.summary.working}<span className="text-lg text-zinc-500">/{data.summary.total_machines}</span></p>
+          <p className="text-4xl md:text-5xl metric-display text-green-400">{data.summary.working}<span className="text-xl text-zinc-500">/{data.summary.total_machines}</span></p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#111118] rounded-xl p-4 border border-zinc-800">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="tv-stat p-4" style={{ "--accent-rgb": "255,191,0" }}>
           <div className="flex items-center gap-2 mb-1">
             <Package className="h-4 w-4 text-amber-400" />
-            <span className="text-zinc-400 text-xs">Bugun Uretim</span>
+            <span className="text-zinc-400 text-xs uppercase tracking-wider">Bugun Uretim</span>
           </div>
-          <p className="text-3xl font-black text-amber-400">{data.summary.koli_today} <span className="text-lg text-zinc-500">koli</span></p>
+          <p className="text-4xl md:text-5xl metric-display text-amber-400">{data.summary.koli_today} <span className="text-xl text-zinc-500">koli</span></p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#111118] rounded-xl p-4 border border-zinc-800">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="tv-stat p-4" style={{ "--accent-rgb": "96,165,250" }}>
           <div className="flex items-center gap-2 mb-1">
             <Clock className="h-4 w-4 text-blue-400" />
-            <span className="text-zinc-400 text-xs">Bekleyen Is</span>
+            <span className="text-zinc-400 text-xs uppercase tracking-wider">Bekleyen Is</span>
           </div>
-          <p className="text-3xl font-black text-blue-400">{data.summary.pending_total}</p>
+          <p className="text-4xl md:text-5xl metric-display text-blue-400">{data.summary.pending_total}</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#111118] rounded-xl p-4 border border-zinc-800">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="tv-stat p-4" style={{ "--accent-rgb": "192,132,252" }}>
           <div className="flex items-center gap-2 mb-1">
             <Users className="h-4 w-4 text-purple-400" />
-            <span className="text-zinc-400 text-xs">Tamamlanan</span>
+            <span className="text-zinc-400 text-xs uppercase tracking-wider">Tamamlanan</span>
           </div>
-          <p className="text-3xl font-black text-purple-400">{data.summary.completed_today} <span className="text-lg text-zinc-500">is</span></p>
+          <p className="text-4xl md:text-5xl metric-display text-purple-400">{data.summary.completed_today} <span className="text-xl text-zinc-500">is</span></p>
         </motion.div>
       </div>
 
@@ -199,7 +203,7 @@ const LiveDashboard = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05 }}
-                className={`rounded-xl p-3 border ${m.status === "working" ? "bg-green-500/5 border-green-500/30" : m.status === "maintenance" ? "bg-orange-500/5 border-orange-500/30" : "bg-zinc-800/30 border-zinc-700/50"}`}
+                className={`rounded-xl p-3 border transition-all ${m.status === "working" ? "machine-working bg-green-500/5 border-green-500/30" : m.status === "maintenance" ? "bg-orange-500/5 border-orange-500/30" : "bg-zinc-800/30 border-zinc-700/50"}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-bold text-white truncate">{m.name}</span>
@@ -230,12 +234,12 @@ const LiveDashboard = () => {
           {/* Operatör Sıralaması */}
           <div>
             <h2 className="text-sm font-bold text-zinc-400 mb-3 uppercase tracking-wider">Gunun En Iyileri</h2>
-            <div className="bg-[#111118] rounded-xl border border-zinc-800 overflow-hidden" data-testid="dashboard-operators">
+            <div className="panel-industrial rounded-xl overflow-hidden" data-testid="dashboard-operators">
               {data.operator_ranking.length > 0 ? (
                 data.operator_ranking.slice(0, 5).map((op, i) => (
-                  <div key={op.name} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-zinc-800" : ""}`}>
+                  <div key={op.name} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-zinc-800" : ""} ${i === 0 ? "bg-amber-500/[0.06]" : ""}`}>
                     <div className="flex items-center gap-3">
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${i === 0 ? "bg-amber-400 text-black" : i === 1 ? "bg-zinc-400 text-black" : i === 2 ? "bg-orange-600 text-white" : "bg-zinc-700 text-zinc-300"}`}>
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${i === 0 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-[0_0_12px_rgba(255,191,0,0.4)]" : i === 1 ? "bg-zinc-400 text-black" : i === 2 ? "bg-orange-600 text-white" : "bg-zinc-700 text-zinc-300"}`}>
                         {i + 1}
                       </span>
                       <span className="text-sm font-medium">{op.name}</span>
@@ -256,7 +260,7 @@ const LiveDashboard = () => {
           {data.daily_koli?.length > 0 && (
             <div>
               <h2 className="text-sm font-bold text-zinc-400 mb-3 uppercase tracking-wider">Son 7 Gun</h2>
-              <div className="bg-[#111118] rounded-xl border border-zinc-800 p-3">
+              <div className="panel-industrial rounded-xl p-3">
                 <ResponsiveContainer width="100%" height={140}>
                   <BarChart data={data.daily_koli}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />

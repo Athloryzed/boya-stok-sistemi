@@ -1364,9 +1364,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center">YÖNETİM GİRİŞİ</CardTitle>
+              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">YÖNETİM GİRİŞİ</CardTitle>
             </CardHeader>
             <CardContent>
               <Input data-testid="management-password-input" type="password" placeholder="Şifre..." value={password}
@@ -1403,7 +1403,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-black font-black text-sm shadow-gold-glow">B</div>
+              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-black font-black text-sm">B</div>
               <div className="hidden sm:block">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
                 <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Yönetim Paneli</h1>

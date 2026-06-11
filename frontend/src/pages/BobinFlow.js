@@ -446,7 +446,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
           className="w-full max-w-sm">
           <div className="bg-[#1a1f2e]/80 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-8 shadow-2xl">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+              <div className="icon-tile-glow float-soft w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4" style={{ "--glow-rgb": "16,185,129" }}>
                 <Layers className="h-8 w-8 text-emerald-400" />
               </div>
               <h1 className="text-xl font-semibold text-white tracking-tight">Bobin Yonetimi</h1>
@@ -489,11 +489,14 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             <button onClick={() => navigate("/")} className="text-zinc-500 hover:text-white transition-colors" data-testid="bobin-back-btn">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div>
-              <h1 className="text-base font-semibold text-white flex items-center gap-2">
-                <Layers className="h-4 w-4 text-emerald-400" /> Bobin Yonetimi
-              </h1>
-              <p className="text-xs text-zinc-500">{userName}</p>
+            <div className="flex items-center gap-2.5">
+              <div className="icon-tile-glow w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0" style={{ "--glow-rgb": "16,185,129" }}>
+                <Layers className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <h1 className="text-base font-semibold text-white">Bobin Yonetimi</h1>
+                <p className="text-xs text-zinc-500">{userName}</p>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">

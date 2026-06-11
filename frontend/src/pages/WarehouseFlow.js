@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff, Package, Truck, History, Check, CheckCircle2, Search, Calendar } from "lucide-react";
+import { ArrowLeft, AlertTriangle, QrCode, Keyboard, Sun, Moon, Bell, Wifi, WifiOff, Package, Truck, History, Check, CheckCircle2, Search, Calendar, Warehouse } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -408,9 +408,12 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-md"
         >
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center text-warning">DEPO GİRİŞİ</CardTitle>
+              <div className="icon-tile-glow w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-amber-400/25 to-amber-600/5 border border-amber-500/40 flex items-center justify-center">
+                <Warehouse className="h-7 w-7 text-warning" />
+              </div>
+              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">DEPO GİRİŞİ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -525,8 +528,11 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mb-12">
-          <h1 className="text-5xl font-heading font-black text-warning">DEPO PANELİ</h1>
+        <div className="flex items-center gap-4 mb-10 flex-wrap">
+          <div className="icon-tile-glow w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/25 to-amber-600/5 border border-amber-500/40 flex items-center justify-center shrink-0">
+            <Warehouse className="h-6 w-6 text-warning" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-heading font-black text-gradient-gold tracking-tight">DEPO PANELİ</h1>
           {warehouseRequests.length > 0 && (
             <motion.div 
               animate={{ scale: [1, 1.1, 1] }}

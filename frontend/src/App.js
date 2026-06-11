@@ -341,6 +341,7 @@ function App() {
     <ErrorBoundary>
       <ConfirmProvider>
         <div className={`App ${theme}`}>
+          <div className="ambient-layer" aria-hidden="true" />
           <ConnectionBanner />
           <BrowserRouter>
             <VisitorTracker />

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight } from "lucide-react";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
 import { getSession, isSessionValid, clearSession, canAccessRoute } from "../lib/auth";
@@ -503,28 +503,52 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             ? modules.filter((m) => m.path === "/dashboard" || canAccessRoute(m.path))
             : [];
           if (!session) return null;
+          const featured = new Set(["/management", "/dashboard"]);
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-xl w-full">
-              {visibleModules.map((mod, i) => (
-                <motion.div key={mod.path}
-                  initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 + i * 0.08, ease: "easeOut" }}
-                  onClick={() => handleModuleClick(mod.path)}
-                  data-testid={`module-${mod.path.slice(1)}`}
-                  className="group cursor-pointer">
-                  <div className={`relative p-5 sm:p-6 rounded-2xl backdrop-blur-md border transition-all duration-300
-                    ${isNight
-                      ? "bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/40"
-                      : "bg-white/60 border-white/80 hover:bg-white/80 hover:border-white shadow-lg hover:shadow-xl"
-                    } hover:-translate-y-1 active:scale-95`}>
-                    <mod.icon className="h-7 w-7 sm:h-8 sm:w-8 mx-auto mb-2" style={{ color: mod.color }} />
-                    <h3 className={`text-xs sm:text-sm font-bold text-center ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
-                    <p className={`text-[10px] text-center mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
-                    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{ boxShadow: `0 0 30px ${mod.color}30, 0 0 60px ${mod.color}10` }} />
-                  </div>
-                </motion.div>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl w-full">
+              {visibleModules.map((mod, i) => {
+                const isFeatured = featured.has(mod.path);
+                return (
+                  <motion.div key={mod.path}
+                    initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                    onClick={() => handleModuleClick(mod.path)}
+                    data-testid={`module-${mod.path.slice(1)}`}
+                    className={`group cursor-pointer ${isFeatured ? "col-span-2" : ""}`}>
+                    <div className={`bento-card relative h-full rounded-2xl backdrop-blur-xl border p-4 sm:p-5 ${isFeatured ? "flex items-center" : ""}
+                      ${isNight
+                        ? "bg-white/[0.08] border-white/15 hover:bg-white/[0.14] hover:border-white/30"
+                        : "bg-white/60 border-white/80 hover:bg-white/85 hover:border-white shadow-lg hover:shadow-xl"
+                      }`}>
+                      <span className="bento-topline" />
+                      {isFeatured ? (
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
+                            style={{ background: `linear-gradient(135deg, ${mod.color}33, ${mod.color}0F)`, border: `1px solid ${mod.color}55`, boxShadow: `0 4px 16px ${mod.color}22` }}>
+                            <mod.icon className="h-6 w-6" style={{ color: mod.color }} />
+                          </div>
+                          <div className="min-w-0 flex-1 text-left">
+                            <h3 className={`text-sm sm:text-base font-bold leading-tight ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
+                            <p className={`text-[10px] sm:text-xs mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
+                          </div>
+                          <ArrowRight className={`bento-arrow h-4 w-4 shrink-0 ${isNight ? "text-white/70" : "text-gray-600"}`} />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2 transition-transform duration-300 group-hover:scale-110"
+                            style={{ background: `linear-gradient(135deg, ${mod.color}33, ${mod.color}0F)`, border: `1px solid ${mod.color}55`, boxShadow: `0 4px 16px ${mod.color}22` }}>
+                            <mod.icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: mod.color }} />
+                          </div>
+                          <h3 className={`text-xs sm:text-sm font-bold text-center ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
+                          <p className={`text-[10px] text-center mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{ boxShadow: `0 0 30px ${mod.color}30, 0 0 60px ${mod.color}10, inset 0 0 0 1px ${mod.color}25` }} />
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           );
         })()}

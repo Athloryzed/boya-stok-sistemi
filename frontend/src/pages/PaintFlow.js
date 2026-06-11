@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package, AlertTriangle, Sparkles, Bot, X } from "lucide-react";
+import { ArrowLeft, Sun, Moon, Plus, Minus, Send, RotateCcw, History, BarChart3, Package, AlertTriangle, Sparkles, Bot, X, Paintbrush } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -300,9 +300,12 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center text-pink-500">BOYA GİRİŞİ</CardTitle>
+              <div className="icon-tile-glow w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-pink-500/25 to-pink-600/5 border border-pink-500/40 flex items-center justify-center" style={{ "--glow-rgb": "236,72,153" }}>
+                <Paintbrush className="h-7 w-7 text-pink-500" />
+              </div>
+              <CardTitle className="text-3xl font-heading text-center text-gradient-custom" style={{ "--tg-from": "#F9A8D4", "--tg-to": "#DB2777" }}>BOYA GİRİŞİ</CardTitle>
             </CardHeader>
             <CardContent>
               <Input
@@ -343,9 +346,14 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           <UserMenu />
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-heading font-black text-pink-500 mb-4">
-          BOYA YÖNETİMİ
-        </h1>
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="icon-tile-glow w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500/25 to-pink-600/5 border border-pink-500/40 flex items-center justify-center shrink-0" style={{ "--glow-rgb": "236,72,153" }}>
+            <Paintbrush className="h-6 w-6 text-pink-500" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-heading font-black tracking-tight text-gradient-custom" style={{ "--tg-from": "#F9A8D4", "--tg-to": "#DB2777" }}>
+            BOYA YÖNETİMİ
+          </h1>
+        </div>
 
         {/* Düşük Stok Uyarısı */}
         {lowStockPaints.length > 0 && (

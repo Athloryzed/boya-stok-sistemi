@@ -857,3 +857,212 @@ h1, h2, h3, .font-heading {
 }
 .lite-mode .live-dot { animation: none !important; box-shadow: none !important; }
 .lite-mode .shadow-2xl, .lite-mode .shadow-xl { box-shadow: 0 2px 6px rgba(0,0,0,.15) !important; }
+
+/* ===================================================================
+   DESIGN REFRESH v3 (Haziran 2026)
+   Canlı ambient arka plan + parıltı efektleri + modern kart derinliği
+   =================================================================== */
+
+/* ---- Ambient ışık küreleri (tüm panellerde dinamik arka plan) ---- */
+.ambient-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+.ambient-layer::before,
+.ambient-layer::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.ambient-layer::before {
+  width: 58vw; height: 58vw;
+  max-width: 780px; max-height: 780px;
+  top: -22%; right: -12%;
+  background: radial-gradient(circle, rgba(255, 191, 0, 0.09), transparent 65%);
+  animation: orbDriftA 26s ease-in-out infinite;
+}
+.ambient-layer::after {
+  width: 52vw; height: 52vw;
+  max-width: 680px; max-height: 680px;
+  bottom: -22%; left: -12%;
+  background: radial-gradient(circle, rgba(56, 118, 171, 0.12), transparent 65%);
+  animation: orbDriftB 32s ease-in-out infinite;
+}
+@keyframes orbDriftA {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-8vw, 7vh) scale(1.15); }
+}
+@keyframes orbDriftB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(7vw, -6vh) scale(1.1); }
+}
+.light .ambient-layer,
+.lite-mode .ambient-layer { display: none; }
+
+/* ---- Kart derinliği: bg-surface kartlara iç ışık + yumuşak gölge ---- */
+.App.dark .rounded-xl.bg-surface,
+.App.dark .rounded-2xl.bg-surface {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 45%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Header alt çizgisi: akan altın-çelik ışık hattı ---- */
+.header-industrial { position: relative; }
+.header-industrial::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 191, 0, 0.55) 30%, rgba(72, 101, 129, 0.55) 70%, transparent);
+  background-size: 200% 100%;
+  animation: borderFlow 7s linear infinite;
+  pointer-events: none;
+}
+@keyframes borderFlow {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---- Nefes alan parıltı (logo kutuları, ikon karoları) ---- */
+@keyframes glowBreathe {
+  0%, 100% { box-shadow: 0 0 10px rgba(var(--glow-rgb, 255, 191, 0), 0.25), 0 0 0 1px rgba(var(--glow-rgb, 255, 191, 0), 0.18); }
+  50% { box-shadow: 0 0 24px rgba(var(--glow-rgb, 255, 191, 0), 0.5), 0 0 0 1px rgba(var(--glow-rgb, 255, 191, 0), 0.32); }
+}
+.icon-tile-glow { animation: glowBreathe 3.6s ease-in-out infinite; }
+
+/* ---- Akan gradyan başlık metni ---- */
+.text-gradient-gold {
+  background: linear-gradient(110deg, #FFD24C 0%, #FFBF00 30%, #FFEFB8 50%, #E6A800 70%, #FFD24C 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: textShine 6s linear infinite;
+}
+.text-gradient-custom {
+  background: linear-gradient(110deg, var(--tg-from, #FFD24C), var(--tg-to, #E6A800));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes textShine { to { background-position: 200% center; } }
+
+/* ---- Işık süpürme efekti (butonlar / öne çıkan kartlar) ---- */
+.shine-sweep { position: relative; overflow: hidden; }
+.shine-sweep::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: -75%;
+  width: 50%;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  animation: shineSweep 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shineSweep {
+  0%, 55% { left: -75%; }
+  100% { left: 130%; }
+}
+
+/* ---- Yumuşak süzülme animasyonu ---- */
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.float-soft { animation: floatSoft 5s ease-in-out infinite; }
+
+/* ---- Giriş kartı nefes alan parıltısı ---- */
+@keyframes loginGlow {
+  0%, 100% { box-shadow: 0 8px 40px rgba(255, 191, 0, 0.10), 0 0 0 1px rgba(255, 255, 255, 0.08); }
+  50% { box-shadow: 0 8px 56px rgba(255, 191, 0, 0.22), 0 0 0 1px rgba(255, 191, 0, 0.20); }
+}
+.login-glow { animation: loginGlow 4.5s ease-in-out infinite; }
+
+/* ---- Canlı Pano (TV) arka planı ---- */
+.tv-bg {
+  background:
+    radial-gradient(1100px 520px at 82% -10%, rgba(255, 191, 0, 0.07), transparent 60%),
+    radial-gradient(850px 520px at -5% 110%, rgba(37, 99, 235, 0.10), transparent 60%),
+    #0a0a0f;
+  background-attachment: fixed;
+}
+.tv-stat {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(28, 28, 34, 0.9), rgba(15, 15, 20, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  transition: transform 0.3s var(--ease-spring), border-color 0.25s ease;
+}
+.tv-stat::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb, 255, 191, 0), 0.9), transparent);
+}
+.tv-stat::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(420px 140px at 0% 0%, rgba(var(--accent-rgb, 255, 191, 0), 0.08), transparent 60%);
+  pointer-events: none;
+}
+.tv-stat:hover { transform: translateY(-3px); border-color: rgba(var(--accent-rgb, 255, 191, 0), 0.35); }
+
+/* ---- Bento modül kartı (Anasayfa) ---- */
+.bento-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.35s var(--ease-spring),
+    border-color 0.25s var(--ease-smooth),
+    background-color 0.25s var(--ease-smooth),
+    box-shadow 0.35s var(--ease-smooth);
+}
+.bento-card:hover { transform: translateY(-4px); }
+.bento-card:active { transform: translateY(-1px) scale(0.98); }
+.bento-card .bento-arrow {
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s ease, transform 0.3s var(--ease-spring);
+}
+.bento-card:hover .bento-arrow { opacity: 1; transform: translateX(0); }
+.bento-card .bento-topline {
+  position: absolute;
+  inset-inline: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.bento-card:hover .bento-topline { opacity: 1; }
+
+/* Dokunmatik cihazlarda bento hover sıfırla */
+@media (hover: none) and (pointer: coarse) {
+  .bento-card:hover { transform: none; }
+  .bento-card:active { transform: scale(0.97); }
+}
+
+/* Lite modda yeni efektleri kapat */
+.lite-mode .shine-sweep::before,
+.lite-mode .header-industrial::after { animation: none !important; opacity: 0; }
+.lite-mode .icon-tile-glow,
+.lite-mode .float-soft,
+.lite-mode .login-glow,
+.lite-mode .text-gradient-gold { animation: none !important; }
+
+/* Erişilebilirlik: sistem tercihi */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-layer::before, .ambient-layer::after,
+  .shine-sweep::before, .icon-tile-glow, .float-soft,
+  .login-glow, .text-gradient-gold, .header-industrial::after {
+    animation: none !important;
+  }
+}

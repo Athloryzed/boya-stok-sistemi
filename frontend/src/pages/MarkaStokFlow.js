@@ -1007,7 +1007,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader>
               <CardTitle className="text-3xl font-heading text-center text-emerald-500 flex items-center justify-center gap-2">
                 <div className="flex items-center gap-1">
@@ -1052,8 +1052,8 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
         {/* Title */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/30"><Tag className="h-5 w-5 text-white" /></div>
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center shadow-lg shadow-sky-500/30"><Boxes className="h-5 w-5 text-white" /></div>
+            <div className="icon-tile-glow w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center" style={{ "--glow-rgb": "16,185,129" }}><Tag className="h-5 w-5 text-white" /></div>
+            <div className="icon-tile-glow w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center" style={{ "--glow-rgb": "14,165,233" }}><Boxes className="h-5 w-5 text-white" /></div>
           </div>
           <h1 className="text-3xl md:text-4xl font-heading font-black text-text-primary">
             <span className="bg-gradient-to-r from-emerald-500 to-sky-500 bg-clip-text text-transparent">Marka / Koli Stok</span>

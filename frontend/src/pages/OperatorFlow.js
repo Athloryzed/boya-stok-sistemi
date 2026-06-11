@@ -1030,7 +1030,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             </Button>
             <div className="h-6 w-px bg-border hidden sm:block" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-success to-emerald-700 flex items-center justify-center text-white font-black text-sm shadow-lg">O</div>
+              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-success to-emerald-700 flex items-center justify-center text-white font-black text-sm" style={{ "--glow-rgb": "16,185,129" }}>O</div>
               <div className="hidden sm:block">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Operatör</p>
                 <h1 className="text-sm font-heading font-bold text-text-primary leading-tight">{selectedMachine?.name || "Makine Seçin"}</h1>

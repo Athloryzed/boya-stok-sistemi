@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 41: UI-only regression test after full panel restyle (CSS/className changes only). All critical surfaces render correctly and remain interactive. Ambient layer overlay does NOT block clicks (pointer-events: none, z-index: 0 confirmed). Bento module grid renders on Home for multi-role users with role-based filtering working. Operator, Plan, Warehouse, Bobin, MarkaStok, LiveDashboard panels all load, headers/tabs/dialogs work, logout returns to Home. Mobile (390px) has no overflow, dashboard summary stacks 2-col, bento grid 2-col. No CSS regression breakage detected.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Plan -> Yeni İş dialog", "issues": ["Tahmini Teslim Tarihi uses native browser date input (mm/dd/yyyy placeholder) instead of shadcn Calendar component. Pre-existing — not introduced by this session's CSS refactor, but flagging per design-review guidelines."]},
+      {"screen": "/management direct access", "issues": ["Navigating to /management when unauthenticated redirects to Home / unified login screen — the LEGACY password-only login screen (buse11993) is not shown anywhere. If the spec still requires a legacy bypass screen at /management, it appears removed. Otherwise the management role must come from a yonetim-role user in /api/users via unified login (not verified — no known yonetim username in /app/memory/test_credentials.md)."]}
+    ]
+  },
+  "verified_panels": {
+    "home_unified_login": "Ataturk image (top-left) + Turkish flag (top-right) + unified-login card all present. Login as ali/134679 → redirects to /operator with 'Hoş geldin, Ali' toast. Login as emrecan/testtest12 → redirects to /plan. Login as coklukullanici/test123 → goes to /plan then Ana Sayfa shows full bento grid with 7 modules (plan, warehouse, paint, bobin, marka-stok, driver, dashboard featured col-span-2).",
+    "bento_module_grid": "Role filtering works (module-management hidden for non-yonetim user). Featured set {/management, /dashboard} renders col-span-2 only when user has access. Clicking module-warehouse navigates to /warehouse, etc.",
+    "operator_panel": "/operator loads. Header 'O' icon tile, 'Geri' back button, theme toggle, UserMenu trigger, machine selection grid (8 machines, 40x40 / 40x40 ICM / 33x33 / etc.) all render and interactive.",
+    "plan_panel": "/plan loads with header 'P' tile, 'Yeni İş' add-job-button opens dialog with 10 form elements (İş Adı, Koli Sayısı, Renkler, Makine select, Not, Tahmini Teslim Tarihi, Görsel Yükle, İş Ekle button, close-X).",
+    "warehouse_panel": "/warehouse renders 'DEPO PANELİ' gradient title with warehouse icon tile glow, koli summary card, 5 tabs (Uyarılar, Palet Okuma, Tamamlanan İşler, Sevkiyat Teslim, Geçmiş). Real-time connection toast shows.",
+    "bobin_panel": "/bobin renders header tile + 2 stat cards (Bobin Çeşidi / Toplam Ağırlık 1126kg), bobin-tab-stock / bobin-tab-history both present and switchable, stock list (Hayat Beyaz, Hayat Kraft) visible.",
+    "marka_stok_panel": "/marka-stok renders gradient 'Marka / Koli Stok' title with two icon tiles, Marka/Koli main tabs, 4 stat cards (DENIZ 33, BANKO, 30 GÜN ÜRETIM, 30 GÜN SATIŞ), Stok/Hareketler sub-tabs all working.",
+    "live_dashboard": "/dashboard TV login (buse4) works. Gold gradient BUSE KAGIT title, dashboard-clock (19:25:41), 4 tv-stat summary cards (Çalışan Makine 1/8, Bugün Üretim 0 koli, Bekleyen İş 7, Tamamlanan 0), dashboard-machines (8 machines), dashboard-operators / Günün En İyileri all render.",
+    "logout_flow": "UserMenu trigger → user-menu-logout returns to / and login card reappears. Session correctly cleared.",
+    "mobile_viewport_390x844": "Home: ataturk + flag + login card no overflow; bento grid renders 2-col with 7 cards. Operator panel: no overflow (scrollWidth=390), Geri button + UserMenu visible, machine grid 2-col. Dashboard: summary cards grid-template-columns='173px 173px' = 2-col stack, no horizontal scroll."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL: Replace native date input in Plan Yeni İş dialog with shadcn Calendar + Popover for consistency (pre-existing).",
+    "CLARIFY: Confirm whether the legacy management password screen at /management (buse11993) is intentionally removed in favor of yonetim-role unified-login users. If so, document a yonetim test credential in /app/memory/test_credentials.md so future agents can verify the management panel.",
+    "No CSS regression fix required — all panels render, all clicks work, ambient-layer does not intercept events."
+  ],
+  "critical_code_review_comments": [
+    "App.css v3 section adds .ambient-layer fixed overlay — verified inline styles compute to pointer-events:none, z-index:0. Safe.",
+    "Home.js bento module grid (lines 499-554) correctly hides cards user has no access to via canAccessRoute(). Featured set hardcoded {/management,/dashboard} — ok.",
+    "Module-management card is correctly omitted when user lacks yonetim role; clicking forbidden modules path goes through handleModuleClick which (not visually re-verified this run) should toast — not negatively triggered in this regression."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% on UI regression checks (all 12 spec items verified)"},
+  "test_credentials": "Used as provided: ali/134679, emrecan/testtest12, depo1/depo123, coklukullanici/test123, buse4 (TV), buse11993 (legacy mgmt - screen not visible).",
+  "seed_data_creation": "None (read-only UI test).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Pure UI/CSS restyle iteration 41 has been verified end-to-end. All data-testid hooks listed in the review request are present and functional. The ambient-layer in App.css does not block clicks. The only ambiguity left: legacy /management password screen seems gone (redirects to /). If management testing is needed, create or fetch a yonetim-role user and use unified login. Native date picker in Plan dialog is a pre-existing design item not caused by this session's changes.",
+  "rca of the issue": "N/A — no regression bugs found."
+}

@@ -248,12 +248,12 @@ const DriverFlow = ({ theme, toggleTheme }) => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Card className="bg-surface border-border">
+          <Card className="panel-industrial login-glow">
             <CardHeader className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Truck className="w-8 h-8 text-purple-500" />
+              <div className="icon-tile-glow float-soft w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/25 to-purple-600/5 border border-purple-500/40 flex items-center justify-center" style={{ "--glow-rgb": "168,85,247" }}>
+                <Truck className="w-8 h-8 text-purple-400" />
               </div>
-              <CardTitle className="text-2xl font-heading text-primary">ŞOFÖR GİRİŞİ</CardTitle>
+              <CardTitle className="text-2xl font-heading text-gradient-custom" style={{ "--tg-from": "#D8B4FE", "--tg-to": "#9333EA" }}>ŞOFÖR GİRİŞİ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -323,7 +323,12 @@ const DriverFlow = ({ theme, toggleTheme }) => {
         animate={{ opacity: 1 }}
         className="max-w-4xl mx-auto"
       >
-        <h1 className="text-3xl font-heading font-bold text-primary mb-2">ŞOFÖR PANELİ</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="icon-tile-glow w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500/25 to-purple-600/5 border border-purple-500/40 flex items-center justify-center shrink-0" style={{ "--glow-rgb": "168,85,247" }}>
+            <Truck className="h-5 w-5 text-purple-400" />
+          </div>
+          <h1 className="text-3xl font-heading font-bold tracking-tight text-gradient-custom" style={{ "--tg-from": "#D8B4FE", "--tg-to": "#9333EA" }}>ŞOFÖR PANELİ</h1>
+        </div>
         
         {/* Konum durumu */}
         <div className="flex items-center gap-2 mb-4 text-sm">

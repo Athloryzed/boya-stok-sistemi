@@ -112,10 +112,10 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
         initial={{ opacity: 0, y: 24, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className={`relative rounded-2xl backdrop-blur-2xl border shadow-2xl overflow-hidden ${
+        className={`relative rounded-2xl backdrop-blur-2xl border overflow-hidden ${
           isNight
-            ? "bg-white/10 border-white/20 shadow-amber-500/10"
-            : "bg-white/70 border-white/80 shadow-amber-500/20"
+            ? "bg-white/10 border-white/20 login-glow"
+            : "bg-white/70 border-white/80 shadow-2xl shadow-amber-500/20"
         }`}
       >
         {/* Subtle gradient glow */}
@@ -128,7 +128,7 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.15, type: "spring", stiffness: 220 }}
-              className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-3"
+              className="float-soft inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-3"
             >
               <ShieldCheck className="w-7 h-7 text-zinc-900" />
             </motion.div>
@@ -225,7 +225,7 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
               disabled={loading}
               data-testid="login-submit"
               whileTap={{ scale: 0.97 }}
-              className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-zinc-900 font-semibold text-sm shadow-lg shadow-amber-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="shine-sweep w-full py-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-zinc-900 font-semibold text-sm shadow-lg shadow-amber-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />

@@ -52,10 +52,13 @@ const TrackingPage = ({ theme }) => {
       <div className="max-w-lg mx-auto px-4 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="text-center mb-8">
-            <Package className="h-12 w-12 mx-auto mb-3 text-blue-500" />
-            <h1 className="text-2xl font-heading font-bold text-text-primary">
+            <div className="float-soft icon-tile-glow w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-600/5 border border-blue-500/40 flex items-center justify-center" style={{ "--glow-rgb": "59,130,246" }}>
+              <Package className="h-8 w-8 text-blue-500" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary tracking-tight">
               Sipariş Durumu
             </h1>
+            <p className="text-xs text-text-secondary font-mono uppercase tracking-widest mt-1">Buse Kağıt · Canlı Takip</p>
           </div>
 
           {loading && (
@@ -82,7 +85,7 @@ const TrackingPage = ({ theme }) => {
 
           {data && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="bg-surface border-border" data-testid="tracking-result">
+              <Card className="panel-industrial" data-testid="tracking-result">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold text-text-primary text-center mb-6">{data.job_name}</h2>
 
