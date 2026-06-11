@@ -838,3 +838,27 @@ Her panel kendi `*_session` (bobin_session, depo_session, plan_session, marka_st
 ### Test
 - Marka Stok > "Deniz 33" kartına tıkla → ekran merkezinde detay modal açıldı, satış/giriş hareketleri görünür ✅
 
+
+---
+
+## Oturum: UI Tasarım Yenilemesi v3 (11 Haziran 2026)
+
+**Kullanıcı isteği:** Anasayfa dahil tüm UI'nın modernize edilmesi (Atatürk resmi + Türk Bayrağı korunarak), hiçbir işlevsellik bozulmadan; yüksek animasyon yoğunluğu, mevcut amber/çelik renk kimliği rafine edilerek. Mobil + PC tam destek.
+
+### Yapılanlar (yalnızca CSS/className — sıfır mantık değişikliği)
+- **App.css v3 bölümü:** `.ambient-layer` (tüm panellerde süzülen ışık küreleri, lite-mode + light temada kapalı), `icon-tile-glow` (nefes alan parıltı), `text-gradient-gold` / `text-gradient-custom` (akan gradyan başlıklar), `shine-sweep` (buton ışık süpürmesi), `float-soft`, `login-glow`, `tv-bg` + `tv-stat` (Canlı Pano kartları), `bento-card`, header alt çizgisi akan ışık hattı (`borderFlow`), kart derinliği (`.rounded-xl.bg-surface` iç ışık). `prefers-reduced-motion` ve `.lite-mode` ile tüm yeni efektler kapanır.
+- **App.js:** Köke `ambient-layer` div eklendi (pointer-events:none, z-0 — tıklamaları engellemediği test edildi).
+- **Home.js:** Modül ızgarası asimetrik **bento grid**'e dönüştürüldü (Yönetim + Canlı Pano 2 sütun kaplar, ikon karoları, hover ok/parıltı). Tüm data-testid'ler korundu.
+- **UnifiedLogin.js:** login-glow nefes efekti, süzülen logo, shine-sweep giriş butonu.
+- **LiveDashboard.js:** TV restyle — altın gradyan başlık, büyük metric-display sayılar, tv-stat renk-aksanlı kartlar, çalışan makinelerde nefes alan yeşil çerçeve, 1. sıradaki operatöre altın podyum.
+- **TrackingPage.js:** müşteri sayfası — animasyonlu ikon karo + panel-industrial kart.
+- **Panel başlıkları:** Management/Operator/Plan logo karolarına glow; Warehouse, Paint, Driver başlıkları ikon karo + gradyan metinle yenilendi; Bobin/MarkaStok karolarına glow.
+- **Eski (legacy) giriş ekranları:** panel-industrial + login-glow karta dönüştürüldü.
+- **dialog.jsx:** overlay'e backdrop-blur eklendi.
+
+### Test (iteration_41.json — %100 başarı)
+- 12 senaryo doğrulandı: Atatürk+bayrak korunmuş, unified login, bento navigasyon + RBAC filtreleme, tüm paneller (Operator/Plan/Depo/Bobin/MarkaStok/Canlı Pano) yükleniyor, sekmeler/dialoglar/çıkış çalışıyor, mobil (390px) taşma yok.
+
+### Backlog notları
+- (P3, mevcut durum) Plan "Yeni İş" dialogundaki tarih alanı native date input — shadcn Calendar'a geçirilebilir.
+- /management'taki legacy şifre ekranı artık görünmüyor (tasarım gereği: yönetim girişi anasayfa unified login'den). Yönetim rollü bir test kullanıcısı test_credentials.md'ye eklenebilir.
