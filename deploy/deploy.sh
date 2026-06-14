@@ -27,6 +27,10 @@ echo "[2/6] Kod güncelleniyor..."
 git fetch --all
 git reset --hard origin/main
 
+# git reset yeni/değişen dosyaları root sahipliğinde bırakır — buse'ye devret
+# (özellikle yarn.lock, package.json, build/ vb. için kritik)
+chown -R buse:buse "$APP_DIR/frontend" "$APP_DIR/backend"
+
 # Backend
 echo "[3/6] Backend dependencies..."
 sudo -u buse bash -c "
