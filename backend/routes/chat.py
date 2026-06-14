@@ -189,17 +189,20 @@ async def send_message(conv_id: str, data: dict = Body(...), user: dict = Depend
     }
     await ws_chat.send_to_users(conv.get("participants", []), payload)
 
-    # Web Push: online olmayan katılımcılara
-    offline = [p for p in conv.get("participants", []) if p != user["id"] and not ws_chat.is_online(p)]
-    if offline:
+    # Web Push: tüm diğer participant'lara gönder (online dahil — bu sayede
+    # WS bağlantısı kopuk veya tab arka plandaysa yine bildirim alır).
+    # SW push handler'ı 'tag' ile dedupe yapar — kullanıcı duplicate bildirim görmez.
+    recipients = [p for p in conv.get("participants", []) if p != user["id"]]
+    if recipients:
         conv_name = conv.get("name") or "Buse Kâğıt"
         push_title = (f"💬 {conv_name}" if conv.get("type") != "dm" else f"💬 {msg.sender_name}")
+        push_body = text[:120] or (("📎 " + msg.sender_name) if attachments else "Yeni mesaj")
         try:
             await send_push_to_users(
-                offline,
+                recipients,
                 {
-                    "title": push_title, "body": text[:120] or "Yeni mesaj",
-                    "icon": "/icon-192.png", "badge": "/icon-192.png",
+                    "title": push_title, "body": push_body,
+                    "icon": "/logo192.png", "badge": "/logo192.png",
                     "tag": f"conv-{conv_id}",
                     "data": {"conversation_id": conv_id, "message_id": msg.id, "url": "/"},
                 },

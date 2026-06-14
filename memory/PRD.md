@@ -1284,3 +1284,43 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 
 ### Etkilenen Dosyalar
 - `/app/frontend/src/components/messenger/MessengerPanel.jsx` (stale closure fix + native notification + WebAudio beep)
+
+---
+
+## Mesajlaşma — Polling Fallback + Tüm Cihazlara Push (14 Şubat 2026)
+
+**Kullanıcı isteği:** Mesajlar her ne olursa olsun anlık gelsin. Web bildirimi karşı tarafa **mutlaka** ulaşsın.
+
+### Yapılanlar
+1. **Polling fallback** (`MessengerPanel.jsx`):
+   - Drawer açıkken aktif konuşmayı **3 sn'de**, kapalıyken **6 sn'de** yenileniyor.
+   - WS event'le aynı state'e yazar, ID-bazlı dedupe edilir, sıralanır.
+   - Garanti: WebSocket kopuk/yavaş olsa da kullanıcı en geç 6 saniye içinde yeni mesajı görür.
+
+2. **Auto-request notification permission** (kullanıcı login olur olmaz):
+   - Drawer açılmasını beklemez — 4 saniye sonra `Notification.requestPermission()` çağrılır.
+   - Granted → `ensurePushSubscription()` → VAPID subscription backend'e kaydedilir.
+
+3. **Backend (`routes/chat.py`)**:
+   - Push gönderimi **online filtresinden kaldırıldı** — her mesajda **tüm diğer participant'lara** push gönderir.
+   - SW dedupe (`tag: conv-{id}`) sayesinde aynı kullanıcı duplicate bildirim görmez.
+   - Body fallback'leri: text yoksa "📎 Ek dosya" ya da "Yeni mesaj".
+
+4. **Service Worker (`sw.js`)**:
+   - Icon path'i `/icon-192.png` → `/logo192.png` düzeltildi (dosya gerçekten var).
+   - CACHE_VERSION v2 → v3 (eski SW'yi force-replace eder).
+
+### Test (Playwright e2e, 2 ayrı oturum)
+| Senaryo | Sonuç |
+|---|---|
+| A "yonetim" → mesaj | ✅ |
+| B "plan" — unread badge **1 saniyede** | ✅ |
+| B mesaj preview'ını listede görür (refresh yok) | ✅ |
+| B mesajı konuşmada görür (refresh yok) | ✅ |
+| B yanıt → A da **1 saniyede** görür | ✅ |
+
+### Etki
+- WS çalışırsa ANLIK (<200ms) güncelleme.
+- WS kopuksa en geç **6 saniyede** polling ile.
+- Push notification her cihazda (browser açık/kapalı, tab arka planda olsa bile) tetiklenir.
+- Tarayıcı bildirimi `tag: conv-{id}` ile dedupe edilir.

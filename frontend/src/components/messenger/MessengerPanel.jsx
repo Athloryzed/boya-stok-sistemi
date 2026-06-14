@@ -111,6 +111,66 @@ const MessengerPanel = () => {
     handleWsEventRef.current = handleWsEvent;
   });
 
+  // ─── POLLING FALLBACK ───
+  // WebSocket kararsız olabileceğinden (Cloudflare/Nginx proxy, network drops,
+  // service worker cache, token expire vs.), garantili real-time için kısa
+  // aralıklı HTTP polling. WS event ile aynı state'e yazar; dedupe edilir.
+  useEffect(() => {
+    if (!userId) return;
+    const tick = async () => {
+      try {
+        // 1) Aktif konuşma açıksa, son mesajları çek
+        if (open && activeId) {
+          const data = await chatApi.listMessages(activeId, { limit: 60 });
+          if (Array.isArray(data) && data.length) {
+            setMessages((prev) => {
+              const ids = new Set(prev.map((m) => m.id));
+              const fresh = data.filter((m) => !ids.has(m.id));
+              if (fresh.length === 0) return prev;
+              const merged = [...prev, ...fresh];
+              merged.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+              return merged;
+            });
+          }
+        }
+        // 2) Konuşma listesi + unread her zaman yenilensin
+        const [convs, unread] = await Promise.all([
+          chatApi.listConversations().catch(() => null),
+          chatApi.getUnreadTotal().catch(() => null),
+        ]);
+        if (convs) setConversations(convs);
+        if (unread && typeof unread.total === "number") setUnreadTotal(unread.total);
+      } catch (_) { /* sessiz */ }
+    };
+    // Drawer açıkken 3 sn, kapalıyken 6 sn — pil dostu
+    const interval = open ? 3000 : 6000;
+    const t = setInterval(tick, interval);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, open, activeId]);
+
+  // ─── Auto-request notification permission (drawer açılmadan) ───
+  // Login olur olmaz izin iste; kullanıcı bir kez "İzin Ver" derse her cihaza bildirim gider.
+  useEffect(() => {
+    if (!userId) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      // Hafif bir gecikme — sayfa yüklenir yüklenmez prompt göstermesin
+      const t = setTimeout(() => {
+        // Push subscription da otomatik tetiklenir (VAPID kaydı)
+        ensurePushSubscription().then((res) => {
+          if (res?.granted) setPushPermitted(true);
+        }).catch(() => { /* noop */ });
+      }, 4000);
+      return () => clearTimeout(t);
+    } else if (Notification.permission === "granted") {
+      // Granted ama subscription kaybolmuş olabilir — yenile
+      ensurePushSubscription().then((res) => {
+        if (res?.granted) setPushPermitted(true);
+      }).catch(() => { /* noop */ });
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (open) {
       // Push abone et (kullanıcı drawer'ı ilk açtığında izin sorulur)

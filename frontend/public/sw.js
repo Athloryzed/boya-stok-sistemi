@@ -1,5 +1,5 @@
-// Service Worker for Push Notifications - v2
-const CACHE_VERSION = 'v2';
+// Service Worker for Push Notifications - v3
+const CACHE_VERSION = 'v3';
 
 // Install event - eski cache'leri temizle
 self.addEventListener('install', function(event) {
@@ -52,8 +52,8 @@ self.addEventListener('push', function(event) {
   const title = data.title || 'Buse Kâğıt';
   const options = {
     body: data.body || 'Yeni bildirim',
-    icon: data.icon || '/icon-192.png',
-    badge: data.badge || '/icon-192.png',
+    icon: data.icon || '/logo192.png',
+    badge: data.badge || '/logo192.png',
     tag: data.tag,
     renotify: true,
     vibrate: [80, 40, 80],
