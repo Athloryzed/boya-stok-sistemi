@@ -118,6 +118,39 @@ let wsReconnectTimer = null;
 let wsListeners = new Set();
 let wsHeartbeat = null;
 
+// 401/403 WS rejection sonrası token refresh için
+let wsAuthRetries = 0;
+const MAX_AUTH_RETRIES = 2;
+
+async function tryRefreshAuthToken() {
+  try {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!refreshToken) return null;
+    const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.token) return null;
+    // Hem auth_token'ı hem app_session.token'ı güncelle
+    localStorage.setItem("auth_token", data.token);
+    if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+    try {
+      const sess = JSON.parse(localStorage.getItem("app_session") || "null");
+      if (sess) {
+        sess.token = data.token;
+        if (data.refresh_token) sess.refresh_token = data.refresh_token;
+        localStorage.setItem("app_session", JSON.stringify(sess));
+      }
+    } catch (_) { /* noop */ }
+    return data.token;
+  } catch (_) {
+    return null;
+  }
+}
+
 export function connectChatWS() {
   const token = getToken();
   if (!token) return null;
@@ -132,6 +165,7 @@ export function connectChatWS() {
     return null;
   }
   ws.onopen = () => {
+    wsAuthRetries = 0; // bağlantı başarılı → retry sayacını sıfırla
     // Heartbeat: 25 saniyede bir ping (Cloudflare proxy timeout < 100s)
     if (wsHeartbeat) clearInterval(wsHeartbeat);
     wsHeartbeat = setInterval(() => {
@@ -149,9 +183,23 @@ export function connectChatWS() {
       });
     } catch (_) {}
   };
-  ws.onclose = () => {
+  ws.onclose = async (ev) => {
     if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
-    // 3 sn sonra otomatik yeniden bağlan
+    // 4401/1008/4403 = auth reddi → access token expire olmuş, refresh dene
+    const authRejected = ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 1008);
+    if (authRejected && wsAuthRetries < MAX_AUTH_RETRIES) {
+      wsAuthRetries += 1;
+      const newToken = await tryRefreshAuthToken();
+      if (newToken) {
+        // Hemen yeniden bağlan (taze token'la)
+        if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = setTimeout(() => connectChatWS(), 200);
+        return;
+      }
+      // Refresh başarısız → kullanıcı yeniden giriş yapmalı, reconnect döngüsünü durdur
+      return;
+    }
+    // Normal kapanma → 3 sn sonra reconnect
     if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
     wsReconnectTimer = setTimeout(() => connectChatWS(), 3000);
   };
