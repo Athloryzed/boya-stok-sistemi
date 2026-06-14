@@ -18,6 +18,7 @@ import { requestNotificationPermission, onMessageListener } from "../firebase";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
+import NotificationSettings from "../components/messenger/NotificationSettings";
 import { useConfirm } from "../components/ConfirmProvider";
 import SecurityDashboard from "../components/SecurityDashboard";
 import JobThumb from "../components/JobThumb";
@@ -269,6 +270,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Yedekler
   const [backupsDialogOpen, setBackupsDialogOpen] = useState(false);
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
   const [backupsList, setBackupsList] = useState([]);
   const [backupsMeta, setBackupsMeta] = useState({ retention_days: 7, next_run_utc: null });
   const [backupRunning, setBackupRunning] = useState(false);
@@ -1446,6 +1448,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               title="Tüm bobinlerin stoğunu hareket geçmişinden yeniden hesapla">
               {recalcRunning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Scale className="h-4 w-4" />}
               <span className="hidden md:inline text-xs">Bobin Yeniden Hesapla</span>
+            </Button>
+            {/* BİLDİRİM YÖNETİMİ */}
+            <Button variant="outline" size="sm" onClick={() => setNotificationSettingsOpen(true)} data-testid="notification-settings-btn"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 h-9 gap-1.5"
+              title="Otomatik bildirim tetikleyicilerini yönet">
+              <Bell className="h-4 w-4" />
+              <span className="hidden md:inline text-xs">Bildirimler</span>
             </Button>
             {/* VERİ SENKRONU rozeti */}
             <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
@@ -4112,6 +4121,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Bildirim Yönetimi Modal */}
+        <NotificationSettings
+          open={notificationSettingsOpen}
+          onClose={() => setNotificationSettingsOpen(false)}
+        />
       </div>
     </div>
   );

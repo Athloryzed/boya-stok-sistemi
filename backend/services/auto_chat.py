@@ -27,6 +27,19 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def _get_settings(event_type: str) -> dict:
+    """Bildirim ayarlarını DB'den al. Belirli bir event tipi için."""
+    doc = await db.notification_settings.find_one({"id": "global"}, {"_id": 0})
+    if not doc:
+        return {"enabled": True}
+    return (doc.get("settings") or {}).get(event_type, {"enabled": True})
+
+
+async def _is_enabled(event_type: str) -> bool:
+    s = await _get_settings(event_type)
+    return s.get("enabled", True)
+
+
 async def ensure_seed_channels():
     """Önceden tanımlı grup kanallarını idempotent şekilde oluştur ve tüm uygun kullanıcıları katıl."""
     users = await db.users.find({"is_active": True}, {"_id": 0, "id": 1, "roles": 1, "role": 1}).to_list(1000)
@@ -165,20 +178,25 @@ def _make_system_msg(conv_id: str, text: str, event_type: str, event_meta: Optio
 
 async def notify_bobin_request(operator_name: str, machine_name: str, machine_id: str, quantity: Optional[int] = None, extra: Optional[Dict[str, Any]] = None):
     """Operatör bobin istedi → #depo + her depocu DM."""
+    if not await _is_enabled("bobin_request"):
+        logger.info("bobin_request disabled by settings — skipping")
+        return
     qty_text = f" {quantity} adet" if quantity else ""
     text = f"🚨 **Bobin Talebi** — {operator_name} ({machine_name}) →{qty_text} bobin istiyor."
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "quantity": quantity, **(extra or {})}
-    # 1) #depo kanalı
-    depo = await db.conversations.find_one({"channel_key": "depo"}, {"_id": 0})
-    if depo:
-        await _save_and_broadcast(
-            depo["id"],
-            _make_system_msg(depo["id"], text, "bobin_request", meta),
-            push_title=f"📜 Bobin talebi · {machine_name}",
-            push_body=f"{operator_name}{qty_text} bobin istiyor.",
-            push_extra={"event_type": "bobin_request"},
-        )
-    # 2) Makine kanalı (varsa)
+    settings = await _get_settings("bobin_request")
+    channels = settings.get("target_channels") or ["depo"]
+    for ch_key in channels:
+        ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
+        if ch:
+            await _save_and_broadcast(
+                ch["id"],
+                _make_system_msg(ch["id"], text, "bobin_request", meta),
+                push_title=f"📜 Bobin talebi · {machine_name}",
+                push_body=f"{operator_name}{qty_text} bobin istiyor.",
+                push_extra={"event_type": "bobin_request"},
+            )
+    # Makine kanalı (varsa)
     mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
     if mach_conv:
         await _save_and_broadcast(mach_conv["id"], _make_system_msg(mach_conv["id"], text, "bobin_request", meta))
@@ -186,27 +204,37 @@ async def notify_bobin_request(operator_name: str, machine_name: str, machine_id
 
 async def notify_paint_request(operator_name: str, machine_name: str, machine_id: str, color: Optional[str] = None, quantity_l: Optional[float] = None):
     """Operatör boya istedi → #depo."""
+    if not await _is_enabled("paint_request"):
+        logger.info("paint_request disabled by settings — skipping")
+        return
     parts = []
     if color: parts.append(color)
     if quantity_l: parts.append(f"{quantity_l} L")
     detail = " ".join(parts) if parts else "boya"
     text = f"🎨 **Boya Talebi** — {operator_name} ({machine_name}) → {detail} istiyor."
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "color": color, "quantity_l": quantity_l}
-    depo = await db.conversations.find_one({"channel_key": "depo"}, {"_id": 0})
-    if depo:
-        await _save_and_broadcast(
-            depo["id"], _make_system_msg(depo["id"], text, "paint_request", meta),
-            push_title=f"🎨 Boya talebi · {machine_name}",
-            push_body=f"{operator_name} — {detail}",
-            push_extra={"event_type": "paint_request"},
-        )
+    settings = await _get_settings("paint_request")
+    channels = settings.get("target_channels") or ["depo"]
+    for ch_key in channels:
+        ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
+        if ch:
+            await _save_and_broadcast(
+                ch["id"], _make_system_msg(ch["id"], text, "paint_request", meta),
+                push_title=f"🎨 Boya talebi · {machine_name}",
+                push_body=f"{operator_name} — {detail}",
+                push_extra={"event_type": "paint_request"},
+            )
 
 
 async def notify_low_stock(item_type: str, item_name: str, current: float, threshold: float, unit: str = "L"):
-    """Düşük stok → #depo + #yonetim."""
+    """Düşük stok → ayarlanmış kanallara."""
+    if not await _is_enabled("low_stock"):
+        return
+    settings = await _get_settings("low_stock")
     text = f"⚠️ **Düşük Stok** — {item_name} ({item_type}) yalnızca {current} {unit} kaldı (eşik: {threshold} {unit})."
     meta = {"item_type": item_type, "item_name": item_name, "current": current, "threshold": threshold, "unit": unit}
-    for ch_key in ("depo", "yonetim"):
+    channels = settings.get("target_channels") or ["depo", "yonetim"]
+    for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
             await _save_and_broadcast(
@@ -218,7 +246,9 @@ async def notify_low_stock(item_type: str, item_name: str, current: float, thres
 
 
 async def notify_job_assigned(job: dict):
-    """Plan yeni iş atadı → makine kanalı + operatör DM (atanmışsa)."""
+    """Plan yeni iş atadı → makine kanalı."""
+    if not await _is_enabled("job_assigned"):
+        return
     machine_id = job.get("machine_id")
     machine_name = job.get("machine_name") or "Makine"
     name = job.get("name") or "İsimsiz"
@@ -240,14 +270,18 @@ async def notify_job_assigned(job: dict):
 
 
 async def notify_job_completed(job: dict):
-    """İş tamamlandı → #plan + #yonetim."""
+    """İş tamamlandı → ayarlanmış kanallara."""
+    if not await _is_enabled("job_completed"):
+        return
+    settings = await _get_settings("job_completed")
     name = job.get("name") or "İş"
     machine_name = job.get("machine_name") or "Makine"
     koli = job.get("koli_produced") or job.get("koli_count") or 0
     operator = job.get("operator_name") or "Operatör"
     text = f"✅ **İş Tamamlandı** — *{name}* · {koli} koli · {machine_name} · {operator}"
     meta = {"job_id": job.get("id"), "machine_name": machine_name, "koli_produced": koli, "operator": operator, "job_name": name}
-    for ch_key in ("plan", "yonetim"):
+    channels = settings.get("target_channels") or ["plan", "yonetim"]
+    for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
             await _save_and_broadcast(
@@ -256,6 +290,46 @@ async def notify_job_completed(job: dict):
                 push_body=f"{name} · {koli} koli — {operator}",
                 push_extra={"event_type": "job_completed"},
             )
+
+
+async def notify_maintenance_request(operator_name: str, machine_name: str, machine_id: str, note: Optional[str] = None):
+    """Operatör bakım talep etti → #yonetim + makine kanalı."""
+    text = f"🔧 **Bakım Talebi** — {operator_name} ({machine_name}) bakım istiyor."
+    if note:
+        text += f"\n_Not: {note}_"
+    meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "note": note}
+    for ch_key in ("yonetim", "plan"):
+        ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
+        if ch:
+            await _save_and_broadcast(
+                ch["id"], _make_system_msg(ch["id"], text, "maintenance_request", meta),
+                push_title=f"🔧 Bakım talebi · {machine_name}",
+                push_body=f"{operator_name} bakım istiyor" + (f": {note[:50]}" if note else ""),
+                push_extra={"event_type": "maintenance_request"},
+            )
+    mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
+    if mach_conv:
+        await _save_and_broadcast(mach_conv["id"], _make_system_msg(mach_conv["id"], text, "maintenance_request", meta))
+
+
+async def notify_emergency(operator_name: str, machine_name: str, machine_id: str, note: Optional[str] = None):
+    """Operatör acil yardım istedi → #yonetim + #plan + #operator + makine kanalı (TÜM kanallara)."""
+    text = f"🆘 **ACİL YARDIM** — {operator_name} ({machine_name}) acil yardım istiyor!"
+    if note:
+        text += f"\n_Detay: {note}_"
+    meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "note": note, "priority": "emergency"}
+    for ch_key in ("yonetim", "plan", "operator", "depo"):
+        ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
+        if ch:
+            await _save_and_broadcast(
+                ch["id"], _make_system_msg(ch["id"], text, "emergency", meta),
+                push_title=f"🆘 ACİL · {machine_name}",
+                push_body=f"{operator_name} yardım istiyor!",
+                push_extra={"event_type": "emergency", "priority": "high"},
+            )
+    mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
+    if mach_conv:
+        await _save_and_broadcast(mach_conv["id"], _make_system_msg(mach_conv["id"], text, "emergency", meta))
 
 
 async def post_user_event(channel_key: str, text: str, event_type: str = "user_event", event_meta: Optional[Dict[str, Any]] = None, push_title: Optional[str] = None, push_body: Optional[str] = None):

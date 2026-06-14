@@ -96,6 +96,18 @@ export const chatApi = {
     const { data } = await axios.delete(`${API}/push/subscribe`, { headers: authHeaders(), data: { endpoint } });
     return data;
   },
+  async getSuggestedUsers(limit = 6) {
+    const { data } = await axios.get(`${API}/suggested-users`, { params: { limit }, headers: authHeaders() });
+    return data;
+  },
+  async getNotificationSettings() {
+    const { data } = await axios.get(`${API}/notification-settings`, { headers: authHeaders() });
+    return data;
+  },
+  async updateNotificationSettings(settings) {
+    const { data } = await axios.put(`${API}/notification-settings`, { settings }, { headers: authHeaders() });
+    return data;
+  },
 };
 
 // ───────────────────────────────────────────

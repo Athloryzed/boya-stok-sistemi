@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Send, X, Users, Search, ArrowLeft, Smile, Paperclip,
   Bell, BellOff, Check, CheckCheck, Hash, Image as ImageIcon,
-  CircleAlert, AtSign, ChevronDown, PlusCircle, FileText, Wifi, WifiOff,
+  CircleAlert, AtSign, ChevronDown, PlusCircle, FileText, Wifi, WifiOff, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatApi, connectChatWS, disconnectChatWS, onChatEvent, ensurePushSubscription } from "../../lib/messenger";
@@ -75,6 +75,7 @@ const MessengerPanel = () => {
   const [wsConnected, setWsConnected] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [groupFilter, setGroupFilter] = useState("all"); // all | dm | group | machine
+  const [suggested, setSuggested] = useState([]); // Sık kullanılan kullanıcılar
 
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -88,6 +89,7 @@ const MessengerPanel = () => {
     loadUsers();
     loadTemplates();
     loadUnread();
+    loadSuggested();
 
     // WebSocket
     const ws = connectChatWS();
@@ -165,7 +167,13 @@ const MessengerPanel = () => {
     try {
       const data = await chatApi.getUnreadTotal();
       setUnreadTotal(data?.total || 0);
-    } catch (e) { console.warn("loadUnread:", e); }
+    } catch (e) { console.warn("loadUnread:", e); /* ignore */ }
+  }
+  async function loadSuggested() {
+    try {
+      const data = await chatApi.getSuggestedUsers(6);
+      setSuggested(data || []);
+    } catch (e) { console.warn("loadSuggested:", e); /* ignore */ }
   }
   async function loadMessages(convId) {
     try {
@@ -442,6 +450,8 @@ const MessengerPanel = () => {
                   openConversation={openConversation}
                   onNewDM={() => setView("new-dm")}
                   pushPermitted={pushPermitted}
+                  suggested={suggested}
+                  onStartDM={startDM}
                 />
               )}
 
@@ -497,7 +507,7 @@ const MessengerPanel = () => {
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────
 
-function ListView({ search, setSearch, groupFilter, setGroupFilter, filteredConvs, presence, openConversation, onNewDM, pushPermitted }) {
+function ListView({ search, setSearch, groupFilter, setGroupFilter, filteredConvs, presence, openConversation, onNewDM, pushPermitted, suggested, onStartDM }) {
   return (
     <>
       <div className="px-3 pt-3 pb-2 space-y-2">
@@ -544,11 +554,55 @@ function ListView({ search, setSearch, groupFilter, setGroupFilter, filteredConv
         </div>
       </div>
 
+      {/* Sık kullanılan kullanıcılar — yatay scroll */}
+      {suggested && suggested.length > 0 && (
+        <div className="px-3 pb-3 border-b border-white/5" data-testid="suggested-users">
+          <p className="text-[10px] uppercase tracking-widest text-amber-300/80 font-bold mb-2 flex items-center gap-1">
+            <Zap className="w-3 h-3" /> Hızlı Erişim
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
+            {suggested.map((u) => {
+              const primary = (u.roles && u.roles[0]) || "operator";
+              const color = ROLE_COLORS[primary] || "#FFBF00";
+              const online = presence[u.id] !== undefined ? presence[u.id] : u.is_online;
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => onStartDM(u.id)}
+                  data-testid={`suggested-${u.id}`}
+                  aria-label={`${u.display_name || u.username} ile DM aç`}
+                  className="shrink-0 flex flex-col items-center gap-1 group"
+                >
+                  <div className="relative">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold text-zinc-900 transition-transform group-hover:scale-110 group-active:scale-95"
+                      style={{ background: `linear-gradient(135deg, ${color}, ${color}80)`, boxShadow: `0 4px 14px ${color}40` }}
+                    >
+                      {(u.display_name || u.username || "U").slice(0, 2).toUpperCase()}
+                    </div>
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#1a1410] ${online ? "bg-emerald-500" : "bg-zinc-600"}`}
+                      aria-hidden="true"
+                    />
+                    {u.is_recent && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-[#1a1410]" title="Son DM" />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-zinc-300 max-w-[60px] truncate font-medium">
+                    {u.display_name?.split(" ")[0] || u.username}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* New DM */}
       <button
         onClick={onNewDM}
         data-testid="messenger-new-dm"
-        className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-sm font-semibold transition-colors"
+        className="mx-3 mt-2 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-sm font-semibold transition-colors"
       >
         <PlusCircle className="w-4 h-4" /> Yeni konuşma başlat
       </button>

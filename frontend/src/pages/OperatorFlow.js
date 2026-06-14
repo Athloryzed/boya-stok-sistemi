@@ -22,6 +22,7 @@ import { resumeCentralSession, clearSession } from "../lib/auth";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
+import OperatorQuickRequest from "../components/messenger/OperatorQuickRequest";
 
 // Geçen gün sayısını hesapla
 const calculateDaysElapsed = (dateString) => {
@@ -1845,6 +1846,14 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
           onClose={() => setIosGuideOpen(false)}
           status={iosGuideStatus}
         />
+
+        {/* Hızlı Talep FAB — sağ alt (Messenger sol altta, çakışmaz) */}
+        {selectedMachine && step >= 2 && (
+          <OperatorQuickRequest
+            machine={selectedMachine}
+            operatorName={operatorName || "Operatör"}
+          />
+        )}
       </div>
     </div>
   );

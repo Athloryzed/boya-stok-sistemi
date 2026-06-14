@@ -469,3 +469,180 @@ async def create_group(data: dict = Body(...), user: dict = Depends(get_chat_use
 async def online_users(user: dict = Depends(get_chat_user)):
     ids = ws_chat.online_user_ids()
     return {"user_ids": ids, "count": len(ids)}
+
+
+# ───────────────────────────────────────────
+# 15) Sık kullanılan kullanıcılar (rol bazlı + DM geçmişine göre)
+# ───────────────────────────────────────────
+@router.get("/suggested-users")
+async def suggested_users(limit: int = 6, user: dict = Depends(get_chat_user)):
+    """Kullanıcının rolüne göre en uygun 6 kişiyi önerir.
+    Algoritma:
+      1) Son DM'ler (recent DM partners) - en yüksek öncelik
+      2) Rol bazlı: Operatör → Depo+Plan+Sofor / Plan → Operatör+Yönetim / Depo → Operatör+Sofor+Yönetim / Sofor → Depo+Plan / Yönetim → tüm aktifler
+      3) Online'lar öne
+    """
+    user_id = user["id"]
+    user_roles = _user_roles(user)
+    primary = (user_roles or ["operator"])[0]
+
+    # Hedef rol haritası
+    role_map = {
+        "operator": ["depo", "plan", "sofor"],
+        "plan": ["operator", "yonetim", "depo"],
+        "depo": ["operator", "sofor", "yonetim", "plan"],
+        "sofor": ["depo", "plan", "yonetim"],
+        "yonetim": ["plan", "operator", "depo", "sofor"],
+    }
+    target_roles = role_map.get(primary, ["yonetim", "plan", "depo", "operator", "sofor"])
+
+    # 1) Son DM ortakları (recency öncelikli)
+    recent_dms = await db.conversations.find(
+        {"type": "dm", "participants": user_id},
+        {"_id": 0, "participants": 1, "last_message_at": 1},
+    ).sort("last_message_at", -1).limit(10).to_list(10)
+    recent_partner_ids = []
+    for c in recent_dms:
+        for p in c.get("participants", []):
+            if p != user_id and p not in recent_partner_ids:
+                recent_partner_ids.append(p)
+
+    # 2) Hedef rolden kullanıcılar (recent_partner_ids hariç)
+    role_users = await db.users.find(
+        {
+            "is_active": True,
+            "id": {"$ne": user_id, "$nin": recent_partner_ids},
+            "$or": [{"roles": {"$in": target_roles}}, {"role": {"$in": target_roles}}],
+        },
+        {"_id": 0, "id": 1, "username": 1, "display_name": 1, "role": 1, "roles": 1},
+    ).limit(20).to_list(20)
+
+    # 3) Recent ortaklarını fetch et
+    recent_users = []
+    if recent_partner_ids:
+        recent_users = await db.users.find(
+            {"id": {"$in": recent_partner_ids}, "is_active": True},
+            {"_id": 0, "id": 1, "username": 1, "display_name": 1, "role": 1, "roles": 1},
+        ).to_list(20)
+        # Recent sırasıyla yeniden sırala
+        order_map = {uid: i for i, uid in enumerate(recent_partner_ids)}
+        recent_users.sort(key=lambda u: order_map.get(u["id"], 999))
+
+    # Birleştir + online öne
+    combined = recent_users + role_users
+    online = set(ws_chat.online_user_ids())
+    for u in combined:
+        u["is_online"] = u["id"] in online
+        u["roles"] = u.get("roles") or ([u.get("role")] if u.get("role") else [])
+        u["is_recent"] = u["id"] in recent_partner_ids
+    # Online'lar önce, recent'lar arasında sıra korunur
+    combined.sort(key=lambda u: (not u["is_online"], not u["is_recent"]))
+    return combined[:limit]
+
+
+# ───────────────────────────────────────────
+# 16) Bildirim ayarları (yönetim) — auto-trigger'ları aç/kapa
+# ───────────────────────────────────────────
+DEFAULT_NOTIFICATION_SETTINGS = {
+    "bobin_request": {"enabled": True, "target_channels": ["depo"], "target_roles": ["depo", "yonetim"]},
+    "paint_request": {"enabled": True, "target_channels": ["depo"], "target_roles": ["depo", "yonetim"]},
+    "low_stock": {"enabled": True, "target_channels": ["depo", "yonetim"], "target_roles": ["depo", "yonetim"], "threshold_l": 5.0},
+    "job_assigned": {"enabled": True, "target_channels": ["machine"], "target_roles": ["operator", "plan"]},
+    "job_completed": {"enabled": True, "target_channels": ["plan", "yonetim"], "target_roles": ["plan", "yonetim"]},
+    "web_push": {"enabled": True, "ttl_hours": 24},
+}
+
+
+async def get_notification_settings_doc() -> dict:
+    """notification_settings koleksiyonundan settings döner; yoksa default + DB'ye yaz."""
+    doc = await db.notification_settings.find_one({"id": "global"}, {"_id": 0})
+    if not doc:
+        doc = {"id": "global", "settings": DEFAULT_NOTIFICATION_SETTINGS, "updated_at": _now()}
+        await db.notification_settings.insert_one(doc)
+    # Eksik anahtarları default'tan doldur (forward compat)
+    settings = doc.get("settings", {})
+    for k, v in DEFAULT_NOTIFICATION_SETTINGS.items():
+        if k not in settings:
+            settings[k] = v
+    return {"settings": settings, "updated_at": doc.get("updated_at")}
+
+
+@router.get("/notification-settings")
+async def get_notification_settings(user: dict = Depends(get_chat_user)):
+    return await get_notification_settings_doc()
+
+
+@router.put("/notification-settings")
+async def update_notification_settings(data: dict = Body(...), user: dict = Depends(get_chat_user)):
+    if "yonetim" not in _user_roles(user):
+        raise HTTPException(status_code=403, detail="Yalnızca Yönetim bu ayarları değiştirebilir")
+    new_settings = data.get("settings") or {}
+    # Var olan + yeni
+    cur = await get_notification_settings_doc()
+    merged = {**cur["settings"], **new_settings}
+    now = _now()
+    await db.notification_settings.update_one(
+        {"id": "global"},
+        {"$set": {"settings": merged, "updated_at": now, "updated_by": user["id"]}},
+        upsert=True,
+    )
+    return {"settings": merged, "updated_at": now}
+
+
+# ───────────────────────────────────────────
+# 17) Quick-Request — Operatör hızlı talep (bobin/boya/bakım/acil)
+# ───────────────────────────────────────────
+@router.post("/quick-request")
+async def quick_request(data: dict = Body(...), user: dict = Depends(get_chat_user)):
+    """Operatör panelinden gelen hızlı talep — chat bot + (opsiyonel) warehouse-request kaydı.
+    Body: {kind: "bobin"|"paint"|"maintenance"|"emergency", machine_id, machine_name,
+           quantity?, color?, note?}
+    """
+    from services.auto_chat import (
+        notify_bobin_request, notify_paint_request,
+        notify_maintenance_request, notify_emergency,
+    )
+    kind = (data.get("kind") or "").lower()
+    machine_id = data.get("machine_id") or ""
+    machine_name = data.get("machine_name") or "Makine"
+    operator_name = user.get("display_name") or user.get("username") or "Operatör"
+
+    if kind == "bobin":
+        quantity = data.get("quantity")
+        try: quantity = int(quantity) if quantity is not None else None
+        except (TypeError, ValueError): quantity = None
+        # Ayrıca warehouse-requests koleksiyonuna da kaydet (geriye uyumluluk)
+        from models import WarehouseRequest
+        wr = WarehouseRequest(
+            operator_name=operator_name, machine_name=machine_name,
+            item_type="Bobin", quantity=quantity or 1,
+        )
+        await db.warehouse_requests.insert_one(wr.model_dump())
+        await notify_bobin_request(operator_name, machine_name, machine_id, quantity)
+        return {"ok": True, "event": "bobin_request", "request_id": wr.id}
+
+    elif kind == "paint":
+        color = data.get("color")
+        quantity_l = data.get("quantity_l") or data.get("quantity")
+        try: quantity_l = float(quantity_l) if quantity_l is not None else None
+        except (TypeError, ValueError): quantity_l = None
+        from models import WarehouseRequest
+        wr = WarehouseRequest(
+            operator_name=operator_name, machine_name=machine_name,
+            item_type="Boya", quantity=int(quantity_l) if quantity_l else 1,
+        )
+        await db.warehouse_requests.insert_one(wr.model_dump())
+        await notify_paint_request(operator_name, machine_name, machine_id, color, quantity_l)
+        return {"ok": True, "event": "paint_request", "request_id": wr.id}
+
+    elif kind == "maintenance":
+        note = data.get("note") or ""
+        await notify_maintenance_request(operator_name, machine_name, machine_id, note)
+        return {"ok": True, "event": "maintenance_request"}
+
+    elif kind == "emergency":
+        note = data.get("note") or ""
+        await notify_emergency(operator_name, machine_name, machine_id, note)
+        return {"ok": True, "event": "emergency"}
+
+    raise HTTPException(status_code=400, detail="Geçersiz talep tipi: kind = bobin|paint|maintenance|emergency")
