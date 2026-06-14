@@ -33,8 +33,8 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
   const userRef = useRef(null);
 
   useEffect(() => {
-    const t = setTimeout(() => userRef.current?.focus(), 200);
-    return () => clearTimeout(t);
+    // Erişilebilirlik (WCAG AAA): autoFocus kaldırıldı — skip-link ve klavye sıralı erişim için
+    // Kullanıcı sayfa açılır açılmaz Tab tuşuyla "İçeriğe atla" linkine erişebilir.
   }, []);
 
   const handleLogin = async (e) => {

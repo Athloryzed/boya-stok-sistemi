@@ -301,11 +301,11 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         animate={{ opacity: 1, x: 0, scale: 1 }}
         transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         data-testid="ataturk-image"
+        aria-label="Mustafa Kemal Atatürk"
+        role="img"
       >
         <div
           className="ataturk-frame-premium"
-          aria-label="Mustafa Kemal Atatürk"
-          role="img"
           title="Mustafa Kemal Atatürk"
         >
           <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-zinc-900">

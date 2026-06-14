@@ -40,6 +40,10 @@
 - Can log in via /plan AND /bobin. Gets 403 on operator/sofor panels.
 
 ## Yonetim Role (Iteration 38+)
+- Username: adminusr
+- Password: admin123
+- Roles: yonetim (auto-expands to operator + plan + depo + sofor + yonetim)
+- Unified login (/): adminusr girişiyle TÜM panellere erişebilir. Yönetim Hızlı Panel FAB (data-testid="yonetim-quick-fab") sağ altta görünür.
 - Yonetim rolüne sahip kullanıcılar TÜM panellere giriş yapabilir (auto-expand: operator, plan, depo, sofor, yonetim).
 - ManagementFlow > Kullanıcı oluşturma > Roller bölümünden "Yönetim" (👑) seçilerek atanır.
 

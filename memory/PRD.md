@@ -890,3 +890,115 @@ Her panel kendi `*_session` (bobin_session, depo_session, plan_session, marka_st
 
 ### Not
 - Open-Meteo verisi CC BY 4.0 — ticari olmayan kullanımda günde ~10.000 çağrı limiti var; 30 dk önbellekle günde en fazla ~48 çağrı yapılır.
+
+
+---
+
+## Oturum Devamı: Premium Bento UI v4 — Anasayfa + Tüm Paneller (14 Şubat 2026)
+
+**Kullanıcı isteği:**
+Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısından komple yenilenmesi. Atatürk resmi asla silinmeyecek + Türkçe karakter/imla desteği güçlendirilecek.
+
+**Kullanıcı tercihleri:**
+- Tasarım: "Premium Endüstriyel" + "Bento Grid Modern" (sıcak amber/altın aksanlı, modüler kartlar)
+- Animasyon yoğunluğu: **Yüksek**
+- Mobil deneyim: Mobil-öncelikli + Eşit öncelikli
+- Erişilebilirlik (a11y): **Tam (WCAG AAA)**
+- Atatürk/Bayrak: Mevcut konum + daha şık altın çerçeve + minimal sunum
+- Türkçe karakter düzeltmesi: **Tüm UI'da uygulansın**
+
+### Yapılanlar
+
+**1. CSS v4 — Premium Bento Design System** (`App.css` lines 1160+)
+- `.skip-to-main` (WCAG skip-to-content linki — sarı amber, klavye Tab ile odaklanır)
+- `.sr-only-aaa` (yalnızca ekran okuyucular için utility)
+- `@media (prefers-contrast: more)` — yüksek kontrast modu
+- Güçlendirilmiş `*:focus-visible` (3px amber outline + 5px ring)
+- `.bento-card-premium` — koyu altın gradient + glassmorphism v2 + hover lift, light theme variant
+- `.ataturk-frame-premium` — **resim sabit, sadece çerçeve döner** (conic gradient, 16s lineer rotate + 4s breathe glow)
+- `.chip-premium`, `.weather-chip-premium` — premium hava/saat chip'leri
+- `.header-premium`, `::after` flowing border-animation (8s)
+- `.panel-logo-tile` — renkli logo karoları (B/P/O vb. her panel için)
+- `.title-gradient-premium` — altın gradient shine animation
+- `.btn-premium-gold` — premium altın butonlar
+- `.bento-icon-tile`, `.bento-arrow-premium`, `.input-premium`, `.toggle-premium-track`
+- `.bottom-nav-premium` (mobil-only)
+- Tüm animasyonlar `lite-mode` + `prefers-reduced-motion` ile devre dışı bırakılır.
+
+**2. Home.js — Premium Bento Grid v2**
+- Atatürk: yeni premium altın çerçeve (sabit Atatürk resmi + dönen gradient halo). aria-label="Mustafa Kemal Atatürk", role="img", img alt korunur.
+- "BUSE KÂĞIT" başlığı `title-gradient-premium` ile altın gradient shine.
+- "Üretim Yönetim Sistemi" alt başlık.
+- Hava chip premium (`weather-chip-premium`) — gece/fırtınalı havada premium, gündüz/açık havada light.
+- `isDarkBg` türevi: isNight VEYA wcat in [thunder/rain/fog/cloudy] — başlık + chip + welcome bar styling.
+- **Bento Grid v2**: Yönetim Paneli + Canlı Pano `col-span-2` featured kart. Diğer modüller kompakt kart. Her kartta:
+  - Renkli `bento-icon-tile` (rgb türetilmiş gradient + nefes alan glow)
+  - Türkçe modül adı + açıklama (text-amber-50 / text-amber-200/80)
+  - Hover'da görünen `bento-arrow-premium` (ok)
+- `<nav aria-label="Panel modülleri">` semantik sarmalayıcı.
+- Welcome bar `role="status" aria-live="polite"` ile screen reader destekli.
+
+**3. UnifiedLogin.js**
+- autoFocus kaldırıldı → klavye sıralı erişim Tab ile skip-link'ten başlar.
+- `role="form" aria-labelledby` semantik form yapısı.
+- `aria-required`, `aria-invalid`, `aria-busy`, `aria-pressed` (göster/gizle).
+- Hata mesajı `role="alert" aria-live="assertive"`.
+- `sr-only-aaa` label'lar her input için.
+- `aria-label`'lar (şifre göster/gizle, TV girişini aç).
+- Premium altın login kartı (`border-amber-500/30 + login-glow`), shield ikonlu altın gradient logo karosu, `Buse Kâğıt` başlık (Türkçe karakter düzgün).
+- `btn-premium-gold` ile Giriş Yap.
+- Yanıltıcı "Beni Hatırla" toggle artık `peer-focus:ring` ile klavye odağında.
+
+**4. LiveDashboard.js**
+- "BUSE KÂĞIT" başlık → `title-gradient-premium` altın shine.
+- "Canlı Üretim Panosu" alt başlık.
+- 4 metric kartı Türkçe büyük harf: **ÇALIŞAN MAKİNE, BUGÜN ÜRETİM, BEKLEYEN İŞ, TAMAMLANAN** (CSS uppercase yerine doğrudan büyük harf yazıldı — Türkçe 'İ' düzgün görünüyor).
+- "MAKİNE DURUMLARI", "GÜNÜN EN İYİLERİ", "SON 7 GÜN" alt başlıklar.
+- Makine durumları: **Çalışıyor / Bakımda / Boşta** (statusText helper).
+- "Canlı — 15 saniyede bir güncellenir" alt etiket.
+
+**5. Panel Header'ları**
+- **ManagementFlow**: amber "B" panel-logo-tile + "Buse Kâğıt" üst etiket + "Yönetim Paneli" başlık (font-black tracking-tight).
+- **OperatorFlow**: yeşil "O" panel-logo-tile + "Operatör" üst etiket + makine adı başlık.
+- **PlanFlow**: mavi "P" panel-logo-tile + "Buse Kâğıt" üst etiket + "Planlama Paneli" başlık.
+- **BobinFlow**: login form Türkçeleştirildi (Kullanıcı adı, Şifre, Beni hatırla, Giriş Yap, Bobin Yönetimi).
+- WarehouseFlow / MarkaStokFlow / PaintFlow / DriverFlow zaten Türkçe karakterli + gradient başlıklı (değişiklik gerekmedi).
+
+**6. App.js**
+- Sayfa başında `<a href="#main-content" className="skip-to-main">İçeriğe atla</a>` skip link.
+- Home.js'de `<div id="main-content">` ana içerik wrapper.
+- `index.html` lang="tr" olarak ayarlandı (ekran okuyucu Türkçe ses.
+
+**7. test_credentials.md**
+- Yönetim test kullanıcısı eklendi: `adminusr / admin123` (yonetim rolü, is_active=true yapıldı).
+
+### Test
+- `/app/test_reports/iteration_42.json` — testing_agent_v3_fork tarafından **11/13 spec doğrulandı**, **0 fonksiyonel regresyon**, 3 minor polish item (skip-link tab erişimi, Atatürk aria-label, LiveDashboard 'I' karakteri) — **TÜMÜ DÜZELTİLDİ** ve manuel screenshot ile doğrulandı.
+- Screenshot doğrulamaları: Home (light/dark/thunder), Quick FAB sheet, Management panel, Plan panel, UnifiedLogin (focus state skip link visible).
+
+### Korunan ögeler
+- Atatürk resmi (sol üst) + Türk Bayrağı (sağ üst)
+- Tüm data-testid attribute'ları (ASCII)
+- Tüm API endpoint'leri ve veri akışı (sıfır backend değişikliği)
+- 23 Nisan teması (Nisan ayına özel)
+- Open-Meteo hava entegrasyonu
+- Yönetim Hızlı Panel FAB + sheet
+- prefers-reduced-motion + lite-mode düşürme
+
+### Türkçe karakter düzeltmeleri (örnekler)
+- Yonetim → Yönetim
+- Operator → Operatör (modül kartı + UserMenu rol etiketi)
+- Surucu → Sürücü
+- BUSE KAGIT → BUSE KÂĞIT
+- Buse Kagit → Buse Kâğıt
+- Canli Pano → Canlı Pano
+- Uretim → Üretim
+- Sifre → Şifre
+- Kullanici adi → Kullanıcı adı
+- Bobin Yonetimi → Bobin Yönetimi
+- Iyileri → İyileri (LiveDashboard)
+- Is planlama → İş planlama
+- Bekleyen Is → Bekleyen İş
+- Calisiyor → Çalışıyor
+- Bakimda → Bakımda
+- Bosta → Boşta

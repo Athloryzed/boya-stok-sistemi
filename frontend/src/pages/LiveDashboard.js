@@ -165,28 +165,28 @@ const LiveDashboard = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="tv-stat p-4" style={{ "--accent-rgb": "34,197,94" }}>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="h-4 w-4 text-green-400" aria-hidden="true" />
-            <span className="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Çalışan Makine</span>
+            <span className="text-zinc-400 text-xs tracking-wider font-semibold">ÇALIŞAN MAKİNE</span>
           </div>
           <p className="text-4xl md:text-5xl metric-display text-green-400">{data.summary.working}<span className="text-xl text-zinc-500">/{data.summary.total_machines}</span></p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="tv-stat p-4" style={{ "--accent-rgb": "255,191,0" }}>
           <div className="flex items-center gap-2 mb-1">
             <Package className="h-4 w-4 text-amber-400" aria-hidden="true" />
-            <span className="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Bugün Üretim</span>
+            <span className="text-zinc-400 text-xs tracking-wider font-semibold">BUGÜN ÜRETİM</span>
           </div>
           <p className="text-4xl md:text-5xl metric-display text-amber-400">{data.summary.koli_today} <span className="text-xl text-zinc-500">koli</span></p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="tv-stat p-4" style={{ "--accent-rgb": "96,165,250" }}>
           <div className="flex items-center gap-2 mb-1">
             <Clock className="h-4 w-4 text-blue-400" aria-hidden="true" />
-            <span className="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Bekleyen İş</span>
+            <span className="text-zinc-400 text-xs tracking-wider font-semibold">BEKLEYEN İŞ</span>
           </div>
           <p className="text-4xl md:text-5xl metric-display text-blue-400">{data.summary.pending_total}</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="tv-stat p-4" style={{ "--accent-rgb": "192,132,252" }}>
           <div className="flex items-center gap-2 mb-1">
             <Users className="h-4 w-4 text-purple-400" aria-hidden="true" />
-            <span className="text-zinc-400 text-xs uppercase tracking-wider font-semibold">Tamamlanan</span>
+            <span className="text-zinc-400 text-xs tracking-wider font-semibold">TAMAMLANAN</span>
           </div>
           <p className="text-4xl md:text-5xl metric-display text-purple-400">{data.summary.completed_today} <span className="text-xl text-zinc-500">iş</span></p>
         </motion.div>
@@ -195,7 +195,7 @@ const LiveDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Makine Durumları */}
         <div className="lg:col-span-2">
-          <h2 className="text-sm font-bold text-zinc-300 mb-3 uppercase tracking-wider">Makine Durumları</h2>
+          <h2 className="text-sm font-bold text-zinc-300 mb-3 tracking-wider">MAKİNE DURUMLARI</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="dashboard-machines">
             {data.machines.map((m, i) => (
               <motion.div
@@ -233,7 +233,7 @@ const LiveDashboard = () => {
         <div className="space-y-4">
           {/* Operatör Sıralaması */}
           <div>
-            <h2 className="text-sm font-bold text-zinc-300 mb-3 uppercase tracking-wider">Günün En İyileri</h2>
+            <h2 className="text-sm font-bold text-zinc-300 mb-3 tracking-wider">GÜNÜN EN İYİLERİ</h2>
             <div className="panel-industrial rounded-xl overflow-hidden" data-testid="dashboard-operators">
               {data.operator_ranking.length > 0 ? (
                 data.operator_ranking.slice(0, 5).map((op, i) => (
@@ -259,7 +259,7 @@ const LiveDashboard = () => {
           {/* 7 Gün Grafik */}
           {data.daily_koli?.length > 0 && (
             <div>
-              <h2 className="text-sm font-bold text-zinc-300 mb-3 uppercase tracking-wider">Son 7 Gün</h2>
+              <h2 className="text-sm font-bold text-zinc-300 mb-3 tracking-wider">SON 7 GÜN</h2>
               <div className="panel-industrial rounded-xl p-3">
                 <ResponsiveContainer width="100%" height={140}>
                   <BarChart data={data.daily_koli}>
