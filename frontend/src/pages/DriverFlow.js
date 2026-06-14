@@ -303,19 +303,19 @@ const DriverFlow = ({ theme, toggleTheme }) => {
     <div className="min-h-screen bg-background p-3 sm:p-4 overflow-x-hidden">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 gap-2 min-w-0">
-        <Button variant="outline" size="icon" onClick={() => navigate("/")} className="h-9 w-9 md:w-auto md:px-3 shrink-0">
-          <ArrowLeft className="w-4 h-4 md:mr-1" />
-          <span className="hidden md:inline">Ana Sayfa</span>
+        <Button variant="outline" size="icon" onClick={() => navigate("/")} className="h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+          <ArrowLeft className="w-4 h-4 xl:mr-1" />
+          <span className="hidden xl:inline">Ana Sayfa</span>
         </Button>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <span className="text-sm text-text-secondary hidden lg:inline truncate max-w-[200px]">{driverData?.name}</span>
+          <span className="text-sm text-text-secondary hidden 2xl:inline truncate max-w-[200px]">{driverData?.name}</span>
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
           <UserMenu />
-          <Button variant="outline" size="icon" onClick={handleLogout} className="h-9 w-9 md:w-auto md:px-3 shrink-0">
-            <LogOut className="w-4 h-4 md:mr-1" />
-            <span className="hidden md:inline">Çıkış</span>
+          <Button variant="outline" size="icon" onClick={handleLogout} className="h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+            <LogOut className="w-4 h-4 xl:mr-1" />
+            <span className="hidden xl:inline">Çıkış</span>
           </Button>
         </div>
       </div>

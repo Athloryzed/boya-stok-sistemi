@@ -1400,9 +1400,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       <div className="header-industrial sticky top-0 z-40 px-3 sm:px-4 md:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0" aria-label="Ana sayfaya dön">
-              <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
-              <span className="hidden md:inline">Ana Sayfa</span>
+            <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 xl:w-auto xl:px-3 shrink-0" aria-label="Ana sayfaya dön">
+              <ArrowLeft className="h-4 w-4 xl:mr-1.5" aria-hidden="true" />
+              <span className="hidden xl:inline">Ana Sayfa</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
             <div className="flex items-center gap-2 min-w-0">
@@ -1421,14 +1421,14 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {currentShift ? (
-              <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9 px-2.5 md:px-3 shrink-0">
-                <PowerOff className="h-4 w-4 md:mr-1.5" />
-                <span className="hidden md:inline">Vardiya Bitir</span>
+              <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9 px-2.5 lg:px-3 shrink-0">
+                <PowerOff className="h-4 w-4 lg:mr-1.5" />
+                <span className="hidden lg:inline">Vardiya Bitir</span>
               </Button>
             ) : (
-              <Button data-testid="start-shift-button" onClick={handleStartShift} size="sm" className="bg-success text-white hover:bg-success/90 h-9 px-2.5 md:px-3 shrink-0">
-                <Power className="h-4 w-4 md:mr-1.5" />
-                <span className="hidden md:inline">Vardiya Başlat</span>
+              <Button data-testid="start-shift-button" onClick={handleStartShift} size="sm" className="bg-success text-white hover:bg-success/90 h-9 px-2.5 lg:px-3 shrink-0">
+                <Power className="h-4 w-4 lg:mr-1.5" />
+                <span className="hidden lg:inline">Vardiya Başlat</span>
               </Button>
             )}
             {/* İkincil aksiyonlar — mobilde tek "Daha Fazla" menüsünde toplanır */}
@@ -1453,9 +1453,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               ]}
             />
             <UserMenu />
-            <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 md:w-auto md:px-3 shrink-0">
-              <LogOut className="h-4 w-4 md:mr-1.5" />
-              <span className="hidden md:inline">Çıkış</span>
+            <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+              <LogOut className="h-4 w-4 xl:mr-1.5" />
+              <span className="hidden xl:inline">Çıkış</span>
             </Button>
           </div>
         </div>

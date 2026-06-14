@@ -1041,21 +1041,21 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
       <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6">
         {/* Top Bar */}
         <div className="flex justify-between items-center gap-2 mb-6 min-w-0">
-          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-btn" className="h-9 w-9 md:w-auto md:px-3 shrink-0">
-            <ArrowLeft className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Ana Sayfa</span>
+          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-btn" className="h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+            <ArrowLeft className="h-4 w-4 xl:mr-2" />
+            <span className="hidden xl:inline">Ana Sayfa</span>
           </Button>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <span className="text-xs text-text-secondary hidden lg:inline px-2 py-1 rounded-full bg-surface border border-border truncate max-w-[200px]">{userData?.display_name || userData?.username} · {role}</span>
+            <span className="text-xs text-text-secondary hidden 2xl:inline px-2 py-1 rounded-full bg-surface border border-border truncate max-w-[200px]">{userData?.display_name || userData?.username} · {role}</span>
             <HeaderActionsMenu
               items={[
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, accent: "default" },
               ]}
             />
             <UserMenu />
-            <Button variant="outline" size="icon" onClick={handleLogout} className="text-error border-error/40 h-9 w-9 md:w-auto md:px-3 shrink-0">
-              <LogOut className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Çıkış</span>
+            <Button variant="outline" size="icon" onClick={handleLogout} className="text-error border-error/40 h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+              <LogOut className="h-4 w-4 xl:mr-2" />
+              <span className="hidden xl:inline">Çıkış</span>
             </Button>
           </div>
         </div>

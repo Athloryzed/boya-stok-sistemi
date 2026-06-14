@@ -64,7 +64,7 @@ export default function HeaderActionsMenu({ items = [], className = "" }) {
               className={`h-9 gap-1.5 ${tone}`}
             >
               {Icon ? <Icon className="h-4 w-4" /> : null}
-              <span className="hidden lg:inline text-xs">{it.label}</span>
+              <span className="hidden xl:inline text-xs">{it.label}</span>
             </Button>
           );
         })}

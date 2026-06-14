@@ -504,9 +504,9 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         </AnimatePresence>
 
         <div className="flex justify-between items-center mb-8 gap-2 min-w-0">
-          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0">
-            <ArrowLeft className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Ana Sayfa</span>
+          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+            <ArrowLeft className="h-4 w-4 xl:mr-2" />
+            <span className="hidden xl:inline">Ana Sayfa</span>
           </Button>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* WebSocket durumu */}

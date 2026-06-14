@@ -108,8 +108,8 @@ export default function UserMenu({ className = "" }) {
         <span className={`relative w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
           {initial}
         </span>
-        <span className="hidden sm:flex flex-col items-start leading-tight pr-1">
-          <span className="text-xs font-semibold text-text-primary">{displayName}</span>
+        <span className="hidden xl:flex flex-col items-start leading-tight pr-1 max-w-[140px]">
+          <span className="text-xs font-semibold text-text-primary truncate w-full">{displayName}</span>
           <span className="text-[9px] font-mono uppercase text-text-secondary tracking-wider">{roles[0]}</span>
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-text-secondary transition-transform ${open ? "rotate-180" : ""}`} />
