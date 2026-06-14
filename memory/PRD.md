@@ -1002,3 +1002,63 @@ Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısınd
 - Calisiyor → Çalışıyor
 - Bakimda → Bakımda
 - Bosta → Boşta
+
+
+---
+
+## Oturum Devamı: Messenger v1 + Akıllı Bildirimler (14 Şubat 2026)
+
+**Kullanıcı isteği:**
+"Bildirimleri zenginleştirip kullanıcılar arası messenger benzeri özellik. Operatör 'bobin istiyorum' dediğinde depocular otomatik mesaj alsın."
+
+**Kullanıcı tercihleri (maksimum kapsam):**
+- 1c: 1:1 DM + grup kanalları + makine kanalları
+- 2f: Tüm otomatik tetikleyiciler (bobin/boya/düşük stok/yeni iş/iş tamamlandı)
+- 3: Dahili + Tarayıcı (Web Push)
+- 4c: Metin + emoji + şablonlar + dosya/foto
+- 5c: Okundu + yazıyor + son görülme
+- 6a: Sınırsız mesaj geçmişi
+
+### Backend (Yeni)
+- **models_chat.py**: Conversation (dm/group/machine), ChatMessage (text/system/auto_event/file/image), MessageRead, UserPresence, PushSubscription. 6 SEED_CHANNELS (#genel, #yonetim, #plan, #operator, #depo, #sofor) + 6 QUICK_TEMPLATES.
+- **routes/chat.py** (~470 satır): 16 endpoint (conversations, messages, read, typing, dm, users, templates, reaction, upload, push-subscribe, unread-total, groups, presence).
+- **services/auto_chat.py**: notify_bobin_request, notify_paint_request, notify_low_stock, notify_job_assigned, notify_job_completed + ensure_seed_channels + ensure_machine_channel.
+- **services/web_push.py**: VAPID anahtar otomatik üretim + pywebpush ile gönderim. .vapid_private.pem (0600) + .vapid_public.txt
+- **websocket_chat.py**: ChatConnectionManager (user_id→set(WebSocket) çoklu cihaz + presence broadcast). Event tipleri: new_message, typing_start/stop, presence_update, message_read, reaction_added, conversation_update.
+- **server.py**: /api/ws/chat?token=JWT WebSocket endpoint + seed_chat_channels startup event (6 grup + her makine için bir kanal).
+- **Auto-trigger entegrasyonu**: warehouse-requests (Bobin→bobin_request, Boya→paint_request), jobs.py POST→job_assigned, jobs.py complete→job_completed, paints.py movement→low_stock.
+- **MongoDB indexes**: conversations, chat_messages, message_reads, push_subscriptions için optimize indexler.
+- **Yeni pip**: pywebpush==2.0.0 + py-vapid==1.9.4 + cryptography==46.0.3
+
+### Frontend (Yeni)
+- **lib/messenger.js**: chatApi REST + connectChatWS (auto-reconnect 3s, 25s heartbeat) + ensurePushSubscription (VAPID).
+- **components/messenger/MessengerPanel.jsx** (~700 satır): Drawer ana bileşeni. Global FAB sol altta + unread badge, soldan sliding drawer (motion spring), 4 filter chip, "Yeni konuşma başlat", arama, conversation kartları (icon + isim + preview + unread badge + online dot), mesaj balonları (kendi sağda altın, başkaları solda gri, sistem ortada altın), avatar + rol + zaman + ✓✓, reactions, typing indicator, InputBar (Enter gönder + emoji + şablon + dosya butonu).
+- **components/messenger/GlobalMessenger.jsx**: App.js wrapper, oturum kontrol + path filter (/dashboard ve /takip/* hariç).
+- **App.js**: GlobalMessenger import + render.
+- **public/sw.js**: Service Worker push event handler JSON payload + notificationclick.
+- **lib/auth.js**: saveSession user_id JWT'den decode + getSession backward compat.
+
+### Otomatik akış örneği (Operatör Bobin İster)
+1. Operatör panelinde "Bobin İstiyorum" → POST /api/warehouse-requests
+2. Backend notify_bobin_request çağrılır:
+   - #depo kanalına auto_event mesaj eklenir (event_type='bobin_request')
+   - WebSocket: tüm depocu kullanıcılara new_message broadcast
+   - Offline depocular için Web Push gönderilir
+3. Depocu drawer'ında badge görünür + toast + (izin verdiyse) tarayıcı bildirimi.
+4. Cevap: drawer aç + şablona bas: "📜 Bobin gönder"
+
+### Test
+- /app/test_reports/iteration_43.json: 19/19 backend pytest + 16/16 frontend data-testid PASS, sıfır kritik/minor sorun.
+- /app/backend/tests/test_chat_messenger.py — regresyon için kalıcı pytest dosyası.
+- Test edilmedi (Faz 2/manuel): 2 tarayıcı real-time typing/read, Web Push tam delivery, job_assigned/completed E2E (kod var, payload edge case'leri test edilmedi).
+
+### Korunan
+- Mevcut /api/messages (eski makine mesajları) — geriye uyumluluk.
+- Tüm UI v4 stilleri (premium-bento + Türkçe).
+- Atatürk premium çerçeve + tüm data-testid'ler.
+
+### Çalışmayan / Eksik (Faz 2)
+- Sesli mesaj
+- Mesaj arama (içerik bazlı)
+- Mesaj düzenleme/silme UI (backend soft-delete hazır)
+- WhatsApp köprüsü (Twilio key gerekir)
