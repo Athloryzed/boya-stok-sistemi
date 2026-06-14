@@ -49,6 +49,38 @@ async def get_menu_by_date(date: Optional[str] = None):
     return menu
 
 
+@router.get("/menu/week")
+async def get_week_menus(days_back: int = 1, days_forward: int = 6):
+    """
+    Bu haftanın menüleri (kamuya açık, login gerekmez).
+    Varsayılan: dün + bugün + sonraki 5 gün = 7 gün.
+    days_back / days_forward parametreleri ile aralık ayarlanabilir.
+    """
+    days_back = max(0, min(int(days_back or 0), 14))
+    days_forward = max(0, min(int(days_forward or 0), 30))
+    today_dt = datetime.now(timezone.utc) + timedelta(hours=3)
+    today_key = today_dt.strftime("%Y-%m-%d")
+    start_dt = today_dt - timedelta(days=days_back)
+    end_dt = today_dt + timedelta(days=days_forward)
+    start = start_dt.strftime("%Y-%m-%d")
+    end = end_dt.strftime("%Y-%m-%d")
+    found = await db.daily_menu.find(
+        {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    by_date = {m["date"]: m for m in found}
+    # Aralıktaki her gün için stub kayıt üret (yoksa boş)
+    out = []
+    span_days = days_back + days_forward + 1
+    for i in range(span_days):
+        d = (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
+        m = by_date.get(d)
+        if m:
+            out.append({**m, "exists": True, "is_today": d == today_key})
+        else:
+            out.append({"date": d, "items": [], "notes": None, "exists": False, "is_today": d == today_key})
+    return {"today": today_key, "range_start": start, "range_end": end, "menus": out}
+
+
 # ==================== YÖNETİM (auth gerektirir) ====================
 
 @router.get("/menu/upcoming")

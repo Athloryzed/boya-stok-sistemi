@@ -1131,3 +1131,37 @@ Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısınd
 - Tüm UI v4 stilleri + Türkçe karakter
 - /api/warehouse-requests da auto-trigger çalışıyor (eski operatör akışı bozulmadı)
 
+
+---
+
+## Oturum Devamı: Yemek Menüsü Premium UI + Haftalık Görünüm + Küçültme (14 Şubat 2026)
+
+**Kullanıcı isteği:** Anasayfadaki yemek menüsünü daha şık ve UI uyumlu yap; diğer günleri gösteren buton ekle; küçültme tuşu ekle.
+
+### Backend
+- `/app/backend/routes/menu.py` → yeni endpoint `GET /api/menu/week?days_back=1&days_forward=6` (kamuya açık, login gerekmez). Aralıktaki her gün için kayıt yoksa boş stub döner; `is_today` flag'i bugünü işaretler.
+
+### Frontend (`Home.js`)
+- Yemek menüsü kartı eski turuncu/pembe gradyandan, uygulama kimliğiyle uyumlu **çelik-altın premium** tasarıma çevrildi (hem koyu hava hem aydınlık hava varyantı). Amber-500/30 ring + üst altın akan ışık hattı + 2 blob blur.
+- **Küçültme tuşu (chevron)** eklendi (`data-testid="menu-collapse-toggle"`). Tıklayınca kart tek satır chip'e iner (ikon + "Bugünkü Menü" + ilk 3 yemek özet). Tercih `localStorage.home_menu_collapsed` ile kalıcı.
+- **"Diğer Günler" butonu** eklendi (`data-testid="menu-week-btn"`). Tıklayınca merkez modal açılır:
+  - Dün + Bugün + Sonraki 6 gün (8 satır)
+  - Her gün için: gün kutusu (DD + ay), gün adı, BUGÜN rozeti (bugünse altın), yemek chip'leri (numara + isim), notlar.
+  - Menü girilmemiş günler "Menü girilmemiş" italic placeholder ile gösterilir.
+  - Skeleton loading + kapatma X butonu + backdrop click ile kapanır.
+- Menüsü henüz girilmemiş günlerde bile kart görünüyor (kullanıcı "Diğer Günler" görerek haftayı kontrol edebilir).
+- `AnimatePresence` + framer-motion entry animasyonları. Mobil-öncelikli responsive.
+
+### Test (Playwright e2e)
+- [1] Menü kartı görünür ✅
+- [2] Diğer Günler dialog'u açılıyor, 8 satır, BUGÜN rozeti var ✅
+- [3] Dialog kapanma çalışıyor ✅
+- [4] Küçültme tuşu chip'leri gizliyor ✅
+- [5] localStorage tercihi kalıcı ✅
+- [6] Tekrar genişletme çalışıyor ✅
+
+### data-testid'ler
+`home-today-menu`, `menu-collapse-toggle`, `menu-week-btn`, `menu-week-dialog`, `menu-week-close`, `menu-week-row-{YYYY-MM-DD}`
+
+### Tasarım Notu
+- Framer Motion `transform` animasyonu Tailwind `-translate-x-1/2 -translate-y-1/2` ile çakışıyordu. Çözüm: fixed-positioning'i wrapper `<div>`'e taşı; motion.div yalnızca opacity/scale/y animasyonu yapsın (modal merkezleme: parent `flex items-center justify-center`).

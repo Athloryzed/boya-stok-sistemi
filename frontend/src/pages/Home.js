@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
 import { getSession, isSessionValid, clearSession, canAccessRoute } from "../lib/auth";
@@ -156,6 +157,35 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const isYonetimUser = !!(session && (session.role === "yonetim" || (session.roles || []).includes("yonetim")));
   const [todayMenu, setTodayMenu] = useState(null);
   const [weather, setWeather] = useState(null);
+  // Yemek menüsü UI durumu (kalıcı: localStorage)
+  const [menuCollapsed, setMenuCollapsed] = useState(() => {
+    try { return localStorage.getItem("home_menu_collapsed") === "1"; } catch { return false; }
+  });
+  const [weekMenuOpen, setWeekMenuOpen] = useState(false);
+  const [weekMenus, setWeekMenus] = useState(null);
+  const [weekMenusLoading, setWeekMenusLoading] = useState(false);
+
+  const toggleMenuCollapsed = () => {
+    setMenuCollapsed(v => {
+      const next = !v;
+      try { localStorage.setItem("home_menu_collapsed", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const openWeekMenus = async () => {
+    setWeekMenuOpen(true);
+    if (weekMenus) return; // önbellekli
+    setWeekMenusLoading(true);
+    try {
+      const res = await axios.get(`${API}/menu/week?days_back=1&days_forward=6`);
+      setWeekMenus(res.data);
+    } catch {
+      setWeekMenus({ menus: [] });
+    } finally {
+      setWeekMenusLoading(false);
+    }
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
@@ -571,74 +601,131 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           })()}
         </motion.div>
 
-        {/* Bugünün Yemek Menüsü — tüm çalışanlara açık */}
-        {todayMenu && todayMenu.exists && Array.isArray(todayMenu.items) && todayMenu.items.length > 0 && (
+        {/* Bugünün Yemek Menüsü — Premium Industrial. Boş günlerde bile "Haftalık" butonu erişilebilir kalır. */}
+        {todayMenu && (
           <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.5, type: "spring", stiffness: 120 }}
             className="w-full max-w-xl mb-6"
             data-testid="home-today-menu"
           >
-            <div className="relative overflow-hidden rounded-3xl shadow-2xl shadow-orange-600/30 ring-1 ring-white/20">
-              {/* Strong solid gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-amber-500 to-rose-500" />
-              {/* Decorative blobs for depth */}
-              <div className="absolute -top-20 -right-10 w-56 h-56 rounded-full bg-yellow-300/35 blur-3xl" />
-              <div className="absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-rose-700/35 blur-3xl" />
-              {/* Subtle grain overlay */}
-              <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>\")" }} />
+            <div className={`menu-card-premium relative overflow-hidden rounded-2xl ring-1 ${isDarkBg ? "ring-amber-500/30 shadow-2xl shadow-black/40" : "ring-amber-300/60 shadow-xl shadow-amber-200/40"}`}>
+              {/* Arkaplan — uygulama kimliğiyle uyumlu çelik-altın */}
+              <div className={`absolute inset-0 ${isDarkBg ? "bg-gradient-to-br from-[#1a1410] via-[#0f0c08] to-[#150e0a]" : "bg-gradient-to-br from-white via-amber-50 to-orange-50"}`} />
+              {/* Altın aksent halkası */}
+              <div className="absolute -top-24 -right-16 w-56 h-56 rounded-full bg-amber-500/10 blur-3xl" />
+              <div className="absolute -bottom-20 -left-16 w-64 h-64 rounded-full bg-amber-600/10 blur-3xl" />
+              {/* Üst altın akan ışık hattı */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
 
-              <div className="relative px-5 py-5 sm:px-7 sm:py-6 text-white">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={{ rotate: [0, -10, 10, -5, 0] }}
-                      transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 3 }}
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/95 flex items-center justify-center shadow-xl shadow-black/20"
-                    >
-                      <UtensilsCrossed className="h-6 w-6 sm:h-7 sm:w-7 text-orange-600" />
-                    </motion.div>
-                    <div className="leading-tight">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-white text-orange-700 text-[10px] font-black tracking-widest uppercase shadow">Bugün</span>
-                      <h3 className="text-xl sm:text-2xl font-heading font-black text-white mt-1 drop-shadow-md">Yemek Menüsü</h3>
+              {/* Daraltılmış mod: tek satır chip */}
+              {menuCollapsed ? (
+                <motion.button
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  onClick={toggleMenuCollapsed}
+                  data-testid="menu-collapse-toggle"
+                  aria-label="Yemek menüsünü genişlet"
+                  className={`relative w-full flex items-center justify-between gap-3 px-4 py-3 group ${isDarkBg ? "text-amber-100 hover:bg-amber-500/5" : "text-amber-900 hover:bg-amber-100/40"} transition-colors`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ${isDarkBg ? "bg-amber-500/15 ring-amber-500/40" : "bg-amber-100 ring-amber-300/70"}`}>
+                      <UtensilsCrossed className={`w-5 h-5 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkBg ? "text-amber-400/80" : "text-amber-700"}`}>Bugünkü Menü</p>
+                      <p className={`text-sm font-bold truncate ${isDarkBg ? "text-amber-50" : "text-zinc-800"}`}>
+                        {todayMenu.exists && todayMenu.items?.length
+                          ? todayMenu.items.slice(0, 3).join(" · ") + (todayMenu.items.length > 3 ? ` +${todayMenu.items.length - 3}` : "")
+                          : "Henüz menü girilmedi"}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-4xl sm:text-5xl font-black text-white leading-none drop-shadow-md">
-                      {new Date(todayMenu.date).toLocaleDateString("tr-TR", { day: "2-digit" })}
-                    </p>
-                    <p className="text-[11px] sm:text-xs text-white/95 font-bold uppercase tracking-wider mt-1">
-                      {new Date(todayMenu.date).toLocaleDateString("tr-TR", { weekday: "long", month: "short" })}
-                    </p>
+                  <ChevronDown className={`w-5 h-5 shrink-0 transition-transform group-hover:translate-y-0.5 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
+                </motion.button>
+              ) : (
+                <div className="relative px-4 py-4 sm:px-5 sm:py-5">
+                  {/* Başlık — ikon karo + tarih + küçültme */}
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <motion.div
+                        animate={{ rotate: [0, -6, 6, -3, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, repeatDelay: 4 }}
+                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ring-1 ${isDarkBg ? "bg-gradient-to-br from-amber-500/20 to-amber-600/5 ring-amber-500/40" : "bg-gradient-to-br from-amber-100 to-orange-100 ring-amber-300/70"}`}
+                      >
+                        <UtensilsCrossed className={`h-5 w-5 sm:h-6 sm:w-6 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
+                      </motion.div>
+                      <div className="leading-tight min-w-0">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase ${isDarkBg ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40" : "bg-amber-200/70 text-amber-800 ring-1 ring-amber-400/50"}`}>
+                          {todayMenu.exists ? "Bugün" : "Bugün · Boş"}
+                        </span>
+                        <h3 className={`text-base sm:text-lg font-heading font-black mt-1 tracking-tight ${isDarkBg ? "text-amber-50" : "text-zinc-900"}`}>Yemek Menüsü</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className={`text-2xl sm:text-3xl font-black leading-none num-tabular ${isDarkBg ? "text-amber-100" : "text-amber-700"}`}>
+                          {new Date(todayMenu.date).toLocaleDateString("tr-TR", { day: "2-digit" })}
+                        </p>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isDarkBg ? "text-amber-300/70" : "text-amber-700/80"}`}>
+                          {new Date(todayMenu.date).toLocaleDateString("tr-TR", { weekday: "short", month: "short" })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={toggleMenuCollapsed}
+                        data-testid="menu-collapse-toggle"
+                        aria-label="Yemek menüsünü küçült"
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-105 ${isDarkBg ? "bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/30 text-amber-300" : "bg-amber-100 hover:bg-amber-200 ring-1 ring-amber-300/70 text-amber-700"}`}
+                      >
+                        <ChevronDown className="w-4 h-4 rotate-180" />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Items as chips */}
-                <div className="flex flex-wrap gap-2">
-                  {todayMenu.items.map((it, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, scale: 0.85, y: 6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ delay: 0.4 + idx * 0.06, type: "spring", stiffness: 180 }}
-                      className="group flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-white/95 backdrop-blur-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  {/* Yemek öğeleri — chip grid */}
+                  {todayMenu.exists && todayMenu.items?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {todayMenu.items.map((it, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: 0.35 + idx * 0.05, type: "spring", stiffness: 200 }}
+                          className={`group inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full transition-all hover:-translate-y-0.5 ${isDarkBg ? "bg-amber-500/10 ring-1 ring-amber-500/30 hover:bg-amber-500/15" : "bg-white ring-1 ring-amber-300/60 shadow-sm hover:shadow-md"}`}
+                        >
+                          <span className={`w-6 h-6 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${isDarkBg ? "bg-gradient-to-br from-amber-400 to-amber-600 text-[#1a1410]" : "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-inner"}`}>
+                            {idx + 1}
+                          </span>
+                          <span className={`text-xs sm:text-sm font-bold ${isDarkBg ? "text-amber-50" : "text-zinc-800"}`}>{it}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`text-xs sm:text-sm italic ${isDarkBg ? "text-amber-200/60" : "text-zinc-500"}`}>
+                      Bugün için menü henüz girilmemiş.
+                    </p>
+                  )}
+
+                  {todayMenu.notes && todayMenu.exists && (
+                    <div className={`mt-3 pt-3 border-t flex items-start gap-2 ${isDarkBg ? "border-amber-500/20" : "border-amber-300/40"}`}>
+                      <span className={`text-base leading-tight ${isDarkBg ? "text-amber-300" : "text-amber-700"}`}>💬</span>
+                      <p className={`text-xs italic leading-relaxed font-medium ${isDarkBg ? "text-amber-100/90" : "text-zinc-700"}`}>{todayMenu.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Aksiyon: Diğer Günler */}
+                  <div className="mt-4 flex items-center justify-end">
+                    <button
+                      onClick={openWeekMenus}
+                      data-testid="menu-week-btn"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:-translate-y-0.5 ${isDarkBg ? "bg-amber-500/15 hover:bg-amber-500/25 text-amber-200 ring-1 ring-amber-500/40" : "bg-white hover:bg-amber-50 text-amber-800 ring-1 ring-amber-300/70 shadow-sm"}`}
                     >
-                      <span className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-rose-600 text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-inner">
-                        {idx + 1}
-                      </span>
-                      <span className="text-sm sm:text-base font-bold text-zinc-800">{it}</span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {todayMenu.notes && (
-                  <div className="mt-4 pt-3 border-t border-white/30 flex items-start gap-2">
-                    <span className="text-lg leading-tight">💬</span>
-                    <p className="text-xs sm:text-sm text-white/95 italic leading-relaxed font-medium">{todayMenu.notes}</p>
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      Diğer Günler
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -832,6 +919,123 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           )}
         </>
       )}
+
+      {/* Haftalık Yemek Menüsü Dialog'u — kamuya açık (login öncesi de görünür) */}
+      <AnimatePresence>
+        {weekMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setWeekMenuOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80]"
+              aria-hidden="true"
+            />
+            <div className="fixed inset-0 z-[81] flex items-center justify-center p-3 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                transition={{ type: "spring", damping: 24, stiffness: 240 }}
+                className="w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-b from-[#1a1410] to-[#0c0904] ring-1 ring-amber-500/30 pointer-events-auto"
+                data-testid="menu-week-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="menu-week-title"
+              >
+              {/* Üst altın hattı */}
+              <div className="h-px bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
+
+              <div className="px-4 sm:px-6 py-4 border-b border-amber-500/15 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/5 ring-1 ring-amber-500/40 flex items-center justify-center shrink-0">
+                    <CalendarDays className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 id="menu-week-title" className="text-base sm:text-lg font-heading font-black text-amber-50 tracking-tight">Haftalık Yemek Menüsü</h3>
+                    <p className="text-[11px] text-amber-300/70 mt-0.5">Dün · Bugün · Sonraki 6 gün</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWeekMenuOpen(false)}
+                  data-testid="menu-week-close"
+                  className="w-9 h-9 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/30 text-amber-200 flex items-center justify-center transition-colors"
+                  aria-label="Haftalık menüyü kapat"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-4 sm:px-6 py-4 overflow-y-auto" style={{ maxHeight: "calc(88vh - 4.5rem)" }}>
+                {weekMenusLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-20 rounded-xl bg-amber-500/5 ring-1 ring-amber-500/10 animate-pulse" />
+                    ))}
+                  </div>
+                ) : (weekMenus?.menus || []).length === 0 ? (
+                  <p className="text-center text-amber-200/60 py-10 text-sm">Bu hafta için menü kaydı bulunamadı.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(weekMenus?.menus || []).map((m, idx) => {
+                      const d = new Date(m.date);
+                      const day = d.toLocaleDateString("tr-TR", { weekday: "long" });
+                      const dayShort = d.toLocaleDateString("tr-TR", { day: "2-digit", month: "short" });
+                      const isToday = m.is_today;
+                      return (
+                        <motion.div
+                          key={m.date}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.04 }}
+                          data-testid={`menu-week-row-${m.date}`}
+                          className={`relative rounded-xl p-3 sm:p-4 ring-1 transition-all ${isToday ? "bg-gradient-to-r from-amber-500/15 to-amber-600/5 ring-amber-500/50 shadow-lg shadow-amber-500/10" : "bg-amber-500/5 ring-amber-500/15 hover:ring-amber-500/30"}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Gün kutusu */}
+                            <div className={`shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ${isToday ? "bg-amber-500/25 ring-amber-400/60" : "bg-amber-500/10 ring-amber-500/25"}`}>
+                              <span className={`text-xl font-black num-tabular leading-none ${isToday ? "text-amber-100" : "text-amber-200"}`}>
+                                {d.getDate().toString().padStart(2, "0")}
+                              </span>
+                              <span className={`text-[9px] uppercase tracking-wider font-bold mt-0.5 ${isToday ? "text-amber-300" : "text-amber-400/70"}`}>
+                                {d.toLocaleDateString("tr-TR", { month: "short" })}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-sm font-bold capitalize ${isToday ? "text-amber-50" : "text-amber-100"}`}>{day}</span>
+                                {isToday && (
+                                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-400 text-[#1a1410]">Bugün</span>
+                                )}
+                                <span className="text-[10px] text-amber-300/60 num-tabular">{dayShort}</span>
+                              </div>
+                              {m.exists && m.items?.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {m.items.map((it, i) => (
+                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 ring-1 ring-amber-500/25 text-amber-100 text-[11px] font-semibold">
+                                      <span className="w-3.5 h-3.5 rounded-full bg-amber-400/30 text-amber-200 text-[8px] font-black flex items-center justify-center">{i + 1}</span>
+                                      {it}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs italic text-amber-200/40 mt-1.5">Menü girilmemiş</p>
+                              )}
+                              {m.notes && m.exists && (
+                                <p className="text-[11px] italic text-amber-200/70 mt-2 leading-snug">💬 {m.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
