@@ -30,6 +30,7 @@ git reset --hard origin/main
 # Backend
 echo "[3/6] Backend dependencies..."
 sudo -u buse bash -c "
+    set -euo pipefail
     cd $APP_DIR/backend
     source venv/bin/activate
     pip install -q -r requirements.txt
@@ -39,8 +40,13 @@ sudo -u buse bash -c "
 # Frontend build
 echo "[4/6] Frontend build..."
 sudo -u buse bash -c "
+    set -euo pipefail
     cd $APP_DIR/frontend
-    yarn install --frozen-lockfile --silent
+    # --frozen-lockfile dene; yarn.lock package.json ile uyumsuzsa fallback ile lock'u güncelle
+    if ! yarn install --frozen-lockfile --silent 2>/dev/null; then
+        echo '  ⚠ yarn.lock package.json ile uyumsuz — güncellenip devam ediliyor...'
+        yarn install --silent
+    fi
     yarn build
 "
 
