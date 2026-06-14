@@ -1024,16 +1024,16 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       <div className="header-industrial sticky top-0 z-40 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
-              <ArrowLeft className="h-4 w-4 sm:mr-1.5" />
+            <Button variant="outline" size="sm" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label={step > 1 ? "Önceki adıma dön" : "Ana sayfaya dön"}>
+              <ArrowLeft className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
               <span className="hidden sm:inline">{step > 1 ? "Geri" : "Ana Sayfa"}</span>
             </Button>
             <div className="h-6 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-success to-emerald-700 flex items-center justify-center text-white font-black text-sm" style={{ "--glow-rgb": "16,185,129" }}>O</div>
+            <div className="flex items-center gap-2.5">
+              <div className="panel-logo-tile" style={{ "--tile-from": "#34D399", "--tile-to": "#047857", "--tile-rgb": "16,185,129" }} aria-hidden="true">O</div>
               <div className="hidden sm:block">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Operatör</p>
-                <h1 className="text-sm font-heading font-bold text-text-primary leading-tight">{selectedMachine?.name || "Makine Seçin"}</h1>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-300/80 leading-none">Operatör</p>
+                <h1 className="text-sm sm:text-base font-heading font-black text-text-primary leading-tight tracking-tight">{selectedMachine?.name || "Makine Seçin"}</h1>
               </div>
             </div>
           </div>

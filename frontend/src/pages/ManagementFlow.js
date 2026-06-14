@@ -1397,16 +1397,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
-              <ArrowLeft className="h-4 w-4 md:mr-1.5" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label="Ana sayfaya dön">
+              <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
               <span className="hidden md:inline">Ana Sayfa</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
-            <div className="flex items-center gap-2">
-              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-primary to-amber-600 flex items-center justify-center text-black font-black text-sm">B</div>
+            <div className="flex items-center gap-2.5">
+              <div className="panel-logo-tile" style={{ "--tile-from": "#FFD24C", "--tile-to": "#B8860B", "--tile-rgb": "255,191,0" }} aria-hidden="true">B</div>
               <div className="hidden sm:block">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
-                <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Yönetim Paneli</h1>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-amber-300/80 leading-none">Buse Kâğıt</p>
+                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight">Yönetim Paneli</h1>
               </div>
             </div>
             {currentShift && (

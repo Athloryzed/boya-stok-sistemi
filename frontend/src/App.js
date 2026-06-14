@@ -341,6 +341,8 @@ function App() {
     <ErrorBoundary>
       <ConfirmProvider>
         <div className={`App ${theme}`}>
+          {/* WCAG AAA: Skip-to-content (klavye/ekran okuyucu) */}
+          <a href="#main-content" className="skip-to-main">İçeriğe atla</a>
           <div className="ambient-layer" aria-hidden="true" />
           <ConnectionBanner />
           <BrowserRouter>

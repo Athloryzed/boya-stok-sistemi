@@ -116,15 +116,15 @@ const Balloon = ({ color, size = 20 }) => (
 );
 
 const modules = [
-  { name: "Yonetim Paneli", path: "/management", icon: Factory, color: "#FFBF00", desc: "Fabrika yonetimi" },
-  { name: "Plan", path: "/plan", icon: ClipboardList, color: "#60A5FA", desc: "Is planlama" },
-  { name: "Operator", path: "/operator", icon: HardHat, color: "#34D399", desc: "Uretim takibi" },
-  { name: "Depo", path: "/warehouse", icon: Warehouse, color: "#F97316", desc: "Stok yonetimi" },
+  { name: "Yönetim Paneli", path: "/management", icon: Factory, color: "#FFBF00", desc: "Fabrika yönetimi" },
+  { name: "Plan", path: "/plan", icon: ClipboardList, color: "#60A5FA", desc: "İş planlama" },
+  { name: "Operatör", path: "/operator", icon: HardHat, color: "#34D399", desc: "Üretim takibi" },
+  { name: "Depo", path: "/warehouse", icon: Warehouse, color: "#F97316", desc: "Stok yönetimi" },
   { name: "Boya", path: "/paint", icon: Paintbrush, color: "#A78BFA", desc: "Boya takibi" },
   { name: "Bobin", path: "/bobin", icon: Layers, color: "#10B981", desc: "Bobin takibi" },
   { name: "Marka/Koli Stok", path: "/marka-stok", icon: Package, color: "#22C55E", desc: "Stok takibi" },
-  { name: "Surucu", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
-  { name: "Canli Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
+  { name: "Sürücü", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
+  { name: "Canlı Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];
 
 // WMO hava kodu → sahne kategorisi
@@ -198,6 +198,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const wcat = forcedWcat && WEATHER_LABEL_TR[forcedWcat] ? forcedWcat : weatherCategory(weather?.weather_code);
   const windy = (weather?.wind_speed_kmh || 0) >= 30;
   const hideSun = wcat === "rain" || wcat === "thunder" || wcat === "fog";
+  // Dark presentation when sky itself is dark (night OR stormy/foggy/cloudy)
+  const isDarkBg = isNight || wcat === "thunder" || wcat === "rain" || wcat === "fog" || wcat === "cloudy";
   const groundFills = wcat === "snow"
     ? (isNight ? ["#39414f", "#2c3340", "#212733"] : ["#F1F5F9", "#E2E8F0", "#CBD5E1"])
     : (isNight ? ["#1a3a1a", "#0f2a0f", "#0a1f0a"] : ["#4ade80", "#22c55e", "#16a34a"]);
@@ -292,32 +294,42 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
 
   return (
     <div className={`min-h-screen relative overflow-hidden transition-colors duration-700 bg-gradient-to-b ${skyGradient}`}>
-      {/* Sol üst: Atatürk */}
+      {/* Sol üst: Atatürk — Premium altın çerçeve, nefes alan glow */}
       <motion.div
-        className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
+        className="corner-anchor-tl"
+        initial={{ opacity: 0, x: -20, scale: 0.85 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         data-testid="ataturk-image"
       >
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg backdrop-blur-sm bg-white/20">
-          <img src="/ataturk.jpg" alt="Ataturk" className="w-full h-full object-cover" />
+        <div
+          className="ataturk-frame-premium"
+          aria-label="Mustafa Kemal Atatürk"
+          role="img"
+          title="Mustafa Kemal Atatürk"
+        >
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-zinc-900">
+            <img src="/ataturk.jpg" alt="Mustafa Kemal Atatürk" className="w-full h-full object-cover" />
+          </div>
         </div>
       </motion.div>
 
       {/* Sağ üst: Bayrak + Tema */}
-      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-50 flex items-center gap-2">
+      <div className="corner-anchor-tr flex items-center gap-2">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
           <WavingFlag />
         </motion.div>
         <button onClick={toggleLiteMode}
           className={`p-2 rounded-full backdrop-blur-sm border text-white transition-all ${liteMode ? "bg-emerald-500/40 border-emerald-300" : "bg-white/20 border-white/30 hover:bg-white/30"}`}
           data-testid="lite-toggle"
+          aria-label={liteMode ? "Hafif modu kapat" : "Hafif modu aç (animasyonsuz, hızlı)"}
+          aria-pressed={liteMode}
           title={liteMode ? "Hafif Mod açık — kapatmak için bas" : "Hafif Mod (animasyonsuz, hızlı)"}>
           <Gauge className="h-5 w-5" />
         </button>
         <button onClick={toggleTheme}
           className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all"
+          aria-label={theme === "dark" ? "Aydınlık temaya geç" : "Karanlık temaya geç"}
           data-testid="theme-toggle">
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
@@ -518,40 +530,42 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
       </div>
 
       {/* Main content */}
-      <div className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 pt-24 sm:pt-28 pb-8">
+      <div id="main-content" className="relative z-30 flex flex-col items-center justify-center min-h-screen px-4 pt-24 sm:pt-28 pb-8">
 
         {/* Title */}
         <motion.div className="text-center mb-10"
           initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}>
-          <h1 className={`text-4xl sm:text-5xl font-black tracking-tight mb-2 ${isNight ? "text-white" : "text-gray-800"}`}
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", textShadow: isNight ? "0 2px 20px rgba(255,255,255,0.2)" : "0 2px 10px rgba(0,0,0,0.1)" }}>
-            BUSE KAGIT
+          <h1
+            className={`text-4xl sm:text-5xl lg:text-6xl tracking-tight mb-2 ${isDarkBg ? "title-gradient-premium" : "text-gray-800 font-black"}`}
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", textShadow: isDarkBg ? "0 2px 30px rgba(255,191,0,0.25)" : "0 2px 10px rgba(0,0,0,0.1)" }}>
+            BUSE KÂĞIT
           </h1>
-          <p className={`text-sm sm:text-base font-medium ${isNight ? "text-gray-300" : "text-gray-600"}`}>
-            Uretim Yonetim Sistemi
+          <p className={`text-sm sm:text-base font-medium tracking-wide ${isDarkBg ? "text-amber-200/80" : "text-gray-600"}`}>
+            Üretim Yönetim Sistemi
           </p>
-          <p className={`text-xs mt-1 ${isNight ? "text-gray-400" : "text-gray-500"}`}>
+          <p className={`text-xs mt-1 font-mono num-tabular ${isDarkBg ? "text-amber-100/50" : "text-gray-500"}`} aria-live="polite">
             {time.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
           </p>
-          {/* İstanbul canlı hava durumu rozeti */}
+          {/* İstanbul canlı hava durumu rozeti — Premium */}
           {weather && weather.temperature_c !== null && weather.temperature_c !== undefined && (() => {
             const WIcon = WEATHER_ICON[wcat] || Sun;
             return (
               <motion.div
                 initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                 data-testid="weather-chip"
-                className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border text-xs font-semibold ${
-                  isNight ? "bg-white/10 border-white/20 text-white" : "bg-white/60 border-white/80 text-gray-700"
+                className={`mt-3 inline-flex items-center gap-2 ${
+                  isDarkBg ? "weather-chip-premium" : "bg-white/70 border border-amber-300/60 text-amber-900 backdrop-blur-md px-4 py-2 rounded-full shadow-lg shadow-amber-200/30"
                 }`}
+                aria-label={`İstanbul hava durumu: ${WEATHER_LABEL_TR[wcat]}, ${Math.round(weather.temperature_c)} derece`}
               >
-                <WIcon className="w-3.5 h-3.5 text-amber-400" />
-                <span>{Math.round(weather.temperature_c)}°C</span>
+                <WIcon className={`w-4 h-4 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
+                <span className="font-bold num-tabular">{Math.round(weather.temperature_c)}°C</span>
                 <span className="opacity-60">·</span>
                 <span>{WEATHER_LABEL_TR[wcat]}</span>
                 <span className="opacity-60">·</span>
                 <span className="opacity-80">İstanbul</span>
-                {windy && <span className="ml-1 text-[10px] opacity-70">💨 {Math.round(weather.wind_speed_kmh)} km/s</span>}
+                {windy && <span className="ml-1 text-[10px] opacity-70" aria-label={`Rüzgâr ${Math.round(weather.wind_speed_kmh)} kilometre saat`}>💨 {Math.round(weather.wind_speed_kmh)} km/s</span>}
               </motion.div>
             );
           })()}
@@ -630,66 +644,85 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         )}
 
 
-        {/* Module cards - Sadece erişebileceği paneller görünür */}
+        {/* Module cards — Premium Bento Grid v2. Sadece erişebileceği paneller görünür */}
         {(() => {
-          // Auth durumuna göre modülleri filtrele
           const visibleModules = session
             ? modules.filter((m) => m.path === "/dashboard" || canAccessRoute(m.path))
             : [];
           if (!session) return null;
           const featured = new Set(["/management", "/dashboard"]);
+          // Hex → rgb (premium ikon karoları için)
+          const hexToRgb = (hex) => {
+            const v = hex.replace("#", "");
+            return [parseInt(v.substr(0, 2), 16), parseInt(v.substr(2, 2), 16), parseInt(v.substr(4, 2), 16)].join(",");
+          };
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl w-full">
-              {visibleModules.map((mod, i) => {
-                const isFeatured = featured.has(mod.path);
-                return (
-                  <motion.div key={mod.path}
-                    initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                    onClick={() => handleModuleClick(mod.path)}
-                    data-testid={`module-${mod.path.slice(1)}`}
-                    className={`group cursor-pointer ${isFeatured ? "col-span-2" : ""}`}>
-                    <div className={`bento-card relative h-full rounded-2xl backdrop-blur-xl border p-4 sm:p-5 ${isFeatured ? "flex items-center" : ""}
-                      ${isNight
-                        ? "bg-white/[0.08] border-white/15 hover:bg-white/[0.14] hover:border-white/30"
-                        : "bg-white/60 border-white/80 hover:bg-white/85 hover:border-white shadow-lg hover:shadow-xl"
-                      }`}>
-                      <span className="bento-topline" />
-                      {isFeatured ? (
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
-                            style={{ background: `linear-gradient(135deg, ${mod.color}33, ${mod.color}0F)`, border: `1px solid ${mod.color}55`, boxShadow: `0 4px 16px ${mod.color}22` }}>
-                            <mod.icon className="h-6 w-6" style={{ color: mod.color }} />
+            <nav aria-label="Panel modülleri" className="w-full max-w-4xl">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {visibleModules.map((mod, i) => {
+                  const isFeatured = featured.has(mod.path);
+                  const rgb = hexToRgb(mod.color);
+                  return (
+                    <motion.button
+                      key={mod.path}
+                      initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                      onClick={() => handleModuleClick(mod.path)}
+                      data-testid={`module-${mod.path.slice(1)}`}
+                      aria-label={`${mod.name} paneline git: ${mod.desc}`}
+                      className={`group cursor-pointer text-left ${isFeatured ? "col-span-2" : ""}`}
+                    >
+                      <div className={`bento-card-premium relative h-full p-4 sm:p-5 ${isFeatured ? "flex items-center" : "flex flex-col items-start"}`}>
+                        {isFeatured ? (
+                          <div className="flex items-center gap-4 w-full">
+                            <div
+                              className="bento-icon-tile shrink-0"
+                              style={{
+                                "--icon-from": `rgba(${rgb}, 0.4)`,
+                                "--icon-to": `rgba(${rgb}, 0.08)`,
+                                "--icon-border": `rgba(${rgb}, 0.5)`,
+                                "--icon-glow": `rgba(${rgb}, 0.35)`,
+                              }}
+                            >
+                              <mod.icon className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: mod.color }} aria-hidden="true" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-base sm:text-lg font-bold leading-tight font-heading tracking-tight text-amber-50">{mod.name}</h3>
+                              <p className="text-[11px] sm:text-xs mt-1 font-medium text-amber-200/80">{mod.desc}</p>
+                            </div>
+                            <div className="bento-arrow-premium shrink-0" aria-hidden="true">
+                              <ArrowRight className="h-4 w-4 text-amber-300" />
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1 text-left">
-                            <h3 className={`text-sm sm:text-base font-bold leading-tight ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
-                            <p className={`text-[10px] sm:text-xs mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
-                          </div>
-                          <ArrowRight className={`bento-arrow h-4 w-4 shrink-0 ${isNight ? "text-white/70" : "text-gray-600"}`} />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center">
-                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-2 transition-transform duration-300 group-hover:scale-110"
-                            style={{ background: `linear-gradient(135deg, ${mod.color}33, ${mod.color}0F)`, border: `1px solid ${mod.color}55`, boxShadow: `0 4px 16px ${mod.color}22` }}>
-                            <mod.icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: mod.color }} />
-                          </div>
-                          <h3 className={`text-xs sm:text-sm font-bold text-center ${isNight ? "text-white" : "text-gray-800"}`}>{mod.name}</h3>
-                          <p className={`text-[10px] text-center mt-0.5 ${isNight ? "text-gray-400" : "text-gray-500"}`}>{mod.desc}</p>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                        style={{ boxShadow: `0 0 30px ${mod.color}30, 0 0 60px ${mod.color}10, inset 0 0 0 1px ${mod.color}25` }} />
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+                        ) : (
+                          <>
+                            <div
+                              className="bento-icon-tile mb-3"
+                              style={{
+                                "--icon-from": `rgba(${rgb}, 0.4)`,
+                                "--icon-to": `rgba(${rgb}, 0.08)`,
+                                "--icon-border": `rgba(${rgb}, 0.5)`,
+                                "--icon-glow": `rgba(${rgb}, 0.3)`,
+                              }}
+                            >
+                              <mod.icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: mod.color }} aria-hidden="true" />
+                            </div>
+                            <h3 className="text-sm sm:text-base font-bold leading-tight font-heading tracking-tight text-amber-50">{mod.name}</h3>
+                            <p className="text-[11px] sm:text-xs mt-1 font-medium text-amber-200/75">{mod.desc}</p>
+                          </>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </nav>
           );
         })()}
 
         {/* Giriş kartı — auth yoksa göster */}
         {!session && (
-          <UnifiedLogin isNight={isNight} onAuthenticated={(u) => setSession(getSession())} />
+          <UnifiedLogin isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
         )}
 
         {/* Hoşgeldin + Çıkış (auth varsa) */}
@@ -697,9 +730,11 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           <motion.div
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             data-testid="welcome-bar"
-            className={`mt-2 flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-md border ${
-              isNight ? "bg-white/10 border-white/20 text-white" : "bg-white/70 border-white/80 text-zinc-800"
+            className={`mt-4 flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-md border ${
+              isDarkBg ? "bg-white/10 border-amber-500/25 text-white" : "bg-white/70 border-amber-300/50 text-zinc-800"
             }`}
+            role="status"
+            aria-live="polite"
           >
             <span className="text-xs">
               <span className="opacity-70">Giriş:</span>{" "}
@@ -711,15 +746,16 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             <button
               onClick={handleLogout}
               data-testid="home-logout-btn"
-              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors"
+              className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 transition-colors font-semibold"
+              aria-label="Çıkış yap"
             >
-              <LogOut className="w-3 h-3" /> Çıkış
+              <LogOut className="w-3 h-3" aria-hidden="true" /> Çıkış
             </button>
           </motion.div>
         )}
       </div>
 
-      {/* YONETIM HIZLI PANEL */}
+      {/* YÖNETİM HIZLI PANEL */}
       {isYonetimUser && (
         <>
           <motion.button
@@ -727,10 +763,10 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             transition={{ delay: 0.5, type: "spring", stiffness: 250 }}
             onClick={() => setYonetimSheetOpen(true)}
             data-testid="yonetim-quick-fab"
-            className="fixed bottom-5 right-5 z-50 h-14 px-5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 shadow-xl shadow-amber-500/30 flex items-center gap-2 text-zinc-900 font-semibold text-sm hover:scale-105 active:scale-95 transition-transform"
-            aria-label="Yonetim Hizli Panel Gecisi"
+            className="btn-premium-gold fixed bottom-5 right-5 z-40 h-14 px-5 rounded-full flex items-center gap-2 text-sm"
+            aria-label="Yönetim Hızlı Panel geçişi — tüm panellere kısayol"
           >
-            <span className="text-lg">👑</span>
+            <span className="text-lg" aria-hidden="true">👑</span>
             <span className="hidden sm:inline">Hızlı Panel</span>
             <span className="sm:hidden">Panel</span>
           </motion.button>
@@ -740,46 +776,56 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 onClick={() => setYonetimSheetOpen(false)}
-                className="fixed inset-0 bg-black/70 z-50" />
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+                aria-hidden="true"
+              />
               <motion.div
                 initial={{ y: "100%" }} animate={{ y: 0 }}
                 transition={{ type: "spring", damping: 26, stiffness: 260 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1f2e] border-t border-white/[0.08] rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto"
+                className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-b from-[#1a1410] to-[#0c0904] border-t border-amber-500/20 rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto"
                 data-testid="yonetim-quick-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="yonetim-quick-title"
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                      <span>👑</span> Yönetim Hızlı Panel
+                    <h3 id="yonetim-quick-title" className="text-base font-bold text-white flex items-center gap-2 font-heading">
+                      <span aria-hidden="true">👑</span> Yönetim Hızlı Panel
                     </h3>
-                    <p className="text-xs text-zinc-500 mt-0.5">İstediğiniz panele tek dokunuşla geçin</p>
+                    <p className="text-xs text-amber-200/60 mt-0.5">İstediğiniz panele tek dokunuşla geçin</p>
                   </div>
-                  <button onClick={() => setYonetimSheetOpen(false)} className="text-zinc-500 hover:text-white text-2xl leading-none">×</button>
+                  <button
+                    onClick={() => setYonetimSheetOpen(false)}
+                    className="text-zinc-500 hover:text-white text-2xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                    aria-label="Hızlı paneli kapat"
+                  >×</button>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   {[
-                    { path: "/management", label: "Yönetim", icon: "📊", color: "from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300" },
-                    { path: "/plan", label: "Planlama", icon: "📋", color: "from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-300" },
-                    { path: "/operator", label: "Operatör", icon: "👷", color: "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300" },
-                    { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-300" },
-                    { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300" },
-                    { path: "/marka-stok", label: "Marka/Koli", icon: "🏷️", color: "from-green-500/20 to-green-600/10 border-green-500/30 text-green-300" },
-                    { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300" },
+                    { path: "/management", label: "Yönetim", icon: "📊", color: "from-amber-500/25 to-amber-600/10 border-amber-500/40 text-amber-300" },
+                    { path: "/plan", label: "Planlama", icon: "📋", color: "from-blue-500/25 to-blue-600/10 border-blue-500/40 text-blue-300" },
+                    { path: "/operator", label: "Operatör", icon: "👷", color: "from-emerald-500/25 to-emerald-600/10 border-emerald-500/40 text-emerald-300" },
+                    { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/25 to-purple-600/10 border-purple-500/40 text-purple-300" },
+                    { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/25 to-teal-600/10 border-teal-500/40 text-teal-300" },
+                    { path: "/marka-stok", label: "Marka/Koli", icon: "🏷️", color: "from-green-500/25 to-green-600/10 border-green-500/40 text-green-300" },
+                    { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/25 to-rose-600/10 border-rose-500/40 text-rose-300" },
                   ].map(p => (
                     <button
                       key={p.path}
                       onClick={() => { setYonetimSheetOpen(false); navigate(p.path); }}
                       data-testid={`yonetim-quick-${p.path.slice(1)}`}
-                      className={`bg-gradient-to-br ${p.color} border rounded-xl p-4 flex flex-col items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-transform`}
+                      aria-label={`${p.label} paneline git`}
+                      className={`bg-gradient-to-br ${p.color} border rounded-xl p-4 flex flex-col items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-transform`}
                     >
-                      <span className="text-2xl">{p.icon}</span>
-                      <span className="text-sm font-medium">{p.label}</span>
+                      <span className="text-2xl" aria-hidden="true">{p.icon}</span>
+                      <span className="text-sm font-semibold">{p.label}</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-zinc-600 mt-4 text-center leading-relaxed">
-                  Yonetim rolune sahip oldugunuz icin tum panellere erisebilirsiniz.<br/>
-                  Ilk girisinizde sifrenizle giris yapmaniz istenebilir; sonrasinda 24 saat boyunca otomatik kalir.
+                <p className="text-[10px] text-amber-200/40 mt-5 text-center leading-relaxed">
+                  Yönetim rolüne sahip olduğunuz için tüm panellere erişebilirsiniz.<br/>
+                  İlk girişinizde şifrenizle giriş yapmanız istenebilir; sonrasında 24 saat boyunca otomatik kalır.
                 </p>
               </motion.div>
             </>

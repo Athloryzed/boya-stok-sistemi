@@ -114,36 +114,42 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className={`relative rounded-2xl backdrop-blur-2xl border overflow-hidden ${
           isNight
-            ? "bg-white/10 border-white/20 login-glow"
-            : "bg-white/70 border-white/80 shadow-2xl shadow-amber-500/20"
+            ? "bg-white/10 border-amber-500/30 login-glow"
+            : "bg-white/80 border-amber-300/60 shadow-2xl shadow-amber-500/20"
         }`}
+        role="form"
+        aria-labelledby="login-title"
       >
         {/* Subtle gradient glow */}
-        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" aria-hidden="true" />
         <div className="absolute -inset-px rounded-2xl pointer-events-none opacity-40"
-             style={{ background: "radial-gradient(ellipse at top, rgba(251,191,36,0.18), transparent 60%)" }} />
+             style={{ background: "radial-gradient(ellipse at top, rgba(251,191,36,0.18), transparent 60%)" }}
+             aria-hidden="true" />
 
         <div className="relative p-7">
           <div className="text-center mb-5">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.15, type: "spring", stiffness: 220 }}
-              className="float-soft inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-3"
+              className="float-soft inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 shadow-lg shadow-amber-500/40 mb-3"
+              aria-hidden="true"
             >
               <ShieldCheck className="w-7 h-7 text-zinc-900" />
             </motion.div>
-            <h2 className={`text-2xl font-bold tracking-tight ${isNight ? "text-white" : "text-zinc-900"}`}>
-              Buse Kağıt
+            <h2 id="login-title" className={`text-2xl font-bold tracking-tight font-heading ${isNight ? "text-white" : "text-zinc-900"}`}>
+              Buse Kâğıt
             </h2>
-            <p className={`text-xs mt-1 font-mono uppercase tracking-widest ${isNight ? "text-amber-300/80" : "text-amber-700"}`}>
+            <p className={`text-xs mt-1 font-mono uppercase tracking-widest ${isNight ? "text-amber-300/90" : "text-amber-700"}`}>
               Üretim Yönetim Sistemi
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-3" autoComplete="on">
+          <form onSubmit={handleLogin} className="space-y-3" autoComplete="on" noValidate>
             <div className="relative">
-              <UserIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isNight ? "text-zinc-400" : "text-zinc-500"}`} />
+              <label htmlFor="login-username" className="sr-only-aaa">Kullanıcı adı</label>
+              <UserIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isNight ? "text-amber-300/70" : "text-amber-700/70"}`} aria-hidden="true" />
               <input
+                id="login-username"
                 ref={userRef}
                 type="text"
                 autoComplete="username"
@@ -151,27 +157,33 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Kullanıcı adı"
                 data-testid="login-username"
+                aria-required="true"
+                aria-invalid={!!error}
                 className={`w-full pl-10 pr-3 py-3 rounded-lg border outline-none transition-all ${
                   isNight
-                    ? "bg-white/5 border-white/15 text-white placeholder-zinc-400 focus:border-amber-400 focus:bg-white/10"
-                    : "bg-white/70 border-zinc-300 text-zinc-900 placeholder-zinc-500 focus:border-amber-500 focus:bg-white"
+                    ? "bg-white/5 border-white/15 text-white placeholder-zinc-400 focus:border-amber-400 focus:bg-white/10 focus:ring-4 focus:ring-amber-400/20"
+                    : "bg-white/70 border-zinc-300 text-zinc-900 placeholder-zinc-500 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-400/20"
                 }`}
               />
             </div>
 
             <div className="relative">
-              <KeyRound className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isNight ? "text-zinc-400" : "text-zinc-500"}`} />
+              <label htmlFor="login-password" className="sr-only-aaa">Şifre</label>
+              <KeyRound className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isNight ? "text-amber-300/70" : "text-amber-700/70"}`} aria-hidden="true" />
               <input
+                id="login-password"
                 type={showPw ? "text" : "password"}
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Şifre"
                 data-testid="login-password"
+                aria-required="true"
+                aria-invalid={!!error}
                 className={`w-full pl-10 pr-10 py-3 rounded-lg border outline-none transition-all ${
                   isNight
-                    ? "bg-white/5 border-white/15 text-white placeholder-zinc-400 focus:border-amber-400 focus:bg-white/10"
-                    : "bg-white/70 border-zinc-300 text-zinc-900 placeholder-zinc-500 focus:border-amber-500 focus:bg-white"
+                    ? "bg-white/5 border-white/15 text-white placeholder-zinc-400 focus:border-amber-400 focus:bg-white/10 focus:ring-4 focus:ring-amber-400/20"
+                    : "bg-white/70 border-zinc-300 text-zinc-900 placeholder-zinc-500 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-400/20"
                 }`}
               />
               <button
@@ -179,14 +191,15 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                 onClick={() => setShowPw((v) => !v)}
                 data-testid="login-toggle-password"
                 className={`absolute right-3 top-1/2 -translate-y-1/2 ${isNight ? "text-zinc-400 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
-                aria-label="Şifreyi göster/gizle"
+                aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                aria-pressed={showPw}
                 tabIndex={-1}
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
-            <label className={`flex items-center gap-2 cursor-pointer select-none text-sm ${isNight ? "text-zinc-300" : "text-zinc-700"}`}>
+            <label className={`flex items-center gap-2 cursor-pointer select-none text-sm ${isNight ? "text-zinc-200" : "text-zinc-700"}`}>
               <input
                 type="checkbox"
                 checked={remember}
@@ -195,9 +208,10 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                 className="sr-only peer"
               />
               <span
-                className={`relative w-9 h-5 rounded-full transition-colors peer-checked:bg-amber-500 ${
+                className={`relative w-9 h-5 rounded-full transition-colors peer-checked:bg-amber-500 peer-focus:ring-4 peer-focus:ring-amber-400/30 ${
                   isNight ? "bg-white/15" : "bg-zinc-300"
                 }`}
+                aria-hidden="true"
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -213,7 +227,9 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                   data-testid="login-error"
-                  className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-md px-3 py-2"
+                  className="text-sm text-rose-300 bg-rose-500/15 border border-rose-500/40 rounded-md px-3 py-2 font-medium"
+                  role="alert"
+                  aria-live="assertive"
                 >
                   {error}
                 </motion.div>
@@ -225,27 +241,32 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
               disabled={loading}
               data-testid="login-submit"
               whileTap={{ scale: 0.97 }}
-              className="shine-sweep w-full py-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-zinc-900 font-semibold text-sm shadow-lg shadow-amber-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="btn-premium-gold shine-sweep w-full py-3 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-busy={loading}
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+                <>
+                  <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  <span className="sr-only-aaa">Giriş yapılıyor...</span>
+                </>
               ) : (
-                <><LogIn className="w-4 h-4" /> Giriş Yap</>
+                <><LogIn className="w-4 h-4" aria-hidden="true" /> Giriş Yap</>
               )}
             </motion.button>
           </form>
 
           {/* Canlı Pano alt geçişi */}
-          <div className="mt-5 pt-5 border-t border-white/10">
+          <div className="mt-5 pt-5 border-t border-amber-500/10">
             {!tvOpen ? (
               <button
                 onClick={() => setTvOpen(true)}
                 data-testid="tv-toggle"
                 className={`w-full flex items-center justify-center gap-2 text-xs font-mono uppercase tracking-wider transition-colors ${
-                  isNight ? "text-zinc-400 hover:text-amber-300" : "text-zinc-600 hover:text-amber-600"
+                  isNight ? "text-zinc-300 hover:text-amber-300" : "text-zinc-600 hover:text-amber-600"
                 }`}
+                aria-label="Canlı Pano (TV) girişi formunu aç"
               >
-                <Tv className="w-3.5 h-3.5" />
+                <Tv className="w-3.5 h-3.5" aria-hidden="true" />
                 Canlı Pano (TV) Girişi
               </button>
             ) : (
@@ -253,16 +274,20 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                 onSubmit={handleTvLogin}
                 className="space-y-2"
+                aria-label="Canlı Pano giriş formu"
               >
                 <div className="flex gap-2">
+                  <label htmlFor="tv-password" className="sr-only-aaa">Canlı Pano şifresi</label>
                   <input
+                    id="tv-password"
                     type="password"
                     value={tvPwd}
                     onChange={(e) => setTvPwd(e.target.value)}
                     placeholder="Canlı Pano şifresi"
                     data-testid="tv-password"
-                    className={`flex-1 px-3 py-2 rounded-md border outline-none text-sm ${
-                      isNight ? "bg-white/5 border-white/15 text-white" : "bg-white border-zinc-300"
+                    autoComplete="current-password"
+                    className={`flex-1 px-3 py-2 rounded-md border outline-none text-sm focus:ring-4 focus:ring-amber-400/30 ${
+                      isNight ? "bg-white/5 border-white/15 text-white focus:border-amber-400" : "bg-white border-zinc-300 focus:border-amber-500"
                     }`}
                   />
                   <button
@@ -270,6 +295,7 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
                     disabled={tvLoading}
                     data-testid="tv-submit"
                     className="px-4 py-2 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 text-sm font-semibold disabled:opacity-60"
+                    aria-busy={tvLoading}
                   >
                     {tvLoading ? "..." : "TV"}
                   </button>
@@ -285,9 +311,9 @@ export default function UnifiedLogin({ onAuthenticated, isNight = true }) {
             )}
           </div>
 
-          <p className={`text-[10px] text-center mt-4 ${isNight ? "text-zinc-500" : "text-zinc-500"}`}>
+          <p className={`text-[10px] text-center mt-4 leading-relaxed ${isNight ? "text-zinc-500" : "text-zinc-500"}`}>
             &quot;Beni Hatırla&quot; işaretliyse kullanıcı adınız 7 gün boyunca dolu gelir.<br/>
-            Aksi halde 24 saat sonra şifrenizi tekrar girmeniz gerekir.
+            Aksi hâlde 24 saat sonra şifrenizi tekrar girmeniz gerekir.
           </p>
         </div>
       </motion.div>

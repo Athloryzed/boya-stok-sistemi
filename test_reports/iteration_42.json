@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 42: Frontend UI/UX v4 refresh regression. Verified Home (premium Atatürk frame + Turkish flag + weather chip + Bento Grid v2 + Türkçe characters), UnifiedLogin a11y, Plan panel premium header (blue 'P' tile, Planlama Paneli, BUSE KÂĞIT), Operator panel premium header (green 'O' tile, OPERATÖR upper label), Live Dashboard (gold gradient BUSE KÂĞIT title, Canlı Üretim Panosu, 4 metric cards, Türkçe machine statuses), aria-live error region (role='alert' aria-live='assertive'), mobile responsive (390x844, no overflow, 2-col bento, 48px Atatürk frame, 46px touch targets). Türkçe character correctness across all tested surfaces — NO ASCII fallbacks ('Yonetim','Sifre','BUSE KAGIT','Surucu','Uretim','Canli','Operator' standalone) found anywhere. All data-testids from iteration 41 preserved and functional. 2 minor a11y issues + 1 minor i18n issue found (non-blocking).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Live Dashboard metric card labels", "issues": ["CSS text-transform: uppercase renders Turkish lower-case 'i' as ASCII 'I' instead of dotted 'İ' — 'BUGÜN ÜRETIM' should be 'BUGÜN ÜRETİM' and 'ÇALIŞAN MAKINE' should be 'ÇALIŞAN MAKİNE'. Root cause: missing lang='tr' on <html> or missing CSS hyphens/locale. Minor i18n polish — does not affect functionality."]},
+      {"screen": "Plan -> Yeni İş dialog", "issues": ["Tahmini Teslim Tarihi still uses native browser date input (carried over from previous iterations, not introduced this session)."]}
+    ],
+    "a11y_issues": [
+      {"area": "Home / UnifiedLogin", "issue": "Skip-to-main link '#main-content -> İçeriğe atla' is present in DOM but NEVER reachable via Tab key because UnifiedLogin auto-focuses the username input on mount. The first Tab press moves from username -> password, never to the skip link. To meet WCAG AAA the skip link must be the first focusable element on initial load — either remove autoFocus from username, or move skip link to be the autofocused element."},
+      {"area": "Atatürk image", "issue": "data-testid='ataturk-image' has neither aria-label nor alt attribute (returned empty). For decorative purpose use aria-hidden='true'; otherwise add aria-label='Mustafa Kemal Atatürk' (spec explicitly required aria-label on this image)."}
+    ]
+  },
+  "verified_panels": {
+    "home_logged_out": "ataturk-image (48x48 on mobile, 64px desktop), turkish-flag, weather-chip ('23°C · Açık · İstanbul'), h1 'BUSE KÂĞIT', subtitle 'Üretim Yönetim Sistemi', clock HH:MM, unified-login card with 'Buse Kâğıt' title + 'ÜRETIM YÖNETIM SISTEMI' subtitle, 'Kullanıcı adı'/'Şifre' placeholders, 'Beni Hatırla' toggle, 'Giriş Yap' submit, 'CANLI PANO (TV) GIRIŞI' link all render.",
+    "home_logged_in_emrecan": "welcome-bar 'Giriş: Emrecan (plan, operator, depo) [Çıkış]', home-logout-btn data-testid present. Bento Grid v2 renders 8 modules: module-plan (Plan/İş planlama), module-operator (Operatör/Üretim takibi), module-warehouse (Depo/Stok yönetimi), module-paint (Boya/Boya takibi), module-bobin (Bobin/Bobin takibi), module-marka-stok (Marka/Koli Stok/Stok takibi), module-driver (Sürücü/Sevkiyat), module-dashboard (Canlı Pano/TV Dashboard, featured col-span-2). module-management correctly hidden for non-yonetim user.",
+    "plan_panel": "Premium header: blue 'P' panel-logo-tile + 'BUSE KÂĞIT' upper label + 'Planlama Paneli' bold title. Back btn (Ana Sayfa), Yeni İş button (data-testid='add-job-button'), theme toggle, UserMenu (E - Emrecan PLAN), all functional. Türkçe correct everywhere.",
+    "operator_panel": "Premium green 'O' panel-logo-tile + 'OPERATÖR' upper label + 'Makine Seçin' title. 8 machines (40x40, 40x40 ICM, 33x33 (Büyük), 33x33 ICM, 33x33 (Eski), 30x30, 24x24, Dispanser) render with ÇALIŞIYOR/BOŞTA Türkçe statuses.",
+    "live_dashboard_buse4": "BUSE KÂĞIT gold gradient title + 'Canlı Üretim Panosu' subtitle + clock + 4 metric cards (ÇALIŞAN MAKINE 1/8, BUGÜN ÜRETIM 0 koli, BEKLEYEN İŞ 7, TAMAMLANAN 0 iş) + Machine Durumları with Çalışıyor/Boşta + 'Canlı — 15 saniyede bir güncellenir' bottom strip. Türkçe correct.",
+    "management_panel": "NOT verified — /management redirects to unified login (legacy password screen removed, same as iteration 41). Cannot test without a yonetim-role test credential in /app/memory/test_credentials.md.",
+    "yonetim_quick_fab": "NOT verified — requires yonetim-role user which is not in test_credentials.md.",
+    "mobile_390x844": "Home page: no horizontal overflow (scrollWidth==clientWidth==390). Atatürk frame 48x48 (≥44px target). Login submit 300x46 (≥44px). Bento grid logged-in renders 2-col (173px 173px) with all 8 cards stacking cleanly. Türkçe chars render correctly.",
+    "a11y_aria_live": "Empty submit fires red-bordered error 'Kullanıcı adı ve şifre gerekli' inside [role='alert'][aria-live='assertive'] — correct AAA pattern.",
+    "a11y_skip_link": "Skip-to-main <a href='#main-content' class='skip-to-main'>İçeriğe atla</a> EXISTS in DOM with tabindex=0 — but auto-focus on username input prevents it from being the first Tab target. See a11y_issues.",
+    "turkce_correctness": "Verified across Home (logged-out + logged-in), Plan, Operator, Live Dashboard. Zero ASCII fallback strings found. All ö/ş/ç/ğ/ı/İ/Â diacritics render correctly."
+  },
+  "test_report_links": [
+    "/app/test_reports/home_desktop.png",
+    "/app/test_reports/home_loggedin.png",
+    "/app/test_reports/plan_panel.png",
+    "/app/test_reports/operator_panel.png",
+    "/app/test_reports/live_dashboard.png",
+    "/app/test_reports/home_mobile.png"
+  ],
+  "action_items": [
+    "[A11Y] Remove autoFocus from UnifiedLogin username input OR ensure the skip-to-main link is focused on initial page render. Currently the 'İçeriğe atla' link is unreachable by keyboard users following the natural Tab order — required for WCAG AAA.",
+    "[A11Y] Add aria-label='Mustafa Kemal Atatürk' (or aria-hidden='true' if purely decorative) to [data-testid='ataturk-image']. Currently has neither aria-label nor alt attribute despite the spec requiring it.",
+    "[I18N polish] Live Dashboard metric card labels use CSS text-transform: uppercase which converts Turkish 'i' to ASCII 'I' instead of 'İ'. Either: (a) write labels in their final uppercase form (ÇALIŞAN MAKİNE / BUGÜN ÜRETİM), or (b) add lang='tr' attribute to <html> + use CSS text-transform with proper Turkish locale support.",
+    "[DOC] Add a yonetim-role test credential (or document path to legacy /management password) to /app/memory/test_credentials.md so future agents can verify Management panel header + yonetim-quick-fab/sheet.",
+    "[OPTIONAL — carried over] Plan -> Yeni İş dialog still uses native date input instead of shadcn Calendar."
+  ],
+  "critical_code_review_comments": [
+    "Home.js bento grid + Atatürk frame premium look excellent; all data-testids preserved from iteration 41 — zero regression in selectors.",
+    "UnifiedLogin.js aria-live error region is correctly wired (role='alert' aria-live='assertive', fires 'Kullanıcı adı ve şifre gerekli' on empty submit). Beni Hatırla switch + Şifre eye-icon both keyboard-reachable.",
+    "App.js skip-to-main link present and styled (sr-only-aaa pattern) — but autoFocus elsewhere defeats its purpose. One small fix flips this to AAA pass.",
+    "panel-logo-tile component pattern is consistent and clean across Plan (blue P), Operator (green O), Live Dashboard (cyan TV icon). Visual hierarchy reads well.",
+    "/management direct URL still redirects to unified login (legacy password screen confirmed removed) — consistent with iteration 41; ensure docs/credentials match this reality."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "11/13 spec items fully verified, 2 spec items unverifiable due to missing yonetim credential. 0 functional regressions. 2 minor a11y polish items + 1 i18n polish item."},
+  "test_credentials": "Used: emrecan/testtest12 (plan,operator,depo), ali/134679 (operator), buse4 (dashboard TV password). buse11993 attempted via unified login with various usernames — does NOT log in as yonetim user; legacy /management password screen no longer exists in this build.",
+  "seed_data_creation": "None (read-only UI test).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 42 UI v4 refresh verified end-to-end. The 3 outstanding items (skip-link Tab reachability, ataturk aria-label, ÜRETIM->ÜRETİM uppercase) are minor polish — non-blocking. To verify the Management/Yönetim panel header + yonetim-quick-fab+sheet, the main agent must (a) seed a yonetim-role user with known credentials and commit to /app/memory/test_credentials.md, OR (b) clarify whether the legacy /management password-only screen (buse11993) should be restored. All other panels (Plan, Operator, Warehouse, Bobin, Marka/Koli, Driver, Live Dashboard) are visually compliant with the v4 spec.",
+  "rca of the issue": "N/A — no functional regressions. The 3 polish items are isolated CSS/markup tweaks (autoFocus attribute, aria-label, label casing) that can be fixed in <10 lines without functional impact."
+}

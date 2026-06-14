@@ -450,25 +450,25 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                 <Layers className="h-8 w-8 text-emerald-400" />
               </div>
               <h1 className="text-xl font-semibold text-white tracking-tight">Bobin Yonetimi</h1>
-              <p className="text-sm text-zinc-500 mt-1">Depo veya Plan hesabinizla giris yapin</p>
+              <p className="text-sm text-zinc-500 mt-1">Depo veya Plan hesabınızla giriş yapın</p>
             </div>
             <div className="space-y-3">
-              <Input data-testid="bobin-login-username" placeholder="Kullanici adi" value={username}
+              <Input data-testid="bobin-login-username" placeholder="Kullanıcı adı" value={username}
                 onChange={e => { setUsername(e.target.value); setLoginError(""); }}
                 onKeyDown={e => e.key === "Enter" && handleLogin()}
                 className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-zinc-600 h-11" />
-              <Input data-testid="bobin-login-password" type="password" placeholder="Sifre" value={password}
+              <Input data-testid="bobin-login-password" type="password" placeholder="Şifre" value={password}
                 onChange={e => { setPassword(e.target.value); setLoginError(""); }}
                 onKeyDown={e => e.key === "Enter" && handleLogin()}
                 className="bg-white/[0.04] border-white/[0.08] text-white placeholder:text-zinc-600 h-11" />
               <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="bobin-remember-me">
                 <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded border-white/10 bg-white/5 text-emerald-500 focus:ring-emerald-500/30" />
-                <span className="text-sm text-zinc-400">Beni hatirla</span>
+                <span className="text-sm text-zinc-400">Beni hatırla</span>
               </label>
               {loginError && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2" data-testid="bobin-login-error">{loginError}</p>}
               <Button data-testid="bobin-login-btn" onClick={handleLogin}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium">Giris Yap</Button>
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium">Giriş Yap</Button>
             </div>
           </div>
           <button onClick={() => navigate("/")} className="flex items-center justify-center gap-1.5 text-sm text-zinc-600 hover:text-zinc-400 mt-6 mx-auto transition-colors">
@@ -494,7 +494,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                 <Layers className="h-4 w-4 text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-base font-semibold text-white">Bobin Yonetimi</h1>
+                <h1 className="text-base font-semibold text-white">Bobin Yönetimi</h1>
                 <p className="text-xs text-zinc-500">{userName}</p>
               </div>
             </div>

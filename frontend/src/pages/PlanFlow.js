@@ -1144,16 +1144,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9">
-              <ArrowLeft className="h-4 w-4 md:mr-1.5" />
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label="Ana sayfaya dön">
+              <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
               <span className="hidden md:inline">Ana Sayfa</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
-            <div className="flex items-center gap-2">
-              <div className="icon-tile-glow w-8 h-8 rounded-md bg-gradient-to-br from-success to-teal-700 flex items-center justify-center text-white font-black text-sm" style={{ "--glow-rgb": "16,185,129" }}>P</div>
+            <div className="flex items-center gap-2.5">
+              <div className="panel-logo-tile" style={{ "--tile-from": "#60A5FA", "--tile-to": "#1D4ED8", "--tile-rgb": "96,165,250" }} aria-hidden="true">P</div>
               <div className="hidden sm:block">
-                <p className="text-[10px] font-mono uppercase tracking-widest text-text-secondary leading-none">Buse Kağıt</p>
-                <h1 className="text-base font-heading font-bold text-text-primary leading-tight">Planlama Paneli</h1>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-blue-300/80 leading-none">Buse Kâğıt</p>
+                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight">Planlama Paneli</h1>
               </div>
             </div>
           </div>
