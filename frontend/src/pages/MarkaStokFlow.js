@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Plus, ShoppingCart, History, Edit, Trash2, Download, Search,
-  Sun, Moon, Package, TrendingDown, TrendingUp, Factory, X, Boxes, Tag, Send
+  Sun, Moon, Package, TrendingDown, TrendingUp, Factory, X, Boxes, Tag, Send, LogOut
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -1036,16 +1037,26 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6">
         {/* Top Bar */}
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-          <Button variant="outline" onClick={() => navigate("/")} data-testid="back-btn"><ArrowLeft className="mr-2 h-4 w-4" />Ana Sayfa</Button>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-text-secondary hidden md:inline px-2 py-1 rounded-full bg-surface border border-border">{userData?.display_name || userData?.username} · {role}</span>
-            <Button variant="outline" size="icon" onClick={toggleTheme}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
+        <div className="flex justify-between items-center gap-2 mb-6 min-w-0">
+          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-btn" className="h-9 w-9 md:w-auto md:px-3 shrink-0">
+            <ArrowLeft className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Ana Sayfa</span>
+          </Button>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <span className="text-xs text-text-secondary hidden lg:inline px-2 py-1 rounded-full bg-surface border border-border truncate max-w-[200px]">{userData?.display_name || userData?.username} · {role}</span>
+            <HeaderActionsMenu
+              items={[
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, accent: "default" },
+              ]}
+            />
             <UserMenu />
-            <Button variant="outline" onClick={handleLogout} className="text-error border-error/40">Çıkış</Button>
+            <Button variant="outline" size="icon" onClick={handleLogout} className="text-error border-error/40 h-9 w-9 md:w-auto md:px-3 shrink-0">
+              <LogOut className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Çıkış</span>
+            </Button>
           </div>
         </div>
 

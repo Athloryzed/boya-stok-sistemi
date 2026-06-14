@@ -24,6 +24,7 @@ import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 
 // Sürüklenebilir İş Kartı Wrapper
@@ -1139,25 +1140,25 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Industrial Header */}
-      <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label="Ana sayfaya dön">
+      <div className="header-industrial sticky top-0 z-40 px-3 sm:px-4 md:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0" aria-label="Ana sayfaya dön">
               <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
               <span className="hidden md:inline">Ana Sayfa</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
-            <div className="flex items-center gap-2.5">
-              <div className="panel-logo-tile" style={{ "--tile-from": "#60A5FA", "--tile-to": "#1D4ED8", "--tile-rgb": "96,165,250" }} aria-hidden="true">P</div>
-              <div className="hidden sm:block">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="panel-logo-tile shrink-0" style={{ "--tile-from": "#60A5FA", "--tile-to": "#1D4ED8", "--tile-rgb": "96,165,250" }} aria-hidden="true">P</div>
+              <div className="hidden sm:block min-w-0">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-blue-300/80 leading-none">Buse Kâğıt</p>
-                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight">Planlama Paneli</h1>
+                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight truncate">Planlama Paneli</h1>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button
@@ -1347,23 +1348,21 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               </div>
             </DialogContent>
           </Dialog>
-            <NotificationButton
-              testId="plan-notif-btn"
-              onTokenReceived={async (token) => {
-                await axios.post(`${API}/notifications/register-token`, {
-                  token, user_type: "plan", user_id: userData?.id, platform: "web"
-                });
-              }}
+            <HeaderActionsMenu
+              items={[
+                { id: "push", label: "Push Bildirim", render: () => (
+                  <NotificationButton
+                    testId="plan-notif-btn"
+                    onTokenReceived={async (token) => {
+                      await axios.post(`${API}/notifications/register-token`, {
+                        token, user_type: "plan", user_id: userData?.id, platform: "web"
+                      });
+                    }}
+                  />
+                ) },
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
+              ]}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleTheme}
-              data-testid="theme-toggle"
-              className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
             <UserMenu />
           </div>
         </div>

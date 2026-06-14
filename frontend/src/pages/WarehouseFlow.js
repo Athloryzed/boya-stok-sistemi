@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
@@ -466,7 +467,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-6 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
         {/* Bildirim Pop-up */}
         <AnimatePresence>
@@ -502,28 +503,33 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
           )}
         </AnimatePresence>
 
-        <div className="flex justify-between items-center mb-8">
-          <Button variant="outline" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Ana Sayfa
+        <div className="flex justify-between items-center mb-8 gap-2 min-w-0">
+          <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0">
+            <ArrowLeft className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Ana Sayfa</span>
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* WebSocket durumu */}
-            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${wsConnected ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"}`}>
+            <div className={`hidden sm:flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${wsConnected ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"}`}>
               {wsConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               {wsConnected ? "Canlı" : "Bağlantı Yok"}
             </div>
-            <NotificationButton
-              testId="warehouse-notif-btn"
-              onTokenReceived={async (token) => {
-                await axios.post(`${API}/notifications/register-token`, {
-                  token, user_type: "warehouse", user_id: userData?.id || "depo", platform: "web"
-                });
-              }}
+            <HeaderActionsMenu
+              items={[
+                { id: "ws-status", label: wsConnected ? "Bağlantı: Canlı" : "Bağlantı: Yok", icon: wsConnected ? Wifi : WifiOff, onClick: () => {}, accent: wsConnected ? "emerald" : "rose" },
+                { id: "push", label: "Push Bildirim", render: () => (
+                  <NotificationButton
+                    testId="warehouse-notif-btn"
+                    onTokenReceived={async (token) => {
+                      await axios.post(`${API}/notifications/register-token`, {
+                        token, user_type: "warehouse", user_id: userData?.id || "depo", platform: "web"
+                      });
+                    }}
+                  />
+                ) },
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
+              ]}
             />
-            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight">
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
             <UserMenu />
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sun, Moon, MapPin, Phone, Package, CheckCircle, XCircle, Navigation, Truck, RefreshCw } from "lucide-react";
+import { ArrowLeft, Sun, Moon, MapPin, Phone, Package, CheckCircle, XCircle, Navigation, Truck, RefreshCw, LogOut } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -300,20 +300,22 @@ const DriverFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-3 sm:p-4 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <Button variant="outline" size="sm" onClick={() => navigate("/")}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Ana Sayfa
+      <div className="flex justify-between items-center mb-6 gap-2 min-w-0">
+        <Button variant="outline" size="icon" onClick={() => navigate("/")} className="h-9 w-9 md:w-auto md:px-3 shrink-0">
+          <ArrowLeft className="w-4 h-4 md:mr-1" />
+          <span className="hidden md:inline">Ana Sayfa</span>
         </Button>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-text-secondary">{driverData?.name}</span>
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <span className="text-sm text-text-secondary hidden lg:inline truncate max-w-[200px]">{driverData?.name}</span>
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
           <UserMenu />
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            Çıkış
+          <Button variant="outline" size="icon" onClick={handleLogout} className="h-9 w-9 md:w-auto md:px-3 shrink-0">
+            <LogOut className="w-4 h-4 md:mr-1" />
+            <span className="hidden md:inline">Çıkış</span>
           </Button>
         </div>
       </div>

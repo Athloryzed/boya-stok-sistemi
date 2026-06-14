@@ -13,6 +13,7 @@ import axios from "axios";
 import { API } from "../App";
 import { useConfirm } from "../components/ConfirmProvider";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
@@ -481,36 +482,34 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   // ============ MAIN UI ============
   return (
-    <div className="min-h-screen bg-[#0a0f1a]">
+    <div className="min-h-screen bg-[#0a0f1a] overflow-x-hidden">
       {/* Header */}
-      <header className="bg-[#111827]/90 backdrop-blur-lg border-b border-white/[0.06] px-4 py-3 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="text-zinc-500 hover:text-white transition-colors" data-testid="bobin-back-btn">
+      <header className="bg-[#111827]/90 backdrop-blur-lg border-b border-white/[0.06] px-3 sm:px-4 py-3 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button onClick={() => navigate("/")} className="text-zinc-500 hover:text-white transition-colors shrink-0" data-testid="bobin-back-btn">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="icon-tile-glow w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0" style={{ "--glow-rgb": "16,185,129" }}>
                 <Layers className="h-4 w-4 text-emerald-400" />
               </div>
-              <div>
-                <h1 className="text-base font-semibold text-white">Bobin Yönetimi</h1>
-                <p className="text-xs text-zinc-500">{userName}</p>
+              <div className="min-w-0">
+                <h1 className="text-base font-semibold text-white truncate">Bobin Yönetimi</h1>
+                <p className="text-xs text-zinc-500 truncate">{userName}</p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" onClick={openArchive} className="text-zinc-400 hover:text-white" data-testid="bobin-archive-btn" title="Aylık Arşiv">
-              <Archive className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleExport()} className="text-zinc-400 hover:text-white" data-testid="bobin-export-btn">
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={toggleTheme} className="text-zinc-400 hover:text-white">
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <HeaderActionsMenu
+              items={[
+                { id: "archive", label: "Aylık Arşiv", icon: Archive, onClick: openArchive, testId: "bobin-archive-btn", accent: "emerald" },
+                { id: "export", label: "Excel İndir", icon: Download, onClick: () => handleExport(), testId: "bobin-export-btn", accent: "default" },
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, accent: "default" },
+              ]}
+            />
             <UserMenu />
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-zinc-400 hover:text-white" data-testid="bobin-logout-btn">
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-zinc-400 hover:text-white h-9 w-9 shrink-0" data-testid="bobin-logout-btn">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

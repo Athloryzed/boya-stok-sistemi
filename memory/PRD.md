@@ -1202,3 +1202,51 @@ Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısınd
 ### Etki
 - Mesajlaşma artık YALNIZCA geçerli oturumla görünür ve çalışır.
 - Logout / 24h timeout / token reject sonrası WS bağlantısı otomatik kapanıyor (eski kimlikle veri sızıntısı yok).
+
+---
+
+## Mobil/Web Responsive Header Yaması (14 Şubat 2026)
+
+**Sorun:** Mobilde (özellikle iPhone, viewport ≤ 414px) tüm panel header'larındaki çok sayıda buton (Vardiya/Menü/Yedek/Bobin Recalc/Bildirim/Sync/Push/Theme/UserMenu/Logout vb.) yatayda taşıyordu. Body içeriği de sağa kayıyordu (BOYA STOKU vs. truncate). Kullanıcı: "üst bar hiçbir panelde sığmıyor".
+
+### Çözüm
+**Yeni component:** `/app/frontend/src/components/HeaderActionsMenu.js`
+- Desktop (`md:` ve üstü): Tüm aksiyon butonları inline, eskisi gibi.
+- Mobil (`< md`): Tek bir **"Daha Fazla" kebab butonu** (`MoreVertical`) — tıklayınca premium-amber dropdown menüde ikincil aksiyonlar listelenir.
+- `items` props ile esnek API: `{ id, label, icon, onClick, testId, accent, disabled, badge, render }`. `render` ile özel komponentler (SyncBadge, NotificationButton) da menüye eklenebilir.
+
+### Tüm panellerde uygulandı
+- **ManagementFlow**: Menü, Yedek, Bobin Recalc, Bildirim Ayarları, Sync, Push, Theme → mobilde tek menü.
+- **PlanFlow**: Push + Theme → mobilde tek menü.
+- **OperatorFlow**: Notification permission + Theme → mobilde tek menü.
+- **WarehouseFlow**: WS status + Push + Theme → mobilde tek menü.
+- **BobinFlow**: Arşiv + Excel + Theme → mobilde tek menü.
+- **MarkaStokFlow**: Theme → mobilde tek menü.
+- **PaintFlow**: Theme + UserMenu (zaten az; mobile-fit'ler revize).
+- **DriverFlow**: Theme + UserMenu (mobile-fit revize).
+
+### Ortak iyileştirmeler her panelde
+- Root `<div>`'e `overflow-x-hidden` eklendi → body içeriği yatay kaymıyor.
+- Header container `min-w-0` + child `shrink-0`/`min-w-0` ile texto/ikon arası akıllı sıkıştırma.
+- Back butonu mobilde `size="icon"` (sadece ikon), desktop'ta etiketli.
+- Logout butonu mobilde `size="icon"`.
+- Header padding mobilde sıkılaştırıldı: `px-3 sm:px-4 md:px-6`.
+- Logo altındaki "Yönetim Paneli / Plan / Operatör" metni `truncate` ile uzun başlıkları kırpıyor.
+
+### Test (Playwright 390×844 iPhone X viewport)
+| Panel | scrollWidth/clientWidth | Sonuç |
+|---|---|---|
+| /management | 390/390 | ✅ OK |
+| /plan | 390/390 | ✅ OK |
+| /operator | 390/390 | ✅ OK |
+| /warehouse | 390/390 | ✅ OK |
+| /bobin | 390/390 | ✅ OK |
+| /marka-stok | 390/390 | ✅ OK |
+| /paint | 390/390 | ✅ OK |
+
+Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md:hidden) — eski deneyim korundu.
+
+**Mobil More menüsü işlevsel doğrulama:** 5 menu item göründü, "Yedek" tıklama dialog açtı, "Theme" toggle çalıştı (dark → light).
+
+### data-testid'ler
+`header-more-actions-btn`, `header-more-actions-menu`, ve mobilde her item için `{original-testid}-mobile` (örn. `backups-btn-mobile`, `theme-toggle-mobile`).

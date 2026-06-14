@@ -23,6 +23,7 @@ import { useConfirm } from "../components/ConfirmProvider";
 import SecurityDashboard from "../components/SecurityDashboard";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1394,83 +1395,65 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   } : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Industrial Header */}
-      <div className="header-industrial sticky top-0 z-40 px-4 md:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label="Ana sayfaya dön">
+      <div className="header-industrial sticky top-0 z-40 px-3 sm:px-4 md:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="outline" size="icon" onClick={() => navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0" aria-label="Ana sayfaya dön">
               <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
               <span className="hidden md:inline">Ana Sayfa</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
-            <div className="flex items-center gap-2.5">
-              <div className="panel-logo-tile" style={{ "--tile-from": "#FFD24C", "--tile-to": "#B8860B", "--tile-rgb": "255,191,0" }} aria-hidden="true">B</div>
-              <div className="hidden sm:block">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="panel-logo-tile shrink-0" style={{ "--tile-from": "#FFD24C", "--tile-to": "#B8860B", "--tile-rgb": "255,191,0" }} aria-hidden="true">B</div>
+              <div className="hidden sm:block min-w-0">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-amber-300/80 leading-none">Buse Kâğıt</p>
-                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight">Yönetim Paneli</h1>
+                <h1 className="text-base sm:text-lg font-heading font-black text-text-primary leading-tight tracking-tight truncate">Yönetim Paneli</h1>
               </div>
             </div>
             {currentShift && (
-              <div className="hidden md:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-success/10 border border-success/30">
+              <div className="hidden lg:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-success/10 border border-success/30 shrink-0">
                 <span className="live-dot" />
                 <span className="text-xs font-mono font-semibold text-success uppercase tracking-wider">Vardiya Aktif</span>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {currentShift ? (
-              <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9">
+              <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9 px-2.5 md:px-3 shrink-0">
                 <PowerOff className="h-4 w-4 md:mr-1.5" />
                 <span className="hidden md:inline">Vardiya Bitir</span>
               </Button>
             ) : (
-              <Button data-testid="start-shift-button" onClick={handleStartShift} size="sm" className="bg-success text-white hover:bg-success/90 h-9">
+              <Button data-testid="start-shift-button" onClick={handleStartShift} size="sm" className="bg-success text-white hover:bg-success/90 h-9 px-2.5 md:px-3 shrink-0">
                 <Power className="h-4 w-4 md:mr-1.5" />
                 <span className="hidden md:inline">Vardiya Başlat</span>
               </Button>
             )}
-            {/* YEMEK MENÜSÜ butonu */}
-            <Button variant="outline" size="sm" onClick={openMenuDialog} data-testid="menu-edit-btn"
-              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 h-9 gap-1.5">
-              <UtensilsCrossed className="h-4 w-4" />
-              <span className="hidden md:inline text-xs">Menü</span>
-            </Button>
-            {/* YEDEKLER butonu */}
-            <Button variant="outline" size="sm" onClick={() => { setBackupsDialogOpen(true); fetchBackups(); }} data-testid="backups-btn"
-              className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 h-9 gap-1.5">
-              <Database className="h-4 w-4" />
-              <span className="hidden md:inline text-xs">Yedek</span>
-            </Button>
-            {/* BOBİN STOK YENİDEN HESAPLA */}
-            <Button variant="outline" size="sm" onClick={runBobinRecalc} disabled={recalcRunning} data-testid="bobin-recalc-btn"
-              className="border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 h-9 gap-1.5"
-              title="Tüm bobinlerin stoğunu hareket geçmişinden yeniden hesapla">
-              {recalcRunning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Scale className="h-4 w-4" />}
-              <span className="hidden md:inline text-xs">Bobin Yeniden Hesapla</span>
-            </Button>
-            {/* BİLDİRİM YÖNETİMİ */}
-            <Button variant="outline" size="sm" onClick={() => setNotificationSettingsOpen(true)} data-testid="notification-settings-btn"
-              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10 h-9 gap-1.5"
-              title="Otomatik bildirim tetikleyicilerini yönet">
-              <Bell className="h-4 w-4" />
-              <span className="hidden md:inline text-xs">Bildirimler</span>
-            </Button>
-            {/* VERİ SENKRONU rozeti */}
-            <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} />
-            <NotificationButton
-              testId="mgmt-notif-btn"
-              onTokenReceived={async (token) => {
-                await axios.post(`${API}/notifications/register-token`, {
-                  token, user_type: "manager", user_id: managerId, platform: "web"
-                });
-              }}
+            {/* İkincil aksiyonlar — mobilde tek "Daha Fazla" menüsünde toplanır */}
+            <HeaderActionsMenu
+              items={[
+                { id: "menu", label: "Yemek Menüsü", icon: UtensilsCrossed, onClick: openMenuDialog, testId: "menu-edit-btn", accent: "amber" },
+                { id: "backups", label: "Yedekler", icon: Database, onClick: () => { setBackupsDialogOpen(true); fetchBackups(); }, testId: "backups-btn", accent: "emerald" },
+                { id: "bobin-recalc", label: "Bobin Yeniden Hesapla", icon: recalcRunning ? RefreshCw : Scale, onClick: runBobinRecalc, disabled: recalcRunning, testId: "bobin-recalc-btn", accent: "cyan", title: "Tüm bobinlerin stoğunu hareket geçmişinden yeniden hesapla" },
+                { id: "notifications", label: "Bildirim Ayarları", icon: Bell, onClick: () => setNotificationSettingsOpen(true), testId: "notification-settings-btn", accent: "amber", title: "Otomatik bildirim tetikleyicilerini yönet" },
+                { id: "sync", label: "Senkronizasyon", render: () => <SyncBadge lastSyncAt={lastSyncAt} syncing={syncing} onRefresh={() => { fetchData(); fetchSecondaryData(activeTab); }} /> },
+                { id: "push", label: "Push Bildirim", render: () => (
+                  <NotificationButton
+                    testId="mgmt-notif-btn"
+                    onTokenReceived={async (token) => {
+                      await axios.post(`${API}/notifications/register-token`, {
+                        token, user_type: "manager", user_id: managerId, platform: "web"
+                      });
+                    }}
+                  />
+                ) },
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
+              ]}
             />
-            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
             <UserMenu />
-            <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
+            <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 md:w-auto md:px-3 shrink-0">
               <LogOut className="h-4 w-4 md:mr-1.5" />
               <span className="hidden md:inline">Çıkış</span>
             </Button>

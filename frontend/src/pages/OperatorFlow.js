@@ -18,6 +18,7 @@ import IOSInstallGuide from "../components/IOSInstallGuide";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
@@ -1020,32 +1021,32 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Industrial Header */}
-      <div className="header-industrial sticky top-0 z-40 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9" aria-label={step > 1 ? "Önceki adıma dön" : "Ana sayfaya dön"}>
-              <ArrowLeft className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{step > 1 ? "Geri" : "Ana Sayfa"}</span>
+      <div className="header-industrial sticky top-0 z-40 px-3 sm:px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="outline" size="icon" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 md:w-auto md:px-3 shrink-0" aria-label={step > 1 ? "Önceki adıma dön" : "Ana sayfaya dön"}>
+              <ArrowLeft className="h-4 w-4 md:mr-1.5" aria-hidden="true" />
+              <span className="hidden md:inline">{step > 1 ? "Geri" : "Ana Sayfa"}</span>
             </Button>
-            <div className="h-6 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2.5">
-              <div className="panel-logo-tile" style={{ "--tile-from": "#34D399", "--tile-to": "#047857", "--tile-rgb": "16,185,129" }} aria-hidden="true">O</div>
-              <div className="hidden sm:block">
+            <div className="h-6 w-px bg-border hidden md:block" />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="panel-logo-tile shrink-0" style={{ "--tile-from": "#34D399", "--tile-to": "#047857", "--tile-rgb": "16,185,129" }} aria-hidden="true">O</div>
+              <div className="hidden sm:block min-w-0">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-300/80 leading-none">Operatör</p>
-                <h1 className="text-sm sm:text-base font-heading font-black text-text-primary leading-tight tracking-tight">{selectedMachine?.name || "Makine Seçin"}</h1>
+                <h1 className="text-sm sm:text-base font-heading font-black text-text-primary leading-tight tracking-tight truncate">{selectedMachine?.name || "Makine Seçin"}</h1>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Mesaj butonu - sadece makine seçildiyse */}
             {selectedMachine && (
               <Button
                 variant="outline"
                 size="icon"
                 onClick={openChat}
-                className="border-border bg-surface/60 hover:bg-surface-highlight relative h-9 w-9"
+                className="border-border bg-surface/60 hover:bg-surface-highlight relative h-9 w-9 shrink-0"
                 data-testid="chat-button"
               >
                 <MessageSquare className="h-4 w-4 text-blue-400" />
@@ -1056,26 +1057,19 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 )}
               </Button>
             )}
-            {notificationPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleEnableNotifications}
-                data-testid="enable-notifications"
-                className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9"
-                title="Bildirimleri Aktif Et"
-              >
-                <BellRing className="h-4 w-4 text-warning" />
-              </Button>
-            )}
-            <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9">
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+            <HeaderActionsMenu
+              items={[
+                ...(notificationPermission !== 'granted' && typeof window !== 'undefined' && 'Notification' in window ? [
+                  { id: "enable-notif", label: "Bildirimleri Aktif Et", icon: BellRing, onClick: handleEnableNotifications, testId: "enable-notifications", accent: "amber" },
+                ] : []),
+                { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
+              ]}
+            />
             <UserMenu />
             {step > 1 && (
-              <Button variant="outline" size="sm" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9">
-                <span className="hidden sm:inline">Çıkış</span>
-                <LogOut className="h-4 w-4 sm:ml-1.5" />
+              <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 md:w-auto md:px-3 shrink-0">
+                <LogOut className="h-4 w-4 md:mr-1.5" />
+                <span className="hidden md:inline">Çıkış</span>
               </Button>
             )}
           </div>
