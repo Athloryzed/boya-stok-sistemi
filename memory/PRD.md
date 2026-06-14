@@ -1165,3 +1165,40 @@ Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısınd
 
 ### Tasarım Notu
 - Framer Motion `transform` animasyonu Tailwind `-translate-x-1/2 -translate-y-1/2` ile çakışıyordu. Çözüm: fixed-positioning'i wrapper `<div>`'e taşı; motion.div yalnızca opacity/scale/y animasyonu yapsın (modal merkezleme: parent `flex items-center justify-center`).
+
+---
+
+## Güvenlik Yaması: Messenger Yetkisiz Erişim Önleme (14 Şubat 2026)
+
+**Bildirilen sorun:** Mesajlar (Messenger FAB + drawer) kullanıcı giriş yapmadan da görülebiliyordu.
+
+### Kök sebep
+- `GlobalMessenger.jsx` ve `MessengerPanel.jsx` yalnızca `getSession()` ile token varlığını kontrol ediyordu — 24h süre / `remember_me` politikası göz ardı ediliyordu.
+- 24 saat dolmuş eski oturumun token'ı localStorage'da kaldığı sürece messenger FAB görünüyordu.
+- `clearSession()` ve `saveSession()` herhangi bir DOM event yayınlamıyordu → GlobalMessenger yalnızca 2 saniye polling ile yakalıyordu (anlık değil).
+
+### Yapılanlar
+1. **`GlobalMessenger.jsx`**: `getSession()` yerine `isSessionValid() ? getSession() : null` ile gerçek geçerlilik kontrolü. Auth değişiminde `disconnectChatWS()` çağrılarak eski token'la açık kalan WebSocket kapatılıyor (eski token'la mesaj yayınlanmasını engeller).
+2. **`MessengerPanel.jsx`**: Aynı şekilde `isSessionValid()` kontrolü eklendi — defense-in-depth.
+3. **`lib/auth.js`**:
+   - `saveSession()` artık `auth-changed` CustomEvent (type:"login") dispatch ediyor.
+   - `clearSession()` artık `auth-changed` CustomEvent (type:"logout") dispatch ediyor.
+   - Tüm subscriber'lar (GlobalMessenger, vb.) anlık güncellenir; 2 saniye polling beklemek zorunda değil.
+
+### Backend doğrulaması
+- Tüm `/api/chat/*` REST endpoint'leri zaten `Depends(get_current_user)` ile korunuyor (401 dönüyor — test edildi).
+- WebSocket `/api/ws/chat` query param ile JWT doğruluyor, geçersiz token'da `code=4401` ile kapatıyor.
+
+### Test (Playwright e2e — 5/5 geçti)
+| Senaryo | Beklenen | Sonuç |
+|---|---|---|
+| Girişsiz ziyaret | FAB yok | ✅ 0 |
+| Auth'suz REST /api/chat/conversations | 401 | ✅ 401 |
+| Geçerli login (ali) sonrası | FAB var | ✅ 1 |
+| `localStorage.clear()` + auth-changed event | FAB hemen kayboluyor | ✅ 0 |
+| 25h eski stale session (remember_me=false) | FAB yok | ✅ 0 (önceki: 1 — BUG) |
+| Sahte JWT token + recent login_at | Backend 401 → frontend kendini temizler → FAB yok | ✅ 0 |
+
+### Etki
+- Mesajlaşma artık YALNIZCA geçerli oturumla görünür ve çalışır.
+- Logout / 24h timeout / token reject sonrası WS bağlantısı otomatik kapanıyor (eski kimlikle veri sızıntısı yok).

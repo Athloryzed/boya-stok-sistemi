@@ -149,6 +149,8 @@ export function saveSession({
         expiry,
       }));
     }
+    // Subscribers (GlobalMessenger vb.) anlık güncellensin
+    try { window.dispatchEvent(new CustomEvent("auth-changed", { detail: { type: "login" } })); } catch (_) { /* noop */ }
     return session;
   } catch (e) {
     console.error("saveSession error", e);
@@ -171,6 +173,8 @@ export function clearSession() {
   } catch (_) {
     /* noop */
   }
+  // Subscribers (GlobalMessenger, WebSocket vb.) anlık temizlensin
+  try { window.dispatchEvent(new CustomEvent("auth-changed", { detail: { type: "logout" } })); } catch (_) { /* noop */ }
 }
 
 export function getRememberedUsername() {

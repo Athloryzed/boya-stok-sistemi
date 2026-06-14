@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatApi, connectChatWS, disconnectChatWS, onChatEvent, ensurePushSubscription } from "../../lib/messenger";
-import { getSession } from "../../lib/auth";
+import { getSession, isSessionValid } from "../../lib/auth";
 
 const EMOJIS = ["😊","😂","👍","❤️","🎉","🔥","✅","⚠️","🆘","🚀","💪","🙏","👏","✨","💯","☕","🍕","🤝","😴","🤔","😅","😎","🙌","💡","📦","🎨","🚚","🏭","🔧","📋","👷","👑","🆗","⏳","⚡"];
 
@@ -52,7 +52,7 @@ function formatBoldText(text) {
 }
 
 const MessengerPanel = () => {
-  const session = getSession();
+  const session = isSessionValid() ? getSession() : null;
   const userId = session?.user_id || session?.id;
   const [open, setOpen] = useState(false);
   const [pushPermitted, setPushPermitted] = useState(false);
