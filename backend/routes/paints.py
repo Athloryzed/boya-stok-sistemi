@@ -93,6 +93,17 @@ async def paint_transaction(data: dict = Body(...)):
     )
     await db.paint_movements.insert_one(movement.model_dump())
 
+    # ─── Chat: Düşük stok bildirimi (eşik altına düşerse ve önceden yukarıdaysa) ───
+    try:
+        if current_stock >= LOW_STOCK_THRESHOLD and new_stock < LOW_STOCK_THRESHOLD and new_stock > 0:
+            from services.auto_chat import notify_low_stock
+            await notify_low_stock(
+                item_type="Boya", item_name=paint["name"],
+                current=new_stock, threshold=LOW_STOCK_THRESHOLD, unit="L"
+            )
+    except Exception as e:
+        logger.warning(f"low_stock chat notify error: {e}")
+
     return {"message": "Hareket kaydedildi", "new_stock": new_stock, "movement_id": movement.id}
 
 

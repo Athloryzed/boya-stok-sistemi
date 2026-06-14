@@ -35,31 +35,52 @@ self.addEventListener('fetch', function(event) {
   );
 });
 
-// Push notification
+// Push notification — Web Push (VAPID) payload destekli
 self.addEventListener('push', function(event) {
+  let data = {};
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    try {
+      data = { title: 'Buse Kâğıt', body: event.data?.text() || 'Yeni bildirim' };
+    } catch (_) {
+      data = { title: 'Buse Kâğıt', body: 'Yeni bildirim' };
+    }
+  }
+  const title = data.title || 'Buse Kâğıt';
   const options = {
-    body: event.data ? event.data.text() : 'Yeni bildirim',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
+    body: data.body || 'Yeni bildirim',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
+    tag: data.tag,
+    renotify: true,
+    vibrate: [80, 40, 80],
+    data: data.data || {},
     actions: [
-      {action: 'open', title: 'Aç'},
-      {action: 'close', title: 'Kapat'}
+      { action: 'open', title: 'Aç' },
+      { action: 'close', title: 'Kapat' }
     ]
   };
-
-  event.waitUntil(
-    self.registration.showNotification('Buse Kağıt', options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  if (event.action === 'open') {
-    clients.openWindow('/');
-  }
+  if (event.action === 'close') return;
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(allClients) {
+      // Mevcut sekme varsa odakla
+      for (const c of allClients) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) {
+          c.postMessage({ type: 'open_conversation', data: event.notification.data || {} });
+          return c.focus();
+        }
+      }
+      // Yoksa yeni sekme aç
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
 });

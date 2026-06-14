@@ -42,6 +42,7 @@ if (typeof window !== "undefined") {
 // kullanıcı belirli paneli açtığında o chunk indirilir. Mobil 3G/4G performansı için kritik.
 // Home eager (giriş sayfası ilk açıldığı için, blank screen olmasın)
 import Home from "./pages/Home";
+import GlobalMessenger from "./components/messenger/GlobalMessenger";
 const OperatorFlow = lazy(() => import("./pages/OperatorFlow"));
 const PlanFlow = lazy(() => import("./pages/PlanFlow"));
 const ManagementFlow = lazy(() => import("./pages/ManagementFlow"));
@@ -362,6 +363,8 @@ function App() {
                 <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
               </Routes>
             </Suspense>
+            {/* Global Messenger — tüm oturumlu sayfalarda görünür FAB */}
+            <GlobalMessenger />
           </BrowserRouter>
           <Toaster position="top-center" richColors duration={2500} closeButton swipeDirections={["right", "left"]} />
         </div>

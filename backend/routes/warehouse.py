@@ -1,13 +1,17 @@
 from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import List, Optional
 from datetime import datetime, timezone
+import asyncio
+import logging
 
 from database import db
 from models import WarehouseRequest, WarehouseShipmentLog
 from websocket_manager import ws_manager
+from services.auto_chat import notify_bobin_request, notify_paint_request
 from auth import get_current_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/warehouse-requests", response_model=WarehouseRequest)
@@ -23,6 +27,27 @@ async def create_warehouse_request(request: WarehouseRequest):
             "quantity": request.quantity, "created_at": request.created_at
         }
     })
+
+    # ─── Otomatik Chat Bildirimi (Bobin / Boya talebi) ───
+    try:
+        item_type = (request.item_type or "").lower()
+        if "bobin" in item_type:
+            await notify_bobin_request(
+                operator_name=request.operator_name,
+                machine_name=request.machine_name or "Makine",
+                machine_id=getattr(request, "machine_id", None) or "",
+                quantity=request.quantity,
+            )
+        elif "boya" in item_type or "paint" in item_type:
+            await notify_paint_request(
+                operator_name=request.operator_name,
+                machine_name=request.machine_name or "Makine",
+                machine_id=getattr(request, "machine_id", None) or "",
+                color=getattr(request, "color", None),
+                quantity_l=request.quantity,
+            )
+    except Exception as e:
+        logger.warning(f"auto_chat notify warehouse-request error: {e}")
 
     return request
 

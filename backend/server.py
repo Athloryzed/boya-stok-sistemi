@@ -29,6 +29,7 @@ limiter = Limiter(key_func=get_real_client_ip)
 from database import client, db
 from auth import hash_password
 from websocket_manager import ws_manager, ws_manager_mgmt
+from websocket_chat import ws_chat
 
 # Route modules
 from routes.health import router as health_router
@@ -56,6 +57,7 @@ from routes.koli_stock import router as koli_stock_router
 from routes.backups import router as backups_router, start_scheduler as start_backup_scheduler
 from routes.auth_refresh import router as auth_refresh_router
 from routes.security_admin import router as security_admin_router
+from routes.chat import router as chat_router
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -110,6 +112,7 @@ api_router.include_router(koli_stock_router)
 api_router.include_router(backups_router)
 api_router.include_router(auth_refresh_router)
 api_router.include_router(security_admin_router)
+api_router.include_router(chat_router)
 
 
 @app.on_event("startup")
@@ -170,6 +173,37 @@ async def operator_websocket(websocket: WebSocket, machine_id: str):
     except Exception as e:
         logging.error(f"Operator WebSocket error: {e}")
         ws_manager.disconnect(websocket)
+
+
+@app.websocket("/api/ws/chat")
+async def chat_websocket(websocket: WebSocket, token: str = None):
+    """Chat WebSocket — user_id query param ile bağlanır (JWT token verified)."""
+    from auth import decode_token
+    user_id = None
+    try:
+        token = websocket.query_params.get("token")
+        if not token:
+            await websocket.close(code=4401)
+            return
+        try:
+            payload = decode_token(token)
+            user_id = payload.get("sub") or payload.get("user_id") or payload.get("id")
+        except Exception:
+            await websocket.close(code=4401)
+            return
+        if not user_id:
+            await websocket.close(code=4401)
+            return
+        await ws_chat.connect(websocket, user_id)
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        await ws_chat.disconnect(websocket)
+    except Exception as e:
+        logging.error(f"Chat WS error user={user_id}: {e}")
+        await ws_chat.disconnect(websocket)
 
 # ==================== Startup Events ====================
 
@@ -355,9 +389,37 @@ async def ensure_indexes():
         # revoked_tokens: refresh token blacklist — expires_at ile TTL
         await db.revoked_tokens.create_index("expires_at", expireAfterSeconds=0)
 
+        # ─── Chat / Messenger v1 İndeksleri ───
+        await db.conversations.create_index("id", unique=True)
+        await db.conversations.create_index([("participants", ASCENDING), ("last_message_at", DESCENDING)])
+        await db.conversations.create_index("channel_key", sparse=True)
+        await db.conversations.create_index([("type", ASCENDING), ("machine_id", ASCENDING)], sparse=True)
+        await db.chat_messages.create_index("id", unique=True)
+        await db.chat_messages.create_index([("conversation_id", ASCENDING), ("created_at", DESCENDING)])
+        await db.chat_messages.create_index([("conversation_id", ASCENDING), ("deleted_at", ASCENDING), ("created_at", DESCENDING)])
+        await db.message_reads.create_index([("conversation_id", ASCENDING), ("user_id", ASCENDING)], unique=True)
+        await db.push_subscriptions.create_index("id", unique=True)
+        await db.push_subscriptions.create_index([("user_id", ASCENDING), ("endpoint", ASCENDING)], unique=True)
+
         logger.info("MongoDB indexes ensured for all collections")
     except Exception as e:
         logger.error(f"Index creation error: {e}")
+
+
+@app.on_event("startup")
+async def seed_chat_channels():
+    """Önceden tanımlı rol bazlı kanalları oluştur ve uygun kullanıcıları otomatik katıl."""
+    try:
+        from services.auto_chat import ensure_seed_channels
+        await ensure_seed_channels()
+        # Mevcut makineler için makine kanalları
+        from services.auto_chat import ensure_machine_channel
+        machines = await db.machines.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(500)
+        for m in machines:
+            await ensure_machine_channel(m["id"], m.get("name") or "Makine")
+        logger.info(f"Chat seed: {len(machines)} machine channels ensured")
+    except Exception as e:
+        logger.error(f"Chat seed error: {e}")
 
 
 @app.on_event("startup")

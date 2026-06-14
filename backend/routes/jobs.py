@@ -219,6 +219,13 @@ async def create_job(job: Job, created_by: str = None, current_user: dict = Depe
     except Exception as e:
         logging.error(f"FCM notification error for new job: {e}")
 
+    # ─── Chat: Yeni iş atandı bildirimi ───
+    try:
+        from services.auto_chat import notify_job_assigned
+        await notify_job_assigned(job.model_dump())
+    except Exception as e:
+        logging.warning(f"auto_chat notify_job_assigned error: {e}")
+
     return job
 
 
@@ -431,6 +438,15 @@ async def _send_completion_notifications(job: dict, job_id: str, completed_koli:
             "job_name": job['name'], "machine_name": job['machine_name'],
             "completed_koli": completed_koli
         })
+
+        # ─── Chat: İş tamamlandı bildirimi ───
+        try:
+            from services.auto_chat import notify_job_completed
+            payload = dict(job)
+            payload["koli_produced"] = completed_koli
+            await notify_job_completed(payload)
+        except Exception as e:
+            logging.warning(f"auto_chat notify_job_completed error: {e}")
     except Exception as e:
         logging.error(f"Background notification error: {e}")
 

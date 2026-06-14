@@ -49,6 +49,16 @@ export function getSession() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
     if (!s || !s.token) return null;
+    // Geriye dönük uyumluluk: eski session'larda user_id yoksa JWT'den çıkar
+    if (!s.user_id && s.token) {
+      try {
+        const parts = s.token.split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+          s.user_id = payload.sub || payload.user_id || payload.id || null;
+        }
+      } catch (_) {}
+    }
     return s;
   } catch {
     return null;
@@ -86,11 +96,23 @@ export function getAccessibleRoutes(rolesArg) {
 
 /** Login sonrası session yazımı + axios header güncelleme */
 export function saveSession({
-  token, refresh_token, role, roles, username, display_name, remember_me,
+  token, refresh_token, role, roles, username, display_name, remember_me, user_id, id,
 }) {
+  // JWT'den user_id çıkar (varsa)
+  let resolvedUserId = user_id || id || null;
+  if (!resolvedUserId && token) {
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+        resolvedUserId = payload.sub || payload.user_id || payload.id || null;
+      }
+    } catch (_) {}
+  }
   const session = {
     token,
     refresh_token: refresh_token || null,
+    user_id: resolvedUserId,
     role: role || (roles && roles[0]) || "",
     roles: roles && roles.length ? roles : (role ? [role] : []),
     username: username || "",
