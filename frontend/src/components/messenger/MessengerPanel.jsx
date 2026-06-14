@@ -81,6 +81,8 @@ const MessengerPanel = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const typingTimer = useRef(null);
+  // STALE CLOSURE FIX: WebSocket listener daima en güncel handler'ı çağırsın
+  const handleWsEventRef = useRef(() => {});
 
   // ─── Lifecycle ───
   useEffect(() => {
@@ -94,7 +96,8 @@ const MessengerPanel = () => {
     // WebSocket
     const ws = connectChatWS();
     setWsConnected(!!ws);
-    const off = onChatEvent(handleWsEvent);
+    // STALE CLOSURE FIX: ref'i her zaman güncel handler'a yönlendiriyoruz
+    const off = onChatEvent((evt) => handleWsEventRef.current(evt));
 
     return () => {
       off();
@@ -102,6 +105,11 @@ const MessengerPanel = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // handleWsEvent'i her render'da ref'e ata — closure stale state olmasın
+  useEffect(() => {
+    handleWsEventRef.current = handleWsEvent;
+  });
 
   useEffect(() => {
     if (open) {
@@ -219,6 +227,54 @@ const MessengerPanel = () => {
             duration: 4000,
           });
         }
+        // Browser notification — online kullanıcı için (drawer kapalı veya tab arka planda)
+        try {
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            const shouldNotify = !open || document.hidden;
+            if (shouldNotify) {
+              const convInfo = evt.conversation || {};
+              const title = convInfo.type === "dm" || !convInfo.name ? `💬 ${m.sender_name}` : `💬 ${convInfo.name}`;
+              const body = m.text?.slice(0, 140) || (m.attachments?.length ? "📎 Ek dosya" : "Yeni mesaj");
+              const n = new Notification(title, {
+                body,
+                icon: "/logo192.png",
+                badge: "/logo192.png",
+                tag: `conv-${m.conversation_id}`,
+                renotify: true,
+                silent: false,
+              });
+              n.onclick = () => {
+                window.focus();
+                setOpen(true);
+                setActiveId(m.conversation_id);
+                n.close();
+              };
+              // 8 sn sonra kapat
+              setTimeout(() => { try { n.close(); } catch (_) { /* noop */ } }, 8000);
+            }
+          }
+        } catch (_) { /* notification API yoksa noop */ }
+        // Kısa beep — WebAudio ile inline (asset gerektirmez)
+        try {
+          if (!open || document.hidden) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              const ctx = new AudioCtx();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.type = "sine";
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
+              gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.25);
+              setTimeout(() => { try { ctx.close(); } catch (_) { /* noop */ } }, 400);
+            }
+          }
+        } catch (_) { /* noop */ }
       }
     } else if (evt.type === "typing_start") {
       setTypingUsers((p) => ({ ...p, [evt.conversation_id]: { ...(p[evt.conversation_id] || {}), [evt.user_id]: evt.user_name } }));

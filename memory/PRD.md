@@ -1250,3 +1250,37 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 
 ### data-testid'ler
 `header-more-actions-btn`, `header-more-actions-menu`, ve mobilde her item için `{original-testid}-mobile` (örn. `backups-btn-mobile`, `theme-toggle-mobile`).
+
+---
+
+## Real-time Mesaj + Tarayıcı Bildirimi Yaması (14 Şubat 2026)
+
+**Sorun:** 
+1. Mesaj gönderilince karşı taraf mesajı **sayfa yenilenmeden** göremiyordu (WS event tetiklenmesine rağmen)
+2. Tarayıcı bildirim göndermiyordu (online kullanıcıya hiçbir uyarı yok)
+
+### Kök sebep — Stale Closure
+`MessengerPanel.jsx`'te `handleWsEvent` fonksiyonu `useEffect`'e (`[userId]` dependency'sinde) bir kez kayıt oluyordu. Listener içinde `activeId`, `open`, `userId` state'leri okunuyordu → React closure listener register edildiği andaki **eski** değerleri görüyordu. Sonuç: WS event geliyor ama doğru conversation/state ile karşılaştırılamıyordu.
+
+### Çözüm
+1. **`handleWsEventRef = useRef()`** eklendi
+2. `useEffect(() => { handleWsEventRef.current = handleWsEvent; })` her render'da ref güncellenir
+3. WS listener `(evt) => handleWsEventRef.current(evt)` — daima en güncel handler'ı çağırır
+
+### Ek: Tarayıcı Bildirimi + Ses
+- `new_message` event'inde, eğer `Notification.permission === "granted"` VE (drawer kapalı VEYA tab arka plandaysa):
+  - `new Notification(...)` ile native browser bildirimi gösterilir (8 sn sonra auto-close)
+  - Tıklama: window focus + drawer aç + ilgili conversation aktif et
+- **WebAudio API ile inline beep** (asset gerektirmez) — sin dalga 880Hz→1320Hz arası kısa "ding"
+- Push subscription zaten `ensurePushSubscription()` ile drawer açıldığında alınıyor (offline kullanıcılar için)
+
+### Test (Playwright e2e, 2 ayrı browser context)
+| Senaryo | Sonuç |
+|---|---|
+| A "yonetim" loglandı, mesaj gönderdi | ✅ |
+| B "plan" oturumunda anında unread badge gördü | ✅ |
+| B mesaj preview'ını refresh OLMADAN listede gördü | ✅ |
+| B mesajı refresh OLMADAN conversation içinde gördü | ✅ |
+
+### Etkilenen Dosyalar
+- `/app/frontend/src/components/messenger/MessengerPanel.jsx` (stale closure fix + native notification + WebAudio beep)
