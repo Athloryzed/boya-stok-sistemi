@@ -1062,3 +1062,72 @@ Anasayfa ve panel ekranlarının UI/UX, animasyon ve erişilebilirlik açısınd
 - Mesaj arama (içerik bazlı)
 - Mesaj düzenleme/silme UI (backend soft-delete hazır)
 - WhatsApp köprüsü (Twilio key gerekir)
+
+---
+
+## Oturum Devamı: Messenger Plus 3 İyileştirme (14 Şubat 2026)
+
+**Kullanıcı isteği:** "Önerdiğin iyileştirmeyi de yapalım."
+(önerilen 3 madde tamamı onaylandı.)
+
+### A) Operatör Hızlı Talep FAB (sağ alt)
+- **OperatorQuickRequest.jsx** (~300 satır) — Sağ alt kırmızı/altın gradient FAB (sol altta Messenger FAB ile çakışmaz)
+- Tek dokunuşla 4 talep türü:
+  - **📦 Bobin İste**: Hızlı miktarlar (3/5/10/20) + özel miktar input
+  - **🎨 Boya İste**: 12 renk seçici (Beyaz, Siyah, Mavi, Lacivert, Refleks, Kırmızı, Magenta, Rhodam, Sarı, Gold, Gümüş, Pasta) + L input
+  - **🔧 Bakım Talep Et**: Açıklama textarea → #yonetim + #plan + makine kanalına otomatik mesaj
+  - **🆘 ACİL YARDIM** (animate-pulse): Açıklama → TÜM kanallara (#yonetim, #plan, #operator, #depo, makine) yüksek öncelikli mesaj + Web Push
+- OperatorFlow `selectedMachine && step >= 2` koşuluyla render
+
+### B) Messenger Sık Erişim (Hızlı Erişim avatar şeridi)
+- **MessengerPanel ListView** üst kısmında yatay scroll 6 avatar
+- **Backend: `GET /api/chat/suggested-users?limit=6`**
+  - Algoritma: (1) Son DM ortakları (recency öncelikli), (2) Rol bazlı eşleştirme, (3) Online'lar öne
+  - Rol haritası: operator → depo+plan+sofor / plan → operator+yonetim / depo → operator+sofor+yonetim / sofor → depo+plan / yonetim → tüm aktifler
+- Her avatar: renkli gradient (rol bazlı), online dot (yeşil/gri), recent badge (amber), tek tıkla DM açar
+
+### C) Yönetim Bildirim Yönetimi (modal)
+- **NotificationSettings.jsx** (~230 satır) — ManagementFlow header'da "🔔 Bildirimler" buton ile açılır
+- **Backend: `GET/PUT /api/chat/notification-settings`** (PUT sadece yonetim rolünde)
+- **MongoDB**: `notification_settings` koleksiyonu, `id="global"`, settings objesi (event_type → { enabled, target_channels, threshold_l })
+- **5 olay yönetilebilir**:
+  - 📦 Bobin Talebi (aç/kapa + kanal seç)
+  - 🎨 Boya Talebi
+  - ⚠️ Düşük Stok Alarmı (eşik L input)
+  - 📋 Yeni İş Atandı (Makine Kanalı seçeneği var)
+  - ✅ İş Tamamlandı
+- **6 kanal seçeneği**: Genel, Yönetim, Plan, Operatör, Depo, Sürücü + Makine (job_assigned için)
+- **Kaydet** (PUT) + **Varsayılana Sıfırla** (confirm)
+- **auto_chat.py** TÜM 5 tetikleyicide `_is_enabled(event_type)` kontrolü yapar — yönetim devre dışı bırakırsa loglar `"X disabled by settings — skipping"` ve mesaj atmaz
+- **`notify_maintenance_request` + `notify_emergency`** ayarlardan **etkilenmez** (operatör başlatır, her zaman çalışır)
+
+### Bonus: Quick-Request endpoint
+- **POST /api/chat/quick-request** (kind=bobin|paint|maintenance|emergency)
+- Bobin/paint için warehouse_requests koleksiyonuna da kayıt atar (geriye uyumluluk)
+- Doğrudan ilgili notify_* fonksiyonunu çağırır
+
+### Test
+- **`/app/test_reports/iteration_44.json`**: Backend 12/12 pytest PASS (%100) + Frontend 55+ data-testid PASS (~95%). Sıfır kritik veya blocking sorun.
+- 2 LOW-severity observation (kullanıcı tarafında çalışıyor):
+  - Playwright .click(force=true) → notification-settings-btn timing (native click sorunsuz, manuel kullanıcı tıklaması düzgün açar)
+  - Save toast Playwright tarafından yakalanmadı (sonner çok hızlı kayboluyor; backend PUT 200 dönüyor, ayarlar kaydediliyor)
+- **`/app/backend/tests/test_iteration44_quick_request.py`** — kalıcı regresyon dosyası (12 case)
+
+### Test edilen endpoint kayıtları
+- GET /api/chat/suggested-users?limit=6 → 200 (rol+recent+online sıralı)
+- GET /api/chat/notification-settings → 200 (5 event + web_push default)
+- PUT /api/chat/notification-settings (operator) → 403 (rol guard)
+- PUT /api/chat/notification-settings (admin) → 200 (merge)
+- POST /api/chat/quick-request kind=bobin → 200 + warehouse-request + #depo auto_event
+- POST /api/chat/quick-request kind=paint → 200 + #depo auto_event (color+L)
+- POST /api/chat/quick-request kind=maintenance → 200 + #yonetim+#plan+makine auto_event
+- POST /api/chat/quick-request kind=emergency → 200 + 4 kanal + makine auto_event
+- POST /api/chat/quick-request kind=invalid → 400
+- Settings disable round-trip → enabled=false iken auto_event atılmaz (log: "disabled by settings — skipping")
+
+### Korunan
+- Tüm önceki messenger akışları (iteration_43)
+- Mevcut /api/messages (eski makine mesajları)
+- Tüm UI v4 stilleri + Türkçe karakter
+- /api/warehouse-requests da auto-trigger çalışıyor (eski operatör akışı bozulmadı)
+
