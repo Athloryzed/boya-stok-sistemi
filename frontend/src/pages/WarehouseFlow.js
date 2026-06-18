@@ -202,6 +202,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
             // 10 saniye sonra bildirimi kapat
             setTimeout(() => setShowNotification(false), 10000);
           }
+          // CHAT FAN-OUT — backend mesajı warehouse WS'den de yayınlıyor
+          if (message.type === "new_message") {
+            window.dispatchEvent(new CustomEvent("chat-message-fanout", { detail: message }));
+          }
         } catch (e) {
           console.error("WebSocket message parse error:", e);
         }

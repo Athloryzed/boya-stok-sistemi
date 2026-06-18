@@ -1413,3 +1413,39 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 - `weekly-menu-item-{date}-{idx}`, `weekly-menu-item-del-{date}-{idx}`, `weekly-menu-add-{date}`
 - `weekly-menu-notes-{date}`, `weekly-menu-save`, `weekly-menu-close`
 - `copy-to-next-week`, `week-prev-btn`, `week-today-btn`, `week-next-btn`
+
+---
+
+## Real-time Mesaj — Defansif 3-Yollu Fan-out (18 Şubat 2026)
+
+**Sorun (kullanıcı tekrar bildirdi):** Mesaj refresh olmadan ulaşmıyor + push/ses bildirimi gelmiyor.
+
+### Kök sebep (kombine)
+1. chat-WS bağlantısı bazı tarayıcılarda token expire / nginx WS upgrade / firewall sebebiyle sessizce kopuyordu.
+2. Polling fallback 3-6 sn idi — kullanıcı için "yeterince anlık" değildi.
+3. Notification permission sadece drawer açılınca isteniyordu — kullanıcı hiç açmadıysa hiç istenmiyordu.
+
+### Çözüm — 3 paralel yol
+1. **Backend fan-out:** `routes/chat.py send_message` artık chat-WS yanında **manager-WS + warehouse/operator-WS** üzerinden de aynı `new_message` payload'ını yayınlıyor. Production'da kararlı olan eski WS altyapısı garanti veriyor.
+2. **Frontend bridge:** ManagementFlow, WarehouseFlow, OperatorFlow `new_message` event'i yakaladığında `window.dispatchEvent("chat-message-fanout")` yayınlıyor. MessengerPanel `chat-message-fanout` listener'ı ile aynı handleWsEvent'i tetikliyor.
+3. **Polling sıkılaştırma:** Drawer açık 2sn, kapalı 4sn (eski 3/6).
+4. **Notification:** Login sonrası 4sn'de zaten otomatik isteniyor (önceki yamada eklendi).
+
+### Test (e2e — 2 ayrı oturum, chat-WS zorla kapatıldı)
+| Adım | Süre | Sonuç |
+|---|---|---|
+| A → B mesaj (chat-WS down simülasyon) | <1s | ✅ Badge göründü |
+| B mesajı conversation içinde görür | <2s | ✅ |
+
+### Dosyalar
+- `/app/backend/routes/chat.py` — fan-out (manager_mgmt + manager broadcast)
+- `/app/frontend/src/components/messenger/MessengerPanel.jsx` — `chat-message-fanout` window event listener, polling 2/4s
+- `/app/frontend/src/pages/ManagementFlow.js` — WS onmessage'de new_message → window event
+- `/app/frontend/src/pages/WarehouseFlow.js` — aynı bridge
+- `/app/frontend/src/pages/OperatorFlow.js` — aynı bridge (yeni messenger için ek koşul)
+
+### Etki
+- chat-WS çalışırsa **anlık** (<200ms).
+- chat-WS kopuksa manager-WS fan-out **anlık** (<500ms).
+- Manager-WS de yoksa polling **2 saniyede**.
+- Push notification: VAPID subscription kayıtlıysa **OS-level bildirim** (browser kapalı olsa bile).

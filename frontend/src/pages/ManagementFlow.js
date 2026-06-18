@@ -571,6 +571,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           // Verileri yenile
           fetchData();
         }
+        // CHAT FAN-OUT: Backend chat mesajını manager WS'den de gönderiyor.
+        // MessengerPanel global window event ile haberdar olur.
+        if (data.type === "new_message") {
+          window.dispatchEvent(new CustomEvent("chat-message-fanout", { detail: data }));
+        }
       } catch (e) {
         // JSON değilse (pong gibi) yoksay
       }

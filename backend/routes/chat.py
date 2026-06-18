@@ -14,6 +14,7 @@ from models_chat import (
     PushSubscription, QUICK_TEMPLATES, SEED_CHANNELS,
 )
 from websocket_chat import ws_chat
+from websocket_manager import ws_manager, ws_manager_mgmt
 from services.auto_chat import ensure_seed_channels, ensure_machine_channel, SYSTEM_USER_ID
 from services.web_push import get_vapid_public_key, send_push_to_users
 from auth import get_current_user
@@ -177,7 +178,7 @@ async def send_message(conv_id: str, data: dict = Body(...), user: dict = Depend
         upsert=True,
     )
 
-    # WebSocket broadcast
+    # WebSocket broadcast — chat-WS (yeni nesil)
     payload = {
         "type": "new_message",
         "conversation_id": conv_id,
@@ -188,6 +189,19 @@ async def send_message(conv_id: str, data: dict = Body(...), user: dict = Depend
         "message": msg.model_dump(),
     }
     await ws_chat.send_to_users(conv.get("participants", []), payload)
+
+    # DEFANSİF FAN-OUT: chat-WS bağlantısı kopuk olsa bile mesaj ulaşsın diye
+    # production'da kararlı olan manager/warehouse/operator WS'lere de yayın.
+    # Frontend her panelde manager veya warehouse WS dinler. Aynı 'new_message'
+    # event ile UI tetiklenir; chat verisi yeniden fetch edilir.
+    try:
+        legacy_payload = {**payload, "_via": "legacy_fanout"}
+        # manager WS — tüm yönetim kullanıcılarına
+        await ws_manager_mgmt.broadcast_to_managers(legacy_payload)
+        # warehouse/operator paylaşılan ws_manager — tüm bağlı socket'lere
+        await ws_manager.broadcast(legacy_payload)
+    except Exception as e:
+        logger.warning(f"Legacy WS fan-out error: {e}")
 
     # Web Push: tüm diğer participant'lara gönder (online dahil — bu sayede
     # WS bağlantısı kopuk veya tab arka plandaysa yine bildirim alır).

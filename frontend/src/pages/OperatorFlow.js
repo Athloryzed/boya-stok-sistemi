@@ -540,11 +540,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             }
           }
           
-          // Yeni mesaj bildirimi
+          // Yeni mesaj bildirimi (eski chat sistemi — makineye özel)
           if (data.type === 'new_message') {
             const msgData = data.data;
             // Bu makineye ait mesaj mı kontrol et
-            if (msgData.machine_id === selectedMachine.id) {
+            if (msgData && msgData.machine_id === selectedMachine.id) {
               // Mesajları yenile
               fetchMessages();
               
@@ -554,6 +554,11 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               
               toast.info(`Yeni mesaj: ${msgData.message.substring(0, 50)}...`, { duration: 5000 });
               notifyAlert("default");
+            }
+            // CHAT FAN-OUT — yeni messenger sistemi de bu kanaldan gelebilir
+            // (backend fan-out yaptı): MessengerPanel'e ulaştır
+            if (data.message && data.conversation_id) {
+              window.dispatchEvent(new CustomEvent("chat-message-fanout", { detail: data }));
             }
           }
         } catch (e) {

@@ -99,8 +99,19 @@ const MessengerPanel = () => {
     // STALE CLOSURE FIX: ref'i her zaman güncel handler'a yönlendiriyoruz
     const off = onChatEvent((evt) => handleWsEventRef.current(evt));
 
+    // DEFANSİF: Manager/Warehouse panel'lerindeki legacy WebSocket'ler de
+    // "new_message" event'i yayınlıyor. Onlardan window event ile haberdar ol.
+    const onLegacy = (e) => {
+      const data = e.detail;
+      if (data && data.type === "new_message") {
+        handleWsEventRef.current(data);
+      }
+    };
+    window.addEventListener("chat-message-fanout", onLegacy);
+
     return () => {
       off();
+      window.removeEventListener("chat-message-fanout", onLegacy);
       // Don't disconnect - might be needed by other panels (global state)
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,8 +153,8 @@ const MessengerPanel = () => {
         if (unread && typeof unread.total === "number") setUnreadTotal(unread.total);
       } catch (_) { /* sessiz */ }
     };
-    // Drawer açıkken 3 sn, kapalıyken 6 sn — pil dostu
-    const interval = open ? 3000 : 6000;
+    // Drawer açıkken 2 sn, kapalıyken 4 sn — agresif anlıklık
+    const interval = open ? 2000 : 4000;
     const t = setInterval(tick, interval);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
