@@ -15,6 +15,25 @@ class Machine(BaseModel):
     maintenance_started: Optional[str] = None
 
 
+class Customer(BaseModel):
+    """Müşteri — kağıt fabrikasına sipariş veren firma/kişi."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    email: Optional[str] = None
+    notes: Optional[str] = None
+    # Otomatik üretilen kısa kod — BK-2026-001 gibi
+    code: Optional[str] = None
+    # Aggregate metrics — sipariş geçmişi indeksi
+    total_jobs: int = 0
+    last_order_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: Optional[str] = None
+    archived: bool = False
+
+
 class Job(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -28,6 +47,9 @@ class Job(BaseModel):
     delivery_date: Optional[str] = None
     delivery_address: Optional[str] = None
     delivery_phone: Optional[str] = None
+    # ─── Müşteri bağlantısı (eklendi) ───
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None  # snapshot — müşteri ismi değişse bile iş kayıtta korunur
     image_url: Optional[str] = None
     thumb_url: Optional[str] = None  # 128x128 JPEG dataURL — liste önizlemelerinde kullanılır (~3-8KB)
     has_image: Optional[bool] = None  # Liste endpoint'lerinde döner; tam URL /jobs/{id}/image ile

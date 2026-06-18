@@ -52,6 +52,7 @@ from routes.logistics import router as logistics_router
 from routes.misc import router as misc_router
 from routes.bobins import router as bobins_router
 from routes.menu import router as menu_router
+from routes.customers import router as customers_router
 from routes.brand_stock import router as brand_stock_router
 from routes.koli_stock import router as koli_stock_router
 from routes.backups import router as backups_router, start_scheduler as start_backup_scheduler
@@ -107,6 +108,7 @@ api_router.include_router(logistics_router)
 api_router.include_router(misc_router)
 api_router.include_router(bobins_router)
 api_router.include_router(menu_router)
+api_router.include_router(customers_router)
 api_router.include_router(brand_stock_router)
 api_router.include_router(koli_stock_router)
 api_router.include_router(backups_router)
@@ -277,6 +279,15 @@ async def ensure_indexes():
         await db.jobs.create_index("tracking_code", unique=True)
         await db.jobs.create_index([("machine_id", ASCENDING), ("status", ASCENDING)])
         await db.jobs.create_index("created_at")
+        # Customer sipariş geçmişi için index
+        await db.jobs.create_index([("customer_id", ASCENDING), ("created_at", DESCENDING)])
+
+        # customers
+        await db.customers.create_index("id", unique=True)
+        await db.customers.create_index("name")
+        await db.customers.create_index("phone")
+        await db.customers.create_index([("code", ASCENDING)])
+        await db.customers.create_index([("archived", ASCENDING), ("name", ASCENDING)])
 
         # users
         await db.users.create_index("id", unique=True)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -24,6 +24,7 @@ import SecurityDashboard from "../components/SecurityDashboard";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
+import CustomersManagementPanel from "../components/CustomersManagementPanel";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1676,6 +1677,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="users" data-testid="users-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Kullanıcı
                 </TabsTrigger>
+                <TabsTrigger value="customers" data-testid="customers-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
+                  Müşteri
+                </TabsTrigger>
                 <TabsTrigger value="analytics" data-testid="analytics-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black text-xs py-2">
                   Analiz
                 </TabsTrigger>
@@ -1724,6 +1728,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </TabsTrigger>
               <TabsTrigger value="users" data-testid="users-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 <UserPlus className="h-4 w-4 mr-1" /> Kullanıcılar
+              </TabsTrigger>
+              <TabsTrigger value="customers" data-testid="customers-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
+                <User className="h-4 w-4 mr-1" /> Müşteriler
               </TabsTrigger>
               <TabsTrigger value="analytics" data-testid="analytics-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black text-sm px-3">
                 Analiz
@@ -2409,6 +2416,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* MÜŞTERİLER TAB */}
+          <TabsContent value="customers">
+            <CustomersManagementPanel />
           </TabsContent>
 
           {/* DEFO TAB */}

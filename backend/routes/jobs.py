@@ -204,8 +204,20 @@ async def create_job(job: Job, created_by: str = None, current_user: dict = Depe
             job.thumb_url = create_thumb_data_url(job.image_url)
         except Exception as e:
             logging.warning(f"Thumb creation failed: {e}")
+    # ─── Customer hook: customer_id varsa, snapshot ismi düzelt + aggregate güncelle ───
+    if job.customer_id:
+        customer = await db.customers.find_one({"id": job.customer_id}, {"_id": 0, "name": 1})
+        if customer:
+            job.customer_name = customer.get("name") or job.customer_name
     doc = job.model_dump()
     await db.jobs.insert_one(doc)
+    # Müşteri aggregate'ini güncelle (toplam sipariş + son sipariş zamanı)
+    if job.customer_id:
+        try:
+            from routes.customers import on_job_created
+            await on_job_created(job.customer_id)
+        except Exception as e:
+            logging.warning(f"customer aggregate update error: {e}")
 
     await log_audit(created_by or "Plan", "create", "job", job.name, f"Makine: {job.machine_name}, Koli: {job.koli_count}")
 

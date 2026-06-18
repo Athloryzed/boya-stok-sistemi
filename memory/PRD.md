@@ -1324,3 +1324,51 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 - WS kopuksa en geç **6 saniyede** polling ile.
 - Push notification her cihazda (browser açık/kapalı, tab arka planda olsa bile) tetiklenir.
 - Tarayıcı bildirimi `tag: conv-{id}` ile dedupe edilir.
+
+---
+
+## Müşteri Yönetim Sistemi (18 Şubat 2026)
+
+**Kullanıcı isteği:** Plan'da iş ekleme sırasında müşteri seçimi/yeni ekleme + Yönetim ve Plan panellerinde müşterilerin mevcut/geçmiş işlerini görüntüleme.
+
+### Backend
+1. **`Customer` model** (`/app/backend/models.py`): id, name, phone, address, email, notes, code (otomatik BK-YYYY-NNN), total_jobs, last_order_at, archived.
+2. **`Job` modeline eklendi:** `customer_id`, `customer_name` (snapshot — müşteri ismi değişse de iş kayıtta korunur).
+3. **`/app/backend/routes/customers.py`** — yeni CRUD:
+   - `GET /api/customers?q=X&include_archived=0` — liste + arama
+   - `GET /api/customers/search?q=` — combobox için hızlı arama (son sipariş veren 10 default)
+   - `GET /api/customers/{id}` — detay
+   - `GET /api/customers/{id}/jobs` — aktif + geçmiş iş listesi (status'a göre ayrılır)
+   - `POST /api/customers` — yeni (isim dedupe, otomatik kod, `_existed: true` flag idempotency)
+   - `PUT /api/customers/{id}` — güncelle
+   - `DELETE /api/customers/{id}` — soft delete (archived)
+4. **Job create hook:** `on_job_created(customer_id)` → total_jobs +1, last_order_at şimdi.
+5. **MongoDB indexes:** `customers.name`, `customers.phone`, `customers.code`, `jobs(customer_id, created_at)`.
+
+### Frontend (reusable component'ler)
+- **`CustomerCombobox.js`** — Tıklayınca açılan dropdown, inline arama, son siparişler default, "+ Yeni Müşteri" inline form. Premium-amber tasarım.
+- **`CustomerDetailDialog.js`** — Müşteri detay modal'ı. Header'da isim+kod+telefon+e-posta+adres+not, Aktif/Geçmiş tab'ları, her iş için status badge+koli ilerlemesi+makine+tarih.
+- **`CustomerEditDialog.js`** — Yeni ekle / mevcudu düzenle (ortak form).
+- **`CustomersManagementPanel.js`** — Yönetim için liste sayfası: arama + arşivli toggle + ekleme + kart grid + tıklayınca detay.
+
+### Entegrasyon
+- **Plan / Yeni İş Dialog'u:** İş Adı'nın ÜSTÜNE CustomerCombobox eklendi. Seçilince `customer_id + customer_name` payload'a, ayrıca `delivery_phone` otomatik dolar.
+- **Yönetim Paneli → Müşteriler tab:** Tabs'a yeni `customers` tab eklendi (Kullanıcılar'dan sonra), CustomersManagementPanel render eder.
+- **Plan Paneli → Müşteriler butonu:** Header More menüsünde "Müşteriler" item'ı → dialog'da CustomersManagementPanel açılır (tam paritesi).
+- **Plan iş kartı:** customer_name varsa altın User ikonuyla rozet gösterilir.
+
+### Test (Playwright e2e)
+| Senaryo | Sonuç |
+|---|---|
+| Yönetim → Müşteriler tab → 4 kart görünür | ✅ |
+| "+ Yeni Müşteri" → form → kayıt → liste yenilenir | ✅ |
+| Card tıkla → Detail dialog (Aktif/Geçmiş tabları) | ✅ |
+| Plan → Yeni İş → CustomerCombobox arama "Loj" → 1 sonuç | ✅ |
+| Müşteri seç → chip olarak göster → iş kayıt edildiğinde customer_id korunur | ✅ |
+| `/api/customers/{id}/jobs` aktif iş 1 sayar (aggregate doğru) | ✅ |
+| Plan → Müşteriler → 4 kart, card tıkla → 1 aktif iş | ✅ |
+
+### Otomatik
+- İsim aynı ise yeni eklemez, var olan müşteriyi seçtirir (`_existed: true` UI'da toast olarak gösterilir).
+- BK-2026-001 sıralı kod otomatik (her yıl yeniden başlar).
+- Müşteri ismi sonradan değişse bile eski işlerde snapshot olarak korunur.

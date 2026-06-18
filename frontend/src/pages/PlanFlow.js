@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image as ImageIcon, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp, QrCode, GripVertical, Printer } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Moon, Search, Copy, Trash2, Edit, MessageSquare, Send, Inbox, Check, Truck, MapPin, Phone, Package, Image as ImageIcon, Upload, X, Pause, ArrowRightLeft, Clock, ChevronDown, ChevronUp, QrCode, GripVertical, Printer, User } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -25,6 +25,8 @@ import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
+import CustomerCombobox from "../components/CustomerCombobox";
+import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 
 // Sürüklenebilir İş Kartı Wrapper
@@ -103,6 +105,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [searchedPallets, setSearchedPallets] = useState([]);
   const [selectedShipmentPallets, setSelectedShipmentPallets] = useState([]);
   const [duplicateJobWarning, setDuplicateJobWarning] = useState(null); // Aynı isimli iş uyarısı
+  const [customersDialogOpen, setCustomersDialogOpen] = useState(false);
   const [editPreviewImage, setEditPreviewImage] = useState(null); // Düzenleme formunda resim önizleme
   
   // Hızlı Aktar dialog state'leri
@@ -129,7 +132,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     delivery_date: "",
     delivery_address: "",
     delivery_phone: "",
-    image_url: ""
+    image_url: "",
+    customer: null, // { id, name, code, phone }
   });
 
   const [cloneFormData, setCloneFormData] = useState({
@@ -971,12 +975,15 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
 
     try {
+      const { customer, ...rest } = formData;
       await axios.post(`${API}/jobs?created_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`, {
-        ...formData,
+        ...rest,
         koli_count: parseInt(formData.koli_count),
         machine_name: machine.name,
         format: formatOptions.length > 0 ? formData.format : null,
-        image_url: formData.image_url || null
+        image_url: formData.image_url || null,
+        customer_id: customer?.id || null,
+        customer_name: customer?.name || null,
       });
       toast.success("İş eklendi!");
       setIsDialogOpen(false);
@@ -990,7 +997,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         delivery_date: "",
         delivery_address: "",
         delivery_phone: "",
-        image_url: ""
+        image_url: "",
+        customer: null,
       });
       setPreviewImage(null);
       fetchJobs();
@@ -1178,6 +1186,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 pb-4">
+                  <CustomerCombobox
+                    value={formData.customer}
+                    onChange={(c) => setFormData({ ...formData, customer: c, delivery_phone: c?.phone || formData.delivery_phone })}
+                    label="Müşteri"
+                    testIdPrefix="job-customer"
+                  />
                   <div>
                     <Label className="text-text-primary">İş Adı *</Label>
                     <Input
@@ -1360,6 +1374,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     }}
                   />
                 ) },
+                { id: "customers", label: "Müşteriler", icon: User, onClick: () => setCustomersDialogOpen(true), testId: "customers-btn", accent: "amber" },
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
               ]}
             />
@@ -2384,8 +2399,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                               <Card key={job.id} className="bg-background border-border">
                                 <CardContent className="p-4">
                                   <div className="flex justify-between items-start">
-                                    <div>
-                                      <h4 className="font-heading font-bold text-text-primary">{job.name}</h4>
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="font-heading font-bold text-text-primary truncate">{job.name}</h4>
+                                      {job.customer_name && (
+                                        <p className="text-xs text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
+                                          <User className="h-3 w-3" /> {job.customer_name}
+                                        </p>
+                                      )}
                                       <p className="text-sm text-text-secondary">Koli: {job.koli_count} | Renkler: {job.colors}</p>
                                       {job.format && <p className="text-sm text-text-secondary">Format: {job.format}</p>}
                                     </div>
@@ -2766,6 +2786,22 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                 />
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* MÜŞTERİLER DIALOG — Plan'dan müşteri listesi + detay erişimi */}
+        <Dialog open={customersDialogOpen} onOpenChange={setCustomersDialogOpen}>
+          <DialogContent className="bg-surface border-border max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading flex items-center gap-2">
+                <User className="h-5 w-5 text-amber-400" />
+                Müşteriler
+              </DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                Müşteri listesi, aktif siparişler ve geçmiş.
+              </DialogDescription>
+            </DialogHeader>
+            <CustomersManagementPanel />
           </DialogContent>
         </Dialog>
 
