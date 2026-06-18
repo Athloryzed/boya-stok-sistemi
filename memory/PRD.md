@@ -1372,3 +1372,44 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 - İsim aynı ise yeni eklemez, var olan müşteriyi seçtirir (`_existed: true` UI'da toast olarak gösterilir).
 - BK-2026-001 sıralı kod otomatik (her yıl yeniden başlar).
 - Müşteri ismi sonradan değişse bile eski işlerde snapshot olarak korunur.
+
+---
+
+## Yemek Menüsü Toplu Haftalık Editör (18 Şubat 2026)
+
+**Kullanıcı isteği:** Yemek menüsünü her gün ayrı ayrı girmek yerine, **haftalık tek ekranda toplu edit** + drag-drop ile gün-gün kopyala.
+
+### Backend
+- `POST /api/menu/bulk` (`routes/menu.py`) — `{ menus: [{date, items, notes?}, ...] }` payload'ı ile tek istekte birden fazla gün upsert + boş gönderilen günler silinir.
+- Dönüş: `{saved, deleted, errors[], message}`.
+
+### Frontend (`/app/frontend/src/components/WeeklyMenuEditor.js`)
+- **7 gün grid:** Pazartesi-Pazar yan yana (1 kolon mobil, 2 tablet, 4 masaüstü).
+- **Hafta gezinme:** ← bu hafta → butonları + "Bu Hafta" reset.
+- **Her gün için:**
+  - Bugün altın renk + "BUGÜN" rozeti
+  - Yemek listesi: numara + input + sil butonu, "Yemek ekle" placeholder
+  - Notlar inline textarea
+  - Değiştiğinde altın outline + "Değişti" rozeti
+- **Drag-Drop:** Gün başlığını sürükle (GripVertical handle) → başka güne bırak → o günün **items + notes kopyalanır**. Drop alanı altın highlight + scale animasyon.
+- **"Sonraki Haftaya Kopyala":** Tek tıkla bu haftanın tüm menülerini ileri kopyalar (onay diyaloğu) + otomatik yeni haftaya geçer.
+- **"Tümünü Kaydet":** Bulk endpoint'e tek istek → dirty flag'ler temizlenir.
+
+### Eski single-day dialog kaldırıldı
+- ManagementFlow → "Menü" butonu artık doğrudan `WeeklyMenuEditor`'ü açıyor.
+- Eski `menuDialogOpen` state korundu (tek noktadan yeni component'e bağlandı).
+
+### Test (e2e + curl)
+| Senaryo | Sonuç |
+|---|---|
+| `POST /api/menu/bulk` 2 gün dolu + 1 boş | saved=2, deleted=0 ✅ |
+| Yönetim → Menü → editor görünür | ✅ |
+| 7 gün kartı + sürükleme tutamaçları | ✅ |
+| Yemek ekle + not + Kaydet → backend'e gider | ✅ |
+| API'den doğrulama (`GET /api/menu?date=...`) | ✅ items + notes |
+
+### data-testid'ler
+- `weekly-menu-editor`, `weekly-menu-day-{YYYY-MM-DD}`, `weekly-menu-day-{date}-drag`
+- `weekly-menu-item-{date}-{idx}`, `weekly-menu-item-del-{date}-{idx}`, `weekly-menu-add-{date}`
+- `weekly-menu-notes-{date}`, `weekly-menu-save`, `weekly-menu-close`
+- `copy-to-next-week`, `week-prev-btn`, `week-today-btn`, `week-next-btn`

@@ -25,6 +25,7 @@ import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import CustomersManagementPanel from "../components/CustomersManagementPanel";
+import WeeklyMenuEditor from "../components/WeeklyMenuEditor";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -750,10 +751,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const openMenuDialog = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    setMenuDate(today);
+    // Yeni: doğrudan haftalık editor aç
     setMenuDialogOpen(true);
-    await _loadMenuForDate(today);
   };
 
   const handleMenuSave = async () => {
@@ -3963,86 +3962,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           </DialogContent>
         </Dialog>
 
-        {/* YEMEK MENÜSÜ DIALOG */}
-        <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
-          <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-surface border-border">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <UtensilsCrossed className="h-4 w-4 text-amber-400" /> Yemek Menüsü
-              </DialogTitle>
-              <DialogDescription>
-                Tüm çalışanlar Ana Sayfa'da görür. Tarih seç, yemekleri ekle ve kaydet.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Tarih</Label>
-                <Input
-                  type="date"
-                  value={menuDate}
-                  onChange={(e) => { setMenuDate(e.target.value); _loadMenuForDate(e.target.value); }}
-                  className="bg-background"
-                  data-testid="menu-date-input"
-                />
-              </div>
-              <div>
-                <Label>Yemekler</Label>
-                {menuLoading ? (
-                  <p className="text-xs text-text-secondary py-2">Yükleniyor...</p>
-                ) : (
-                  <div className="space-y-2">
-                    {menuItems.map((it, idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <Input
-                          placeholder={`Örn: ${["Mercimek Çorbası","Tavuk Sote","Pilav","Cacık","Sütlaç"][idx] || "Yemek adı"}`}
-                          value={it}
-                          onChange={(e) => {
-                            const next = [...menuItems];
-                            next[idx] = e.target.value;
-                            setMenuItems(next);
-                          }}
-                          className="bg-background"
-                          data-testid={`menu-item-${idx}`}
-                        />
-                        {menuItems.length > 1 && (
-                          <Button type="button" variant="outline" size="icon"
-                            onClick={() => setMenuItems(menuItems.filter((_, i) => i !== idx))}
-                            className="border-error/40 text-error hover:bg-error/10 h-9 w-9 flex-shrink-0">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button type="button" variant="outline" size="sm"
-                      onClick={() => setMenuItems([...menuItems, ""])}
-                      data-testid="menu-add-item"
-                      className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
-                      + Yemek Ekle
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label>Not (opsiyonel)</Label>
-                <Input
-                  placeholder="örn. Vejetaryen seçenek mevcut"
-                  value={menuNotes}
-                  onChange={(e) => setMenuNotes(e.target.value)}
-                  className="bg-background"
-                  data-testid="menu-notes-input"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleMenuSave} className="flex-1 bg-amber-500 hover:bg-amber-600 text-zinc-900" data-testid="menu-save-btn">
-                  Kaydet
-                </Button>
-                <Button onClick={handleMenuDelete} variant="outline" className="border-error/40 text-error hover:bg-error/10" data-testid="menu-delete-btn">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* HAFTALIK YEMEK MENÜSÜ EDITOR */}
+        <WeeklyMenuEditor open={menuDialogOpen} onClose={() => setMenuDialogOpen(false)} />
 
         {/* Görsel Önizleme Dialog */}
         <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>

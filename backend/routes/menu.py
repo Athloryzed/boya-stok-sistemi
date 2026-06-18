@@ -131,6 +131,60 @@ async def upsert_menu(data: dict = Body(...), user: dict = Depends(get_current_u
     return {"menu": updated, "message": f"{date} menüsü kaydedildi"}
 
 
+@router.post("/menu/bulk")
+async def bulk_upsert_menu(data: dict = Body(...), user: dict = Depends(get_current_user)):
+    """
+    Birden fazla günü tek isteklerde kaydet.
+    Body: { "menus": [{date, items, notes?}, ...] }
+    - items boş olan kayıtlar silinir (UX: kullanıcı haftalık editörde boşaltabilir)
+    - aynı tarihler upsert edilir
+    """
+    menus = data.get("menus") or []
+    if not isinstance(menus, list):
+        raise HTTPException(status_code=400, detail="menus bir liste olmalı")
+
+    user_name = user.get("display_name") or user.get("username") or "Yönetim"
+    saved = 0
+    deleted = 0
+    errors = []
+    for m in menus:
+        try:
+            date = (m.get("date") or "").strip()
+            if not date or len(date) != 10:
+                errors.append({"date": date, "error": "Geçersiz tarih"})
+                continue
+            items_raw = m.get("items") or []
+            items = [str(i).strip() for i in items_raw if str(i).strip()]
+            notes = (m.get("notes") or "").strip() or None
+            existing = await db.daily_menu.find_one({"date": date}, {"_id": 0})
+            if not items:
+                # Boşaltma → mevcut menüyü sil
+                if existing:
+                    await db.daily_menu.delete_one({"date": date})
+                    deleted += 1
+                continue
+            if existing:
+                await db.daily_menu.update_one(
+                    {"date": date},
+                    {"$set": {
+                        "items": items, "notes": notes,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            else:
+                menu = DailyMenu(date=date, items=items, notes=notes, created_by=user_name)
+                await db.daily_menu.insert_one(menu.model_dump())
+            saved += 1
+        except Exception as e:
+            errors.append({"date": m.get("date"), "error": str(e)})
+
+    try:
+        await log_audit(user_name, "bulk_update", "daily_menu", "weekly", f"{saved} kayıt güncellendi, {deleted} silindi")
+    except Exception:
+        pass
+    return {"saved": saved, "deleted": deleted, "errors": errors, "message": f"{saved} gün kaydedildi"}
+
+
 @router.delete("/menu/{date}")
 async def delete_menu(date: str, user: dict = Depends(get_current_user)):
     """Belirli günün menüsünü sil."""
