@@ -360,6 +360,9 @@ class Bobin(BaseModel):
     weight_per_piece_kg: float = 0.0  # Adet başı ağırlık (kg)
     supplier: Optional[str] = None  # Tedarikçi
     notes: Optional[str] = None
+    # ─── Depo (eklendi) ───
+    warehouse: Optional[str] = None  # "DEPO1" | "DEPO2" | None (Atanmamış)
+    warehouse_updated_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -406,6 +409,9 @@ class BrandStock(BaseModel):
     color: Optional[str] = None  # Banko gibi renkli markalar için (serbest metin)
     quantity: int = 0  # Adet (paket / koli / birim)
     notes: Optional[str] = None
+    # ─── Depo (eklendi) ───
+    warehouse: Optional[str] = None  # "DEPO1" | "DEPO2" | None
+    warehouse_updated_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

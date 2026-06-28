@@ -18,6 +18,8 @@ import { API } from "../App";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import WarehouseBadgePicker from "../components/WarehouseBadgePicker";
+import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -58,9 +60,10 @@ const BrandSection = ({ userData, role }) => {
   const [search, setSearch] = useState("");
   const [filterBrand, setFilterBrand] = useState("all");
   const [filterMachine, setFilterMachine] = useState("all");
+  const [filterWarehouse, setFilterWarehouse] = useState("all");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [form, setForm] = useState({ brand: "", machine: "", color: "", quantity: "", notes: "" });
+  const [form, setForm] = useState({ brand: "", machine: "", color: "", quantity: "", notes: "", warehouse: "" });
   const [isCustomBrand, setIsCustomBrand] = useState(false);
 
   const [isSellOpen, setIsSellOpen] = useState(false);
@@ -108,6 +111,9 @@ const BrandSection = ({ userData, role }) => {
   const filteredStocks = useMemo(() => stocks.filter(s => {
     if (filterBrand !== "all" && s.brand !== filterBrand) return false;
     if (filterMachine !== "all" && s.machine !== filterMachine) return false;
+    if (filterWarehouse === "DEPO1" && s.warehouse !== "DEPO1") return false;
+    if (filterWarehouse === "DEPO2" && s.warehouse !== "DEPO2") return false;
+    if (filterWarehouse === "UNASSIGNED" && s.warehouse) return false;
     if (search) {
       const q = search.toLowerCase();
       return (s.brand || "").toLowerCase().includes(q) ||
@@ -116,7 +122,7 @@ const BrandSection = ({ userData, role }) => {
         (s.notes || "").toLowerCase().includes(q);
     }
     return true;
-  }), [stocks, filterBrand, filterMachine, search]);
+  }), [stocks, filterBrand, filterMachine, filterWarehouse, search]);
 
   const allBrands = [...new Set(stocks.map(s => s.brand).filter(Boolean))];
   const allMachines = [...new Set(stocks.map(s => s.machine).filter(Boolean))];
@@ -133,10 +139,11 @@ const BrandSection = ({ userData, role }) => {
         brand: form.brand.trim(), machine: form.machine?.trim() || null,
         color: form.color?.trim() || null, quantity: q,
         notes: form.notes?.trim() || null, user_name: userTag,
+        warehouse: form.warehouse || null,
       });
       toast.success(`+${q} adet eklendi`);
       setIsAddOpen(false); setIsCustomBrand(false);
-      setForm({ brand: "", machine: "", color: "", quantity: "", notes: "" });
+      setForm({ brand: "", machine: "", color: "", quantity: "", notes: "", warehouse: "" });
       fetchAll();
     } catch (e) { toast.error(e.response?.data?.detail || "Eklenemedi"); }
   };
@@ -224,7 +231,7 @@ const BrandSection = ({ userData, role }) => {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={exportExcel}><Download className="mr-2 h-4 w-4" />Excel</Button>
-          <Button onClick={() => { setIsCustomBrand(false); setForm({ brand: "", machine: "", color: "", quantity: "", notes: "" }); setIsAddOpen(true); }}
+          <Button onClick={() => { setIsCustomBrand(false); setForm({ brand: "", machine: "", color: "", quantity: "", notes: "", warehouse: "" }); setIsAddOpen(true); }}
             data-testid="marka-add-btn" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30">
             <Plus className="mr-2 h-4 w-4" /> Stok Ekle
           </Button>
@@ -269,6 +276,25 @@ const BrandSection = ({ userData, role }) => {
         </Select>
       </div>
 
+      {/* DEPO FİLTRE + ÖZET */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] uppercase tracking-wider text-text-secondary mr-1">Depo:</span>
+        {[
+          { v: "all", label: "Hepsi" },
+          { v: "DEPO1", label: "Depo 1" },
+          { v: "DEPO2", label: "Depo 2" },
+          { v: "UNASSIGNED", label: "Atanmamış" },
+        ].map(o => (
+          <button key={o.v} onClick={() => setFilterWarehouse(o.v)} data-testid={`marka-filter-warehouse-${o.v}`}
+            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+              filterWarehouse === o.v
+                ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+            }`}>{o.label}</button>
+        ))}
+      </div>
+      <WarehouseSummaryCard compact />
+
       {/* Stok kartları */}
       <Tabs defaultValue="stock" className="space-y-4">
         <TabsList className="bg-surface border-border">
@@ -310,6 +336,14 @@ const BrandSection = ({ userData, role }) => {
                       </div>
                     </div>
                     {s.notes && <p className="text-xs text-text-secondary italic border-l-2 border-border pl-2 mb-3">{s.notes}</p>}
+                    <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                      <WarehouseBadgePicker
+                        itemType="marka_stok"
+                        itemId={s.id}
+                        currentWarehouse={s.warehouse}
+                        onChange={(to) => { setStocks(prev => prev.map(x => x.id === s.id ? { ...x, warehouse: to } : x)); }}
+                      />
+                    </div>
                     <div className="grid grid-cols-3 gap-1.5">
                       <Button size="sm" onClick={() => openQuickAdd(s)} data-testid={`quick-add-${s.id}`}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white">
@@ -434,6 +468,25 @@ const BrandSection = ({ userData, role }) => {
             <div>
               <Label>Not (Opsiyonel)</Label>
               <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="mt-1 bg-background border-border" />
+            </div>
+            <div>
+              <Label>Depo (Opsiyonel)</Label>
+              <div className="flex gap-1.5 mt-1 flex-wrap">
+                {[
+                  { v: "", label: "Atanmamış" },
+                  { v: "DEPO1", label: "Depo 1" },
+                  { v: "DEPO2", label: "Depo 2" },
+                ].map(o => (
+                  <button key={o.v} type="button"
+                    data-testid={`add-marka-warehouse-${o.v || "none"}`}
+                    onClick={() => setForm({ ...form, warehouse: o.v })}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      (form.warehouse || "") === o.v
+                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                        : "bg-white/[0.03] text-zinc-400 border-white/[0.08] hover:text-zinc-200"
+                    }`}>{o.label}</button>
+                ))}
+              </div>
             </div>
             <Button onClick={submitAdd} data-testid="add-submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11">Stoğa Ekle</Button>
           </div>

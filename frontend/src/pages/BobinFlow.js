@@ -15,6 +15,8 @@ import { useConfirm } from "../components/ConfirmProvider";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import WarehouseBadgePicker from "../components/WarehouseBadgePicker";
+import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 
 const COLOR_OPTIONS = ["Beyaz", "Kraft", "Diger"];
 const LAYER_OPTIONS = [
@@ -52,9 +54,10 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const [filterLayers, setFilterLayers] = useState("all"); // all | 1 | 2 | 3plus
   const [filterColor, setFilterColor] = useState("all"); // all | Beyaz | Kraft | other
   const [filterWidth, setFilterWidth] = useState("all"); // all | <width_cm number>
+  const [filterWarehouse, setFilterWarehouse] = useState("all"); // all | DEPO1 | DEPO2 | UNASSIGNED
 
   // Forms (kg odaklı; adet artık sorulmuyor)
-  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
+  const [addForm, setAddForm] = useState({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "", warehouse: "" });
   const [machineForm, setMachineForm] = useState({ weight_kg: "", machine_id: "" });
   const [saleForm, setSaleForm] = useState({ weight_kg: "", customer_name: "", note: "" });
   const [purchaseForm, setPurchaseForm] = useState({ weight_kg: "", supplier: "" });
@@ -249,11 +252,12 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         barcode: addForm.barcode, brand: addForm.brand.trim(),
         width_cm: parseFloat(addForm.width_cm), grammage: parseFloat(addForm.grammage),
         color, layers, total_weight_kg: parseFloat(addForm.total_weight_kg),
-        supplier: addForm.supplier, user_name: userName
+        supplier: addForm.supplier, user_name: userName,
+        warehouse: addForm.warehouse || null,
       });
       toast.success(res.data.message);
       setActiveDialog(null);
-      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "" });
+      setAddForm({ barcode: "", brand: "", width_cm: "", grammage: "", color: "Beyaz", customColor: "", layers: "1", customLayers: "", total_weight_kg: "", supplier: "", warehouse: "" });
       fetchData();
     } catch (err) { toast.error(err.response?.data?.detail || "Hata"); }
   };
@@ -424,6 +428,10 @@ const BobinFlow = ({ theme, toggleTheme }) => {
     if (filterColor === "other" && (b.color === "Beyaz" || b.color === "Kraft")) return false;
     // Genislik filtre
     if (filterWidth !== "all" && Number(b.width_cm) !== Number(filterWidth)) return false;
+    // Depo filtre
+    if (filterWarehouse === "DEPO1" && b.warehouse !== "DEPO1") return false;
+    if (filterWarehouse === "DEPO2" && b.warehouse !== "DEPO2") return false;
+    if (filterWarehouse === "UNASSIGNED" && b.warehouse) return false;
     // Search
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
@@ -617,7 +625,26 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   ))}
                 </div>
               )}
+              {/* DEPO FİLTRE */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-zinc-600 mr-1">Depo:</span>
+                {[
+                  { v: "all", label: "Hepsi" },
+                  { v: "DEPO1", label: "Depo 1" },
+                  { v: "DEPO2", label: "Depo 2" },
+                  { v: "UNASSIGNED", label: "Atanmamış" },
+                ].map(o => (
+                  <button key={o.v} onClick={() => setFilterWarehouse(o.v)} data-testid={`filter-warehouse-${o.v}`}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                      filterWarehouse === o.v
+                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:text-zinc-300"
+                    }`}>{o.label}</button>
+                ))}
+              </div>
             </div>
+            {/* DEPO ÖZET KARTI */}
+            <WarehouseSummaryCard compact className="mb-2" />
             <div className="space-y-2">
               {filteredBobins.length === 0 && (
                 <div className="text-center py-16 text-zinc-600">
@@ -648,6 +675,14 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
                       </div>
                     </button>
+                    <div className="flex items-center gap-2 sm:self-start" onClick={(e) => e.stopPropagation()}>
+                      <WarehouseBadgePicker
+                        itemType="bobin"
+                        itemId={b.id}
+                        currentWarehouse={b.warehouse}
+                        onChange={(to) => { setBobins(prev => prev.map(x => x.id === b.id ? { ...x, warehouse: to } : x)); }}
+                      />
+                    </div>
                     <div className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-shrink-0 sm:flex-wrap sm:justify-end border-t border-white/[0.04] pt-3 sm:border-t-0 sm:pt-0">
                       <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-purchase-${b.id}`}
@@ -825,6 +860,25 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               <Input data-testid="add-bobin-supplier" placeholder="Tedarikci" value={addForm.supplier}
                 onChange={e => setAddForm(p => ({...p, supplier: e.target.value}))}
                 className="bg-white/[0.04] border-white/[0.08] text-white" />
+            </div>
+            <div>
+              <Label className="text-zinc-400">Depo (opsiyonel)</Label>
+              <div className="flex gap-1.5 mt-1 flex-wrap">
+                {[
+                  { v: "", label: "Atanmamış" },
+                  { v: "DEPO1", label: "Depo 1" },
+                  { v: "DEPO2", label: "Depo 2" },
+                ].map(o => (
+                  <button key={o.v} type="button"
+                    data-testid={`add-bobin-warehouse-${o.v || "none"}`}
+                    onClick={() => setAddForm(p => ({...p, warehouse: o.v}))}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      (addForm.warehouse || "") === o.v
+                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                        : "bg-white/[0.03] text-zinc-400 border-white/[0.08] hover:text-zinc-200"
+                    }`}>{o.label}</button>
+                ))}
+              </div>
             </div>
             <Button data-testid="add-bobin-submit" onClick={handleAddBobin} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11">Stoga Ekle</Button>
           </div>

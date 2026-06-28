@@ -75,6 +75,9 @@ async def add_brand_stock(data: dict = Body(...)):
     quantity = int(data.get("quantity", 0) or 0)
     notes = (data.get("notes") or "").strip() or None
     user_name = (data.get("user_name") or "").strip() or "Depo"
+    warehouse_in = (data.get("warehouse") or "").strip().upper() or None
+    if warehouse_in and warehouse_in not in ("DEPO1", "DEPO2"):
+        warehouse_in = None
 
     if not brand:
         raise HTTPException(status_code=400, detail="Marka zorunludur")
@@ -112,7 +115,9 @@ async def add_brand_stock(data: dict = Body(...)):
     else:
         stock = BrandStock(
             brand=brand, machine=machine_val, color=color,
-            quantity=quantity, notes=notes
+            quantity=quantity, notes=notes,
+            warehouse=warehouse_in,
+            warehouse_updated_at=now if warehouse_in else None,
         )
         stock_doc = stock.model_dump()
         await db.brand_stock.insert_one(stock_doc)

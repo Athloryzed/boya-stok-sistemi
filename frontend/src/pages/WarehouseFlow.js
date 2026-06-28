@@ -20,6 +20,8 @@ import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
+import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 
 const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -47,6 +49,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [completedSearch, setCompletedSearch] = useState("");
   const [completedMachineFilter, setCompletedMachineFilter] = useState("all");
   const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
+  const [isTransferLogOpen, setIsTransferLogOpen] = useState(false);
   // İş görseli önizleme
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [selectedJobImage, setSelectedJobImage] = useState(null);
@@ -567,6 +570,21 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         )}
 
         <Tabs defaultValue="alerts" className="space-y-6">
+          {/* DEPO ÖZET + TRANSFER GEÇMİŞİ */}
+          <div className="space-y-3">
+            <WarehouseSummaryCard />
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTransferLogOpen(true)}
+                data-testid="open-transfer-log"
+                className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+              >
+                <History className="h-4 w-4 mr-1.5" /> Transfer Geçmişi
+              </Button>
+            </div>
+          </div>
           {/* Mobile tabs */}
           <div className="block md:hidden">
             <TabsList className="bg-surface border-border w-full grid grid-cols-3 gap-1 h-auto p-1">
@@ -1116,6 +1134,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
             )}
           </DialogContent>
         </Dialog>
+        <WarehouseTransferLogDialog open={isTransferLogOpen} onOpenChange={setIsTransferLogOpen} />
       </div>
     </div>
   );

@@ -57,6 +57,9 @@ async def create_bobin(data: dict = Body(...)):
     notes = data.get("notes", "")
     user_name = data.get("user_name", "")
     barcode = data.get("barcode", "").strip()
+    warehouse_in = (data.get("warehouse") or "").strip().upper() or None
+    if warehouse_in and warehouse_in not in ("DEPO1", "DEPO2"):
+        warehouse_in = None
 
     if not brand or width_cm <= 0 or grammage <= 0:
         raise HTTPException(status_code=400, detail="Marka, genislik ve gramaj zorunludur")
@@ -109,7 +112,9 @@ async def create_bobin(data: dict = Body(...)):
             barcode=barcode, brand=brand, width_cm=width_cm, grammage=grammage, color=color,
             layers=layers,
             quantity=quantity, total_weight_kg=round(total_weight_kg, 2),
-            weight_per_piece_kg=weight_per_piece, supplier=supplier, notes=notes
+            weight_per_piece_kg=weight_per_piece, supplier=supplier, notes=notes,
+            warehouse=warehouse_in,
+            warehouse_updated_at=datetime.now(timezone.utc).isoformat() if warehouse_in else None,
         )
         await db.bobins.insert_one(bobin.model_dump())
         label = bobin_label(bobin.model_dump())

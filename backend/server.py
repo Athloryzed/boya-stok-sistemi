@@ -53,6 +53,7 @@ from routes.misc import router as misc_router
 from routes.bobins import router as bobins_router
 from routes.menu import router as menu_router
 from routes.customers import router as customers_router
+from routes.warehouse_assign import router as warehouse_assign_router
 from routes.brand_stock import router as brand_stock_router
 from routes.koli_stock import router as koli_stock_router
 from routes.backups import router as backups_router, start_scheduler as start_backup_scheduler
@@ -109,6 +110,7 @@ api_router.include_router(misc_router)
 api_router.include_router(bobins_router)
 api_router.include_router(menu_router)
 api_router.include_router(customers_router)
+api_router.include_router(warehouse_assign_router)
 api_router.include_router(brand_stock_router)
 api_router.include_router(koli_stock_router)
 api_router.include_router(backups_router)
@@ -288,6 +290,12 @@ async def ensure_indexes():
         await db.customers.create_index("phone")
         await db.customers.create_index([("code", ASCENDING)])
         await db.customers.create_index([("archived", ASCENDING), ("name", ASCENDING)])
+
+        # warehouse_transfers (depo transfer log)
+        await db.warehouse_transfers.create_index([("at", DESCENDING)])
+        await db.warehouse_transfers.create_index([("item_type", ASCENDING), ("item_id", ASCENDING)])
+        await db.bobins.create_index("warehouse")
+        await db.marka_stok.create_index("warehouse")
 
         # users
         await db.users.create_index("id", unique=True)

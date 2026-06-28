@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User, Warehouse } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -26,6 +26,8 @@ import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WeeklyMenuEditor from "../components/WeeklyMenuEditor";
+import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
+import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -360,6 +362,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Yemek Menüsü
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
+  const [isTransferLogOpen, setIsTransferLogOpen] = useState(false);
   const [menuDate, setMenuDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [menuItems, setMenuItems] = useState([""]);
   const [menuNotes, setMenuNotes] = useState("");
@@ -1668,7 +1671,23 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           />
         </div>
 
-
+        {/* DEPO ÖZET + TRANSFER GEÇMİŞİ */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <Warehouse className="h-3.5 w-3.5" /> Depo Özeti
+            </span>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setIsTransferLogOpen(true)}
+              data-testid="management-open-transfer-log"
+              className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8"
+            >
+              Transfer Geçmişi
+            </Button>
+          </div>
+          <WarehouseSummaryCard />
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Mobile: 3-row grid layout, Desktop: horizontal scroll */}
@@ -4048,6 +4067,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           open={notificationSettingsOpen}
           onClose={() => setNotificationSettingsOpen(false)}
         />
+        <WarehouseTransferLogDialog open={isTransferLogOpen} onOpenChange={setIsTransferLogOpen} />
       </div>
     </div>
   );
