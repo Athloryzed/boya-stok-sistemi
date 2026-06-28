@@ -3,6 +3,39 @@
 ## Original Problem Statement
 Factory management system for Buse Kagit paper company. Full-stack React + FastAPI + MongoDB PWA with AI assistants, Excel exports, live dashboards, QR codes, drag & drop, and secure JWT/bcrypt authentication.
 
+## 🆕 Multi-Warehouse (Depo) Assignment System (Feb 28, 2026) — Iteration 45
+Implemented complete dual-warehouse tracking for Bobins and Marka/Stok items (12/12 backend tests, 13/13 frontend flows passed):
+
+1. **Backend** — `backend/routes/warehouse_assign.py`:
+   - `GET /api/warehouse-summary` — Returns counts for DEPO1/DEPO2/UNASSIGNED (bobin_count, bobin_critical, marka_stok_count, marka_stok_critical). Critical: bobin total_weight_kg<50, marka_stok quantity<10.
+   - `POST /api/warehouse-transfer` — Moves a Bobin or Marka/Stok item between warehouses. Body: `{item_type: "bobin"|"marka_stok", item_id, to_warehouse: "DEPO1"|"DEPO2"|""}` (empty = Atanmamış). Returns `{ok, log}`.
+   - `GET /api/warehouse-transfers` — Filterable by `item_type` and `warehouse`. Limit param (default 100).
+2. **Models** (`backend/models.py`):
+   - `Bobin.warehouse` (Optional[str], "DEPO1"|"DEPO2"|None)
+   - `Bobin.warehouse_updated_at` (ISO timestamp)
+   - `BrandStock.warehouse` + `warehouse_updated_at` (same)
+3. **POST endpoints accept warehouse field**:
+   - `POST /api/bobins` — `warehouse` body field saves to bobin.warehouse on create.
+   - `POST /api/brand-stock` — Same.
+4. **Frontend components**:
+   - `components/WarehouseBadgePicker.js` — Inline badge picker dropdown (DEPO1/DEPO2/Atanmamış). Dispatches `warehouse:changed` CustomEvent.
+   - `components/WarehouseSummaryCard.js` — `compact` (3-col mini cards) + `full` (3 large cards) views. Auto-refreshes on `warehouse:changed`.
+   - `components/WarehouseTransferLogDialog.js` — Modal: tip filter, depo filter, free-text search, scrollable log list with FROM→TO badges, by_user, timestamp.
+5. **Pages integrated**:
+   - `/bobin` (BobinFlow) — Filter row (Hepsi/Depo 1/Depo 2/Atanmamış), compact summary, badge picker in each row, Add-Bobin dialog warehouse selector.
+   - `/marka-stok` (MarkaStokFlow) — Same.
+   - `/warehouse` (Depo Paneli) — Full summary cards + "Transfer Geçmişi" button → dialog.
+   - `/plan` (PlanFlow) — Compact summary + plan-open-transfer-log button.
+   - `/management` (ManagementFlow) — Full summary + management-open-transfer-log button.
+6. **Schema**:
+   - New collection: `warehouse_transfers` (id, item_type, item_id, item_name, from_warehouse, to_warehouse, by_user, at, notes)
+   - Indexes: `(item_type, item_id)` and `at desc`.
+
+### Test IDs (canonical reference)
+`wh-badge-{bobin|marka_stok}-{id}`, `wh-pick-{DEPO1|DEPO2|UNASSIGNED}-{id}`, `wh-summary-compact`, `wh-summary-full`, `wh-summary-full-{DEPO1|DEPO2|UNASSIGNED}`, `wh-transfer-log-dialog`, `log-row-{id}`, `log-filter-type-{all|bobin|marka_stok}`, `log-filter-wh-{all|DEPO1|DEPO2}`, `log-search-input`, `log-refresh`, `filter-warehouse-{all|DEPO1|DEPO2|UNASSIGNED}`, `marka-filter-warehouse-*`, `add-bobin-warehouse-{none|DEPO1|DEPO2}`, `add-marka-warehouse-*`, `open-transfer-log`, `plan-open-transfer-log`, `management-open-transfer-log`.
+
+---
+
 ## Latest Update — Security Hardening Package (Feb 5, 2026) — Iteration 39
 Implemented enterprise-grade security in a single sweep (23/24 tests pass):
 1. **CSP/Security Headers** — `middleware/security_headers.py` adds HSTS (2y), CSP, X-Frame DENY, nosniff, Referrer-Policy, Permissions-Policy on every API response.
