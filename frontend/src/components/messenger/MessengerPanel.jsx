@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { chatApi, connectChatWS, disconnectChatWS, onChatEvent, ensurePushSubscription } from "../../lib/messenger";
 import { getSession, isSessionValid } from "../../lib/auth";
+import { shouldAlertOnce, alertKeyForMessage as alertKeyFor } from "../../utils/alertDedup";
 
 const EMOJIS = ["😊","😂","👍","❤️","🎉","🔥","✅","⚠️","🆘","🚀","💪","🙏","👏","✨","💯","☕","🍕","🤝","😴","🤔","😅","😎","🙌","💡","📦","🎨","🚚","🏭","🔧","📋","👷","👑","🆗","⏳","⚡"];
 
@@ -50,6 +51,9 @@ function formatBoldText(text) {
     return <span key={i}>{part}</span>;
   });
 }
+
+// ─── Uyarı tekilleştirme yardımcıları utils/alertDedup içinde ───
+
 
 const MessengerPanel = () => {
   const session = isSessionValid() ? getSession() : null;
@@ -291,8 +295,11 @@ const MessengerPanel = () => {
       // Genel toplam
       if (m.sender_id !== userId && m.conversation_id !== activeId) {
         setUnreadTotal((t) => t + 1);
+        // Aynı olay (ör. iş tamamlandı) hem #plan hem #yonetim kanalına düşerse SADECE 1 kez uyar
+        const alertKey = alertKeyFor(m);
+        const alertOnce = shouldAlertOnce(alertKey);
         // Toast (sadece drawer kapalıysa)
-        if (!open) {
+        if (!open && alertOnce) {
           toast(`${m.sender_name}`, {
             description: m.text?.slice(0, 100) || "Yeni mesaj",
             duration: 4000,
@@ -300,7 +307,7 @@ const MessengerPanel = () => {
         }
         // Browser notification — online kullanıcı için (drawer kapalı veya tab arka planda)
         try {
-          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          if (alertOnce && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
             const shouldNotify = !open || document.hidden;
             if (shouldNotify) {
               const convInfo = evt.conversation || {};
@@ -310,8 +317,8 @@ const MessengerPanel = () => {
                 body,
                 icon: "/logo192.png",
                 badge: "/logo192.png",
-                tag: `conv-${m.conversation_id}`,
-                renotify: true,
+                tag: alertKey,
+                renotify: false,
                 silent: false,
               });
               n.onclick = () => {
@@ -327,7 +334,7 @@ const MessengerPanel = () => {
         } catch (_) { /* notification API yoksa noop */ }
         // Kısa beep — WebAudio ile inline (asset gerektirmez)
         try {
-          if (!open || document.hidden) {
+          if (alertOnce && (!open || document.hidden)) {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (AudioCtx) {
               const ctx = new AudioCtx();

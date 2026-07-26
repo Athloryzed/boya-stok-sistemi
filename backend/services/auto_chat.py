@@ -105,7 +105,15 @@ async def ensure_machine_channel(machine_id: str, machine_name: str) -> Optional
     return conv.model_dump()
 
 
-async def _save_and_broadcast(conv_id: str, msg: ChatMessage, push_title: Optional[str] = None, push_body: Optional[str] = None, push_extra: Optional[Dict[str, Any]] = None):
+async def _save_and_broadcast(
+    conv_id: str,
+    msg: ChatMessage,
+    push_title: Optional[str] = None,
+    push_body: Optional[str] = None,
+    push_extra: Optional[Dict[str, Any]] = None,
+    push_tag: Optional[str] = None,
+    push_dedup: Optional[set] = None,
+):
     """Mesajı kaydet + WebSocket broadcast + Push gönder."""
     await db.chat_messages.insert_one(msg.model_dump())
     await db.conversations.update_one(
@@ -135,6 +143,10 @@ async def _save_and_broadcast(conv_id: str, msg: ChatMessage, push_title: Option
     # Web Push (online olmayan / sayfa kapalı kullanıcılar için)
     if push_title and push_body:
         offline_users = [u for u in participants if not ws_chat.is_online(u) and u != msg.sender_id]
+        if push_dedup is not None:
+            # Aynı olay birden fazla kanala düşüyorsa kullanıcıya SADECE 1 push gitsin
+            offline_users = [u for u in offline_users if u not in push_dedup]
+            push_dedup.update(offline_users)
         if offline_users:
             try:
                 await send_push_to_users(
@@ -144,7 +156,7 @@ async def _save_and_broadcast(conv_id: str, msg: ChatMessage, push_title: Option
                         "body": push_body,
                         "icon": "/icon-192.png",
                         "badge": "/icon-192.png",
-                        "tag": f"conv-{conv_id}",
+                        "tag": push_tag or f"conv-{conv_id}",
                         "data": {
                             "conversation_id": conv_id,
                             "message_id": msg.id,
@@ -279,8 +291,11 @@ async def notify_job_completed(job: dict):
     koli = job.get("koli_produced") or job.get("koli_count") or 0
     operator = job.get("operator_name") or "Operatör"
     text = f"✅ **İş Tamamlandı** — *{name}* · {koli} koli · {machine_name} · {operator}"
-    meta = {"job_id": job.get("id"), "machine_name": machine_name, "koli_produced": koli, "operator": operator, "job_name": name}
+    meta = {"job_id": job.get("id"), "machine_name": machine_name, "koli_produced": koli, "operator": operator, "job_name": name, "event_key": f"evt-job_completed-{job.get('id') or name}"}
     channels = settings.get("target_channels") or ["plan", "yonetim"]
+    job_id = job.get("id") or name
+    event_tag = f"evt-job_completed-{job_id}"
+    push_dedup: set = set()
     for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -288,7 +303,9 @@ async def notify_job_completed(job: dict):
                 ch["id"], _make_system_msg(ch["id"], text, "job_completed", meta),
                 push_title=f"✅ Tamamlandı · {machine_name}",
                 push_body=f"{name} · {koli} koli — {operator}",
-                push_extra={"event_type": "job_completed"},
+                push_extra={"event_type": "job_completed", "event_key": event_tag},
+                push_tag=event_tag,
+                push_dedup=push_dedup,
             )
 
 

@@ -55,7 +55,7 @@ self.addEventListener('push', function(event) {
     icon: data.icon || '/logo192.png',
     badge: data.badge || '/logo192.png',
     tag: data.tag,
-    renotify: true,
+    renotify: data.renotify !== false,
     vibrate: [80, 40, 80],
     data: data.data || {},
     actions: [

@@ -30,6 +30,7 @@ import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import { shouldAlertOnce } from "../utils/alertDedup";
 
 // Sürüklenebilir İş Kartı Wrapper
 const SortableJobItem = ({ id, children }) => {
@@ -241,10 +242,13 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     if (authenticated) {
       onMessageListener().then((payload) => {
         if (payload) {
-          toast.success(payload.notification?.body || "Yeni bildirim", {
-            duration: 8000,
-            icon: "🔔"
-          });
+          const key = payload.data?.tag || (payload.data?.job_id ? `job_completed-${payload.data.job_id}` : null);
+          if (shouldAlertOnce(key)) {
+            toast.success(payload.notification?.body || "Yeni bildirim", {
+              duration: 8000,
+              icon: "🔔"
+            });
+          }
           // Verileri yenile
           fetchJobs();
           fetchAllJobs();

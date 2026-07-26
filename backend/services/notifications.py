@@ -63,7 +63,8 @@ async def send_fcm_notification(tokens: List[str], title: str, body: str, data: 
             webpush=fb_messaging.WebpushConfig(
                 notification=fb_messaging.WebpushNotification(
                     icon='/logo192.png', badge='/logo192.png',
-                    vibrate=[200, 100, 200], require_interaction=True
+                    vibrate=[200, 100, 200], require_interaction=True,
+                    tag=(data or {}).get('tag') or None,
                 )
             )
         )
@@ -151,6 +152,26 @@ async def send_notification_to_plan_users(title: str, body: str, data: dict = No
             logger.warning("No plan FCM tokens found")
     except Exception as e:
         logger.error(f"Error sending notification to plan users: {e}")
+
+
+async def send_notification_to_user_types(user_types: List[str], title: str, body: str, data: dict = None):
+    """Birden fazla user_type'a TEK seferde bildirim gönder (token'lar tekilleştirilir → mükerrer bildirim olmaz)."""
+    try:
+        tokens_cursor = db.fcm_tokens.find({"user_type": {"$in": user_types}}, {"token": 1, "_id": 0})
+        seen = set()
+        tokens = []
+        async for doc in tokens_cursor:
+            t = doc.get("token")
+            if t and t not in seen:
+                seen.add(t)
+                tokens.append(t)
+        if tokens:
+            await send_fcm_notification(tokens, title, body, data)
+            logger.info(f"Notification sent to {len(tokens)} unique devices ({', '.join(user_types)})")
+        else:
+            logger.warning(f"No FCM tokens found for {user_types}")
+    except Exception as e:
+        logger.error(f"Error sending notification to {user_types}: {e}")
 
 
 async def send_notification_to_all_workers(title: str, body: str, data: dict = None):

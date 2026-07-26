@@ -12,7 +12,7 @@ from models import Job
 from services.audit import log_audit
 from services.notifications import (
     send_notification_to_operators, send_notification_to_managers,
-    send_notification_to_plan_users
+    send_notification_to_plan_users, send_notification_to_user_types
 )
 from websocket_manager import ws_manager, ws_manager_mgmt
 from auth import get_current_user
@@ -405,6 +405,10 @@ async def complete_job(job_id: str, data: dict = Body(None), current_user: dict 
 
     completed_koli = data.get("completed_koli", job["koli_count"]) if data else job["koli_count"]
 
+    # Idempotent: iş zaten tamamlanmışsa bildirimleri TEKRAR gönderme (çift tıklama / retry koruması)
+    if job.get("status") == "completed":
+        return {"success": True, "message": "İş zaten tamamlandı", "already_completed": True}
+
     await db.jobs.update_one(
         {"id": job_id},
         {"$set": {
@@ -433,20 +437,18 @@ async def _send_completion_notifications(job: dict, job_id: str, completed_koli:
         notification_body = f"{job['name']}\n{job['machine_name']}\n{completed_koli} koli"
         message = f"Is Tamamlandi!\n\nIs: {job['name']}\nMakine: {job['machine_name']}\nKoli: {completed_koli}\nOperator: {job.get('operator_name', '-')}\nTarih: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
 
-        await asyncio.gather(
-            send_notification_to_managers(
-                title=notification_title, body=notification_body,
-                data={"type": "job_completed", "job_id": job_id}
-            ),
-            send_notification_to_plan_users(
-                title=notification_title, body=notification_body,
-                data={"type": "job_completed", "job_id": job_id}
-            ),
-            return_exceptions=True
+        event_tag = f"evt-job_completed-{job_id}"
+
+        # TEK çağrı: manager + plan token'ları tekilleştirilir → aynı cihaza 2 bildirim gitmez
+        await send_notification_to_user_types(
+            ["manager", "plan"],
+            title=notification_title, body=notification_body,
+            data={"type": "job_completed", "job_id": job_id, "tag": event_tag}
         )
 
         await ws_manager_mgmt.broadcast_to_managers({
             "type": "job_completed", "message": message,
+            "job_id": job_id, "event_key": event_tag,
             "job_name": job['name'], "machine_name": job['machine_name'],
             "completed_koli": completed_koli
         })

@@ -28,6 +28,7 @@ import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WeeklyMenuEditor from "../components/WeeklyMenuEditor";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
+import { shouldAlertOnce } from "../utils/alertDedup";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -571,12 +572,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "job_completed") {
-          // Bildirim göster
-          toast.success(data.message, {
-            duration: 10000,
-            icon: "✅",
-            style: { whiteSpace: "pre-line" }
-          });
+          // Aynı olay WS + FCM foreground'dan iki kez gelebilir → tek uyarı
+          const alertKey = data.event_key || `job_completed-${data.job_id || data.job_name}`;
+          if (shouldAlertOnce(alertKey)) {
+            toast.success(data.message, {
+              duration: 10000,
+              icon: "✅",
+              style: { whiteSpace: "pre-line" }
+            });
+          }
           
           // NOT: Tarayıcı `new Notification(...)` çağrısı KALDIRILDI.
           // Backend FCM push (firebase-messaging-sw.js) zaten arka planda OS-level bildirim gösteriyor;
@@ -653,10 +657,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     if (authenticated) {
       const unsubscribe = onMessageListener().then((payload) => {
         if (payload) {
-          toast.success(payload.notification?.body || "Yeni bildirim", {
-            duration: 10000,
-            icon: "🔔"
-          });
+          const key = payload.data?.tag || (payload.data?.job_id ? `job_completed-${payload.data.job_id}` : null);
+          if (shouldAlertOnce(key)) {
+            toast.success(payload.notification?.body || "Yeni bildirim", {
+              duration: 10000,
+              icon: "🔔"
+            });
+          }
           fetchData();
         }
       });

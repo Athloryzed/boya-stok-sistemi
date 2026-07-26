@@ -24,8 +24,9 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/logo192.png',
     badge: '/logo192.png',
     vibrate: [200, 100, 200],
-    tag: 'buse-kagit-notification',
+    tag: payload.data?.tag || 'buse-kagit-notification',
     requireInteraction: true,
+    renotify: false,
     data: payload.data
   };
 
