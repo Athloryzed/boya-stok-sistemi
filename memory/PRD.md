@@ -1482,3 +1482,30 @@ Desktop (1440×900): Tüm butonlar inline, More-actions butonu görünmüyor (md
 - chat-WS kopuksa manager-WS fan-out **anlık** (<500ms).
 - Manager-WS de yoksa polling **2 saniyede**.
 - Push notification: VAPID subscription kayıtlıysa **OS-level bildirim** (browser kapalı olsa bile).
+
+---
+
+## Bug Fix — Yönetim Panelinde İşlem Kayıtları Çökmesi (React #31) — 26 Tem 2026
+
+### Sorun
+Production'da (`bksistem.space/management`) "İşlem Kayıtları" sekmesi açıldığında sayfa çöküyordu:
+`Minified React error #31 — object with keys {customer_id, name, code}`.
+
+### Kök Sebep
+`routes/customers.py` içindeki 3 `log_audit()` çağrısı YANLIŞ argüman sırasıyla yapılıyordu
+(`log_audit("customer_create", username, {dict})`). Doğru imza: `log_audit(user, action, entity_type, entity_name, details)`.
+Sonuç: `audit_logs.entity_type` alanına dict yazıldı → React tabloda object render edemedi.
+
+### Çözüm (4 katmanlı)
+1. `routes/customers.py` — create/update/archive log_audit çağrıları doğru sıraya alındı.
+2. `services/audit.py` — `_as_text()` helper: tüm alanlar yazma anında stringe zorlanıyor (dict/list → JSON).
+3. `routes/misc.py` `GET /audit-logs` — legacy bozuk kayıtlar okuma anında stringe çevriliyor (production DB'de migration gerekmez).
+4. `pages/ManagementFlow.js` — `safeText()` helper (line ~41) audit tablosunun tüm hücrelerinde.
+
+### Test (iteration_46.json — Backend 4/4, Frontend %100)
+- Bilerek bozuk legacy kayıt (BADLEGACY1) eklendi → API string döndü, UI çökmedi ✅
+- Yeni müşteri oluşturma → audit satırı doğru (adminusr / create / customer / ad / "Kod: BK-...") ✅
+- Sayfalama (Sonraki/Önceki) çökmeden çalışıyor ✅
+
+### Backlog notu
+- (P3) `log_audit()` keyword-only argümanlara çevrilebilir → bu hata sınıfı tamamen engellenir.
