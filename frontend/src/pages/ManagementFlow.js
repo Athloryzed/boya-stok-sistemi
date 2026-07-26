@@ -1271,7 +1271,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     setMachines(prev => prev.map(m => m.id === job.machine_id ? { ...m, status: "idle", current_job_id: null } : m));
     try {
       await axios.put(`${API}/jobs/${job.id}/complete`, {});
-      toast.success("İş tamamlandı!");
+      // Bu işlemi yapan kişi tek toast görsün: olay anahtarını burada rezerve et
+      // (WS/FCM'den gelen aynı olay bildirimi bastırılır)
+      if (shouldAlertOnce(`evt-job_completed-${job.id}`)) {
+        toast.success("İş tamamlandı!");
+      }
     } catch (error) {
       toast.error("İş tamamlanamadı");
       fetchData();

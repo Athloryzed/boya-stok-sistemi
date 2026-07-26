@@ -1509,3 +1509,27 @@ Sonuç: `audit_logs.entity_type` alanına dict yazıldı → React tabloda objec
 
 ### Backlog notu
 - (P3) `log_audit()` keyword-only argümanlara çevrilebilir → bu hata sınıfı tamamen engellenir.
+
+---
+
+## Bug Fix — Mükerrer "İş Tamamlandı" Bildirimi (2-3 kez) — 26 Tem 2026 (Iteration 47)
+
+### Sorun
+Plan + Yönetim rolündeki kullanıcılar bir iş tamamlandığında aynı bildirimi 2, bazen 3 kez alıyordu.
+
+### Kök Sebepler (4 ayrı kanal aynı olayı iletiyordu)
+1. `PUT /api/jobs/{id}/complete` idempotent değildi → çift tıklama/retry ikinci bildirim akışını tetikliyordu.
+2. `auto_chat.notify_job_completed` olayı #plan VE #yonetim kanalına yazıyor, her kanal için ayrı Web Push gönderiyordu → çoklu role sahip kullanıcı 2 push alıyordu.
+3. `send_notification_to_managers` + `send_notification_to_plan_users` ayrı ayrı çağrılıyordu → aynı cihaz token'ı 2 FCM alabiliyordu.
+4. Frontend: WS `job_completed` toast + FCM foreground toast + MessengerPanel WS `new_message` (fan-out + 2 kanal) → 2-3 in-app/OS bildirimi.
+
+### Çözüm (4 katman)
+1. `routes/jobs.py complete_job` — iş zaten `completed` ise `{already_completed: true}` döner, bildirim akışı tekrar çalışmaz.
+2. `services/auto_chat.py` — `_save_and_broadcast(push_tag, push_dedup)`; `notify_job_completed` kanallar arasında paylaşılan `push_dedup` set'i ile kullanıcı başına TEK push; mesaj meta'sına `event_key = evt-job_completed-{job_id}`.
+3. `services/notifications.py` — yeni `send_notification_to_user_types(["manager","plan"], ...)` token'ları tekilleştirir; `send_fcm_notification` webpush `tag` destekler (OS bildirimleri birleşir).
+4. Frontend — yeni `utils/alertDedup.js` (`shouldAlertOnce`, `alertKeyForMessage`); ManagementFlow (WS + FCM + local complete toast), PlanFlow (FCM), MessengerPanel (toast/notification/beep) tek uyarı; `sw.js` + `firebase-messaging-sw.js` ortak `tag` kullanır.
+
+### Test (iteration_47.json — Backend 4/4, Frontend %100)
+- complete 3x çağrı → 2. ve 3. yanıt `already_completed: true` ✅
+- Chat mesajı hâlâ her iki kanalda, `event_key` aynı ✅
+- Yönetim panelinde iş tamamlama → TEK toast ✅ · /plan hatasız ✅
