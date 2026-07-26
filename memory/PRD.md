@@ -1533,3 +1533,39 @@ Plan + Yönetim rolündeki kullanıcılar bir iş tamamlandığında aynı bildi
 - complete 3x çağrı → 2. ve 3. yanıt `already_completed: true` ✅
 - Chat mesajı hâlâ her iki kanalda, `event_key` aynı ✅
 - Yönetim panelinde iş tamamlama → TEK toast ✅ · /plan hatasız ✅
+
+---
+
+## Yeni Rol: Boyacı + Boyacı Paneli — 26 Tem 2026 (Iteration 48)
+
+### Kullanıcı isteği
+"Boyacı" rolü oluşturulacak; Boya paneline (/paint) erişebilecek + kendisine özel yeni panel (/boyaci):
+üretilecek toplam koli, hangi makine ne iş yapıyor, sıradaki işler (görsel/müşteri/not/kaç gündür bekliyor),
+işi başlatma (operatör seçimi ZORUNLU) ve tamamlama, sürükle-bırak sıralama (sıra tüm panellerde otomatik revize).
+Paneli sadece `yonetim` + `boyaci` görebilir. **Kullanıcı seçimleri:** tüm makineler · silme/düzenleme YOK · messenger: Genel + Planlama.
+
+### Backend
+- `routes/users.py` — `VALID_ROLES` / `ALL_PANEL_ROLES` + `boyaci`.
+- `services/validators.py` — `ROLE_WHITELIST` + `boyaci`.
+- `models_chat.py` — `#genel` ve `#plan` kanallarına `boyaci` auto-join.
+- `routes/jobs.py start_job` — **operator_name artık zorunlu** (boş/whitespace → 400 "Operatör seçimi zorunlu").
+- Yeni endpoint YOK; mevcutlar kullanıldı: `/jobs`, `/machines`, `/users?role=operator`, `/jobs/expected-summary`, `/jobs/{id}/start`, `/jobs/{id}/complete`, `/jobs/reorder-batch`, `/jobs/{id}/image`.
+
+### Frontend
+- **YENİ** `pages/BoyaciFlow.js` — pembe/fuşya kimlik; Üretilecek Toplam Koli kartı (makine kırılımı pop-up'lı),
+  Makine Durumu ızgarası (aktif iş görseli/müşteri/not/bekleme/ilerleme + "İşi Tamamla"),
+  Sıradaki İşler (dnd-kit sürükle-bırak → `PUT /jobs/reorder-batch` → tüm paneller aynı `order` alanını okuduğu için otomatik senkron),
+  Başlat dialogu (kayıtlı operatör listesi + "Diğer (isim yaz)"), Tamamla onay dialogu, görsel önizleme modalı.
+- `App.js` — lazy `/boyaci` route (ProtectedRoute + ErrorBoundary).
+- `lib/auth.js` — `ROUTE_ROLES["/boyaci"]=["yonetim","boyaci"]`, `/paint`'e `boyaci`, `ROLE_DEFAULT_ROUTE.boyaci="/boyaci"`, `boyaci_session` panel key.
+- `Home.js` — "Boyacı Paneli" modül kartı + Yönetim Hızlı Panel kısayolu · `UserMenu.js` ROUTE_META · `ManagementFlow.js` rol grid'ine "Boyacı 🎨" (yeni kullanıcı + rol düzenleme) · MessengerPanel rol etiketi/rengi.
+
+### Test (iteration_48.json — Backend 6/6, Frontend %100)
+RBAC (boyaci → /management redirect, /paint açık), operatörsüz başlatma engeli (UI + backend 400),
+başlat/tamamla akışı, reorder persist + Plan panelinde aynı sıra, diğer panellerde regresyon yok.
+
+### Test kullanıcısı
+`boyaci1 / boya123` (bkz. /app/memory/test_credentials.md)
+
+### Backlog notu
+- (P3) Boyacı panelinde aktif işler sürüklenemez; UX için "başlatılan iş taşınamaz" görsel ipucu eklenebilir.

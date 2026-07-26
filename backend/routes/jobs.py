@@ -373,7 +373,9 @@ async def delete_job(job_id: str, deleted_by: str = None, current_user: dict = D
 
 @router.put("/jobs/{job_id}/start")
 async def start_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    operator_name = data.get("operator_name")
+    operator_name = (data.get("operator_name") or "").strip()
+    if not operator_name:
+        raise HTTPException(status_code=400, detail="Operatör seçimi zorunlu")
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
