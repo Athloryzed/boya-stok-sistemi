@@ -1569,3 +1569,10 @@ başlat/tamamla akışı, reorder persist + Plan panelinde aynı sıra, diğer p
 
 ### Backlog notu
 - (P3) Boyacı panelinde aktif işler sürüklenemez; UX için "başlatılan iş taşınamaz" görsel ipucu eklenebilir.
+
+### Boyacı Paneli — Filtreler + Panel Arası Sıra Senkronizasyonu (26 Tem 2026, Iteration 49-50)
+- **Filtreler** (`BoyaciFlow.js`): Sıradaki İşler üstünde **Makine chip'leri** (`boyaci-filter-machine-{id}`, adet sayacıyla) ve **Ölçü/format chip'leri** (`boyaci-filter-format-{fmt}` — 33x24, 30x30, 1/4 vb.), AND mantığıyla birlikte çalışır; arama kutusu (`boyaci-search-input`, iş adı/müşteri/renk/not) + "Filtreyi Temizle" (`boyaci-filters-clear`). Başlık `Sıradaki İşler (X / Y)`. Kartlarda ölçü rozeti (`boyaci-format-{id}`) ve sıra numarası GLOBAL sıradaki yeri gösterir.
+  - Not: Aynı makine farklı ölçüde iş yapabildiği için (ör. 40x40 makinesinde 33x24 iş) filtreler bağımsızdır.
+- **Filtre açıkken sürükleme güvenli**: `handleDragEnd` filtrelenen işleri GLOBAL slotlarına geri yerleştirir → filtre dışı işlerin sırası hiç değişmez (testing agent ile matematiksel olarak doğrulandı).
+- **BUG FIX — panel arası sıra senkronizasyonu**: `GET /api/jobs` artık `status == "pending"` iken `[("order",1),("created_at",1)]` ile sıralıyor (diğer statülerde created_at korunur → geçmiş listeleri bozulmaz). Ek olarak PlanFlow / OperatorFlow / ManagementFlow bekleyen iş listeleri istemci tarafında da `order`'a göre sıralanıyor.
+- Test: iteration_49.json (filtreler %100) + iteration_50.json (backend 3/3, Boyacı→Plan senkron doğrulandı).
