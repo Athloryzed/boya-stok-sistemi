@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Sun, Moon, LogOut, Brush, Play, CheckCircle2, GripVertical,
-  Clock, User, Factory, StickyNote, Package, RefreshCw, Paintbrush,
+  Clock, User, Factory, StickyNote, Package, RefreshCw, Paintbrush, Search, X,
 } from "lucide-react";
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -57,6 +57,12 @@ const JobMeta = ({ job }) => (
       {job.machine_name && (
         <span className="inline-flex items-center gap-1">
           <Factory className="h-3 w-3" /> {job.machine_name}
+        </span>
+      )}
+      {job.format && (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30 text-[11px] font-semibold"
+          data-testid={`boyaci-format-${job.id}`}>
+          {job.format}
         </span>
       )}
       {job.colors && <span className="inline-flex items-center gap-1"><Paintbrush className="h-3 w-3" /> {job.colors}</span>}
@@ -113,6 +119,10 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
   const [previewJob, setPreviewJob] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
+  const [filterMachine, setFilterMachine] = useState("all");
+  const [filterFormat, setFilterFormat] = useState("all");
+  const [search, setSearch] = useState("");
+
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
@@ -168,6 +178,34 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
     [jobs]
   );
 
+  // Filtre seçenekleri — işlerde ve makinelerde gerçekten var olan değerlerden türetilir
+  const machineOptions = useMemo(() => {
+    const fromJobs = new Set(jobs.filter((j) => j.status === "pending").map((j) => j.machine_id).filter(Boolean));
+    return machines.filter((m) => fromJobs.has(m.id));
+  }, [jobs, machines]);
+
+  const formatOptions = useMemo(() => {
+    const set = new Set(
+      jobs.filter((j) => j.status === "pending" && j.format).map((j) => j.format)
+    );
+    return [...set].sort();
+  }, [jobs]);
+
+  const filteredPending = useMemo(() => pendingJobs.filter((j) => {
+    if (filterMachine !== "all" && j.machine_id !== filterMachine) return false;
+    if (filterFormat !== "all" && (j.format || "") !== filterFormat) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (j.name || "").toLowerCase().includes(q)
+        || (j.customer_name || "").toLowerCase().includes(q)
+        || (j.colors || "").toLowerCase().includes(q)
+        || (j.notes || "").toLowerCase().includes(q);
+    }
+    return true;
+  }), [pendingJobs, filterMachine, filterFormat, search]);
+
+  const filtersActive = filterMachine !== "all" || filterFormat !== "all" || !!search;
+
   const openPreview = async (job) => {
     setPreviewJob(job);
     if (job.image_url) { setPreviewUrl(job.image_url); return; }
@@ -183,18 +221,25 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = pendingJobs.findIndex((j) => j.id === active.id);
-    const newIndex = pendingJobs.findIndex((j) => j.id === over.id);
+    const oldIndex = filteredPending.findIndex((j) => j.id === active.id);
+    const newIndex = filteredPending.findIndex((j) => j.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(pendingJobs, oldIndex, newIndex);
-    // Optimistic: yeni order değerlerini yerel state'e uygula
-    const orderMap = new Map(reordered.map((j, idx) => [j.id, idx]));
+    const reorderedSubset = arrayMove(filteredPending, oldIndex, newIndex);
+    // Filtre açıkken bile global sıra bozulmasın: filtrelenen işlerin GLOBAL slotlarına
+    // yeni sıralarıyla yerleştirilir, diğer işlerin yeri korunur.
+    const slots = pendingJobs
+      .map((j, idx) => (filteredPending.some((f) => f.id === j.id) ? idx : -1))
+      .filter((idx) => idx !== -1);
+    const newGlobal = [...pendingJobs];
+    slots.forEach((slotIdx, i) => { newGlobal[slotIdx] = reorderedSubset[i]; });
+
+    const orderMap = new Map(newGlobal.map((j, idx) => [j.id, idx]));
     setJobs((prev) => prev.map((j) => (orderMap.has(j.id) ? { ...j, order: orderMap.get(j.id) } : j)));
 
     try {
       await axios.put(`${API}/jobs/reorder-batch`, {
-        jobs: reordered.map((j, idx) => ({ job_id: j.id, order: idx })),
+        jobs: newGlobal.map((j, idx) => ({ job_id: j.id, order: idx })),
       });
       toast.success("Sıra güncellendi — tüm panellere yansıdı");
     } catch {
@@ -360,27 +405,105 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
         {/* Sıradaki işler */}
         <div>
           <div className="flex items-center justify-between gap-2 mb-3">
-            <p className="section-label">Sıradaki İşler ({pendingJobs.length})</p>
-            <span className="text-xs text-text-secondary">Sürükleyip sırala — tüm panellerde otomatik güncellenir</span>
+            <p className="section-label">Sıradaki İşler ({filteredPending.length}{filtersActive ? ` / ${pendingJobs.length}` : ""})</p>
+            <span className="text-xs text-text-secondary hidden sm:inline">Sürükleyip sırala — tüm panellerde otomatik güncellenir</span>
+          </div>
+
+          {/* Filtreler */}
+          <div className="mb-4 space-y-2.5" data-testid="boyaci-filters">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] uppercase tracking-wider text-text-muted font-bold mr-1">Makine</span>
+              <button
+                onClick={() => setFilterMachine("all")}
+                data-testid="boyaci-filter-machine-all"
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  filterMachine === "all" ? "bg-pink-600 text-white border-pink-600" : "bg-surface text-text-secondary border-border hover:border-pink-500/50"
+                }`}
+              >Hepsi</button>
+              {machineOptions.map((m) => {
+                const count = pendingJobs.filter((j) => j.machine_id === m.id).length;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setFilterMachine(filterMachine === m.id ? "all" : m.id)}
+                    data-testid={`boyaci-filter-machine-${m.id}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      filterMachine === m.id ? "bg-pink-600 text-white border-pink-600" : "bg-surface text-text-secondary border-border hover:border-pink-500/50"
+                    }`}
+                  >{m.name} <span className="opacity-60">({count})</span></button>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] uppercase tracking-wider text-text-muted font-bold mr-1">Ölçü</span>
+              <button
+                onClick={() => setFilterFormat("all")}
+                data-testid="boyaci-filter-format-all"
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  filterFormat === "all" ? "bg-fuchsia-600 text-white border-fuchsia-600" : "bg-surface text-text-secondary border-border hover:border-fuchsia-500/50"
+                }`}
+              >Hepsi</button>
+              {formatOptions.map((f) => {
+                const count = pendingJobs.filter((j) => (j.format || "") === f
+                  && (filterMachine === "all" || j.machine_id === filterMachine)).length;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilterFormat(filterFormat === f ? "all" : f)}
+                    data-testid={`boyaci-filter-format-${f}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      filterFormat === f ? "bg-fuchsia-600 text-white border-fuchsia-600" : "bg-surface text-text-secondary border-border hover:border-fuchsia-500/50"
+                    }`}
+                  >{f} <span className="opacity-60">({count})</span></button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="İş adı, müşteri, renk, not ara…"
+                  className="pl-9 bg-background border-border h-10"
+                  data-testid="boyaci-search-input"
+                />
+              </div>
+              {filtersActive && (
+                <Button
+                  variant="outline"
+                  className="h-10"
+                  onClick={() => { setFilterMachine("all"); setFilterFormat("all"); setSearch(""); }}
+                  data-testid="boyaci-filters-clear"
+                >
+                  <X className="mr-1.5 h-4 w-4" /> Filtreyi Temizle
+                </Button>
+              )}
+            </div>
           </div>
 
           {loading ? (
             <p className="text-text-secondary text-sm">Yükleniyor…</p>
-          ) : pendingJobs.length === 0 ? (
+          ) : filteredPending.length === 0 ? (
             <Card className="panel-industrial" data-testid="boyaci-queue-empty">
-              <CardContent className="p-8 text-center text-text-secondary">Sırada bekleyen iş yok.</CardContent>
+              <CardContent className="p-8 text-center text-text-secondary">
+                {filtersActive ? "Bu filtreye uyan bekleyen iş yok." : "Sırada bekleyen iş yok."}
+              </CardContent>
             </Card>
           ) : (
             <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={pendingJobs.map((j) => j.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={filteredPending.map((j) => j.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2.5" data-testid="boyaci-queue-list">
-                  {pendingJobs.map((job, idx) => (
+                  {filteredPending.map((job) => (
                     <SortableRow key={job.id} id={job.id}>
                       <Card className="panel-industrial" data-testid={`boyaci-job-${job.id}`}>
                         <CardContent className="p-3 sm:p-4">
                           <div className="flex gap-3">
-                            <div className="shrink-0 w-7 h-7 rounded-lg bg-pink-500/15 text-pink-400 border border-pink-500/30 flex items-center justify-center text-xs font-bold">
-                              {idx + 1}
+                            <div className="shrink-0 w-7 h-7 rounded-lg bg-pink-500/15 text-pink-400 border border-pink-500/30 flex items-center justify-center text-xs font-bold"
+                              title="Genel sıradaki yeri">
+                              {pendingJobs.findIndex((p) => p.id === job.id) + 1}
                             </div>
                             <JobThumb job={job} onOpen={openPreview} size={56} />
                             <div className="min-w-0 flex-1">
