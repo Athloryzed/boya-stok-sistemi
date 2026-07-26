@@ -1421,7 +1421,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   const machineJobs = selectedMachineDetail ? {
     current: jobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress"),
-    pending: jobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending"),
+    pending: jobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending").sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     completed: jobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "completed")
   } : null;
 
@@ -1823,7 +1823,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {machines.map((machine, index) => {
                 const currentJob = jobs.find(j => j.machine_id === machine.id && j.status === "in_progress");
-                const upcomingJobs = jobs.filter(j => j.machine_id === machine.id && j.status === "pending");
+                const upcomingJobs = jobs.filter(j => j.machine_id === machine.id && j.status === "pending").sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                 return (
                   <Card key={machine.id}
                     className={`bg-surface border-2 cursor-pointer machine-card-hover animate-fade-up stagger-${index + 1} ${

@@ -95,7 +95,9 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     # PERFORMANS: image_url base64 büyük (full image, ~50-300KB). Listeden çıkar.
     # Ama thumb_url küçük (~3-8KB) — küçük önizleme için listede tut.
     projection = {"_id": 0, "image_url": 0}
-    jobs = await db.jobs.find(query, projection).sort("created_at", 1).to_list(1000)
+    # Bekleyen işler kullanıcı tanımlı sıraya (order) göre döner → tüm panellerde aynı sıra
+    sort_spec = [("order", 1), ("created_at", 1)] if status == "pending" else [("created_at", 1)]
+    jobs = await db.jobs.find(query, projection).sort(sort_spec).to_list(1000)
     # has_image alanını sonradan ekle (Pydantic image_url None döner)
     img_ids = await db.jobs.find(
         {"image_url": {"$exists": True, "$nin": [None, ""]}},

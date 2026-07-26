@@ -1054,9 +1054,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const filteredJobs = jobs.filter(job => 
-    selectedFormat === "all" || job.format === selectedFormat
-  );
+  const filteredJobs = jobs
+    .filter(job => selectedFormat === "all" || job.format === selectedFormat)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const filteredCompletedJobs = completedJobs.filter(job =>
     selectedFormat === "all" || job.format === selectedFormat
@@ -2391,7 +2391,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
               <div className="space-y-6">
                 {(() => {
                   const currentJob = allJobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress");
-                  const pendingJobs = allJobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending");
+                  const pendingJobs = allJobs.filter(j => j.machine_id === selectedMachineDetail.id && j.status === "pending").sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                   
                   return (
                     <>

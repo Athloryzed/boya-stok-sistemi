@@ -913,7 +913,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   };
 
   const filteredJobs = selectedMachine
-    ? jobs.filter(job => (selectedFormat === "all" || job.format === selectedFormat) && job.status === "pending")
+    ? jobs.filter(job => (selectedFormat === "all" || job.format === selectedFormat) && job.status === "pending").sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     : [];
 
   const currentJobOnMachine = selectedMachine 
@@ -968,7 +968,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       return;
     }
 
-    const pendingJobs = jobs.filter(j => j.status === "pending" && j.machine_id === selectedMachine.id);
+    const pendingJobs = jobs.filter(j => j.status === "pending" && j.machine_id === selectedMachine.id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const draggedIndex = pendingJobs.findIndex(j => j.id === draggedJob.id);
     const targetIndex = pendingJobs.findIndex(j => j.id === targetJob.id);
 
