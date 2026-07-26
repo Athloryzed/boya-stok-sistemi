@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Body, Depends
 from datetime import datetime, timezone
+import json
 import logging
 
 from database import db
@@ -12,6 +13,14 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 async def get_audit_logs(limit: int = 100, skip: int = 0):
     """Kullanici hareket loglarini getir"""
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    # Legacy kayıtlarda dict/list yazılmış olabilir → UI'da React #31 hatasını önlemek için stringe çevir
+    for log in logs:
+        for field in ("user", "action", "entity_type", "entity_name", "details"):
+            v = log.get(field)
+            if v is None:
+                log[field] = ""
+            elif not isinstance(v, str):
+                log[field] = json.dumps(v, ensure_ascii=False, default=str) if isinstance(v, (dict, list, tuple)) else str(v)
     total = await db.audit_logs.count_documents({})
     return {"logs": logs, "total": total}
 

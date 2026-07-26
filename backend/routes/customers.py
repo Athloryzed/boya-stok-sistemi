@@ -147,7 +147,7 @@ async def create_customer(payload: dict = Body(...), user=Depends(get_current_us
     # _id'yi temizle (insert_one ekledi, JSON serializable değil)
     doc.pop("_id", None)
     try:
-        await log_audit("customer_create", user.get("username"), {"customer_id": customer.id, "name": name, "code": code})
+        await log_audit(user.get("username"), "create", "customer", name, f"Kod: {code or '—'}")
     except Exception:
         pass
     return doc
@@ -168,7 +168,7 @@ async def update_customer(customer_id: str, payload: dict = Body(...), user=Depe
         raise HTTPException(404, "Müşteri bulunamadı")
     c = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     try:
-        await log_audit("customer_update", user.get("username"), {"customer_id": customer_id, "fields": list(update.keys())})
+        await log_audit(user.get("username"), "update", "customer", c.get("name", customer_id), f"Guncellenen: {', '.join(update.keys())}")
     except Exception:
         pass
     return c
@@ -183,7 +183,7 @@ async def archive_customer(customer_id: str, user=Depends(get_current_user)):
     if res.matched_count == 0:
         raise HTTPException(404, "Müşteri bulunamadı")
     try:
-        await log_audit("customer_archive", user.get("username"), {"customer_id": customer_id})
+        await log_audit(user.get("username"), "delete", "customer", customer_id, "Arsivlendi")
     except Exception:
         pass
     return {"ok": True, "archived": True}

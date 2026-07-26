@@ -37,6 +37,18 @@ const PAINT_COLORS = {
 };
 const LOW_STOCK_THRESHOLD = 5;
 
+// React #31 koruması: object/array gelirse okunabilir metne çevir
+const safeText = (v) => {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    try { return Object.entries(v).map(([k, val]) => `${k}: ${typeof val === "object" ? JSON.stringify(val) : val}`).join(" · "); }
+    catch { return ""; }
+  }
+  return String(v);
+};
+
+
 // Geçen gün sayısını hesapla
 const calculateDaysElapsed = (dateString) => {
   if (!dateString) return null;
@@ -2756,7 +2768,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               <td className="py-2 px-2 text-text-secondary text-xs whitespace-nowrap">
                                 {new Date(log.created_at).toLocaleString("tr-TR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}
                               </td>
-                              <td className="py-2 px-2 text-text-primary font-medium">{log.user}</td>
+                              <td className="py-2 px-2 text-text-primary font-medium">{safeText(log.user)}</td>
                               <td className="py-2 px-2">
                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                                   log.action === "create" ? "bg-green-500/20 text-green-400" :
@@ -2774,12 +2786,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                    log.action === "start" ? "Baslatti" :
                                    log.action === "complete" ? "Tamamladi" :
                                    log.action === "pause" ? "Durdurdu" :
-                                   log.action === "resume" ? "Devam Etti" : log.action}
+                                   log.action === "resume" ? "Devam Etti" : safeText(log.action)}
                                 </span>
                               </td>
-                              <td className="py-2 px-2 text-text-secondary capitalize">{log.entity_type}</td>
-                              <td className="py-2 px-2 text-text-primary">{log.entity_name}</td>
-                              <td className="py-2 px-2 text-text-secondary text-xs">{log.details}</td>
+                              <td className="py-2 px-2 text-text-secondary capitalize">{safeText(log.entity_type)}</td>
+                              <td className="py-2 px-2 text-text-primary">{safeText(log.entity_name)}</td>
+                              <td className="py-2 px-2 text-text-secondary text-xs">{safeText(log.details)}</td>
                             </tr>
                           ))}
                         </tbody>

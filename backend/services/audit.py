@@ -37,6 +37,17 @@ async def _get_last_hash() -> str:
     return "0" * 64  # genesis
 
 
+def _as_text(value) -> str:
+    """Audit alanları her zaman string olmalı (dict/list gelirse UI'da React #31 hatası olur)."""
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value, ensure_ascii=False, default=str)
+    return str(value)
+
+
 async def log_audit(
     user: str,
     action: str,
@@ -51,11 +62,11 @@ async def log_audit(
         now_iso = datetime.now(timezone.utc).isoformat()
         payload = {
             "id": str(uuid.uuid4()),
-            "user": user or "",
-            "action": action or "",
-            "entity_type": entity_type or "",
-            "entity_name": entity_name or "",
-            "details": details or "",
+            "user": _as_text(user),
+            "action": _as_text(action),
+            "entity_type": _as_text(entity_type),
+            "entity_name": _as_text(entity_name),
+            "details": _as_text(details),
             "metadata": metadata or {},
             "created_at": now_iso,
             "prev_hash": prev_hash,
