@@ -10,7 +10,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://papermill-pro.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://depo-tracker-1.preview.emergentagent.com').rstrip('/')
 
 class TestShiftApprovalWorkflow:
     """Test cases for shift-end approval workflow"""
