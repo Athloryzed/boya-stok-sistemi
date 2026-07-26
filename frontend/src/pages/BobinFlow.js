@@ -13,6 +13,7 @@ import axios from "axios";
 import { API } from "../App";
 import { useConfirm } from "../components/ConfirmProvider";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
 import WarehouseBadgePicker from "../components/WarehouseBadgePicker";
@@ -516,6 +517,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, accent: "default" },
               ]}
             />
+            <AIAssistant panel="bobin" />
             <UserMenu />
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-zinc-400 hover:text-white h-9 w-9 shrink-0" data-testid="bobin-logout-btn">
               <LogOut className="h-4 w-4" />

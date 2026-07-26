@@ -24,6 +24,7 @@ import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import CustomerCombobox from "../components/CustomerCombobox";
 import CustomersManagementPanel from "../components/CustomersManagementPanel";
@@ -1385,6 +1386,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
               ]}
             />
+            <AIAssistant panel="plan" />
             <UserMenu />
           </div>
         </div>

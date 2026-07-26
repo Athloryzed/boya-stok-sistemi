@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import JobThumb from "../components/JobThumb";
 import { ExpectedKoliCard } from "../components/ExpectedKoliSummary";
@@ -316,6 +317,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, accent: "default" },
               ]}
             />
+            <AIAssistant panel="boyaci" />
             <UserMenu />
             <Button variant="outline" size="icon" onClick={handleLogout} data-testid="boyaci-logout-btn" className="text-error border-error/40 h-9 w-9 xl:w-auto xl:px-3 shrink-0">
               <LogOut className="h-4 w-4 xl:mr-2" />

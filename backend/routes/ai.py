@@ -6,7 +6,8 @@ import logging
 
 from database import db
 from models import AIChatRequest, AIManagementChatRequest
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.chat import UserMessage
+from services.ai_config import build_chat, get_llm_key
 from auth import get_current_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -80,8 +81,7 @@ Son 7 Gün İstatistikleri:
 - Vardiya raporu: {len(recent_shifts)} adet"""
 
     try:
-        chat = LlmChat(
-            api_key=llm_key,
+        chat = build_chat(
             session_id=f"suggestion_{machine_id}_{uuid.uuid4().hex[:8]}",
             system_message="""Sen bir fabrika üretim danışmanısın. Kısa ve net öneriler ver.
 Türkçe yanıt ver. Emoji kullanma. 
@@ -90,7 +90,7 @@ Türkçe yanıt ver. Emoji kullanma.
 2. Verimlilik (hız, kalite, defo azaltma)
 3. Uyarılar (bakım ihtiyacı, anormal defo oranı vb.)
 Her öneriyi tek cümle ile yaz. Madde işareti kullan. Maksimum 5 öneri ver."""
-        ).with_model("openai", "gpt-5.2")
+        )
 
         msg = UserMessage(text=f"Bu makinenin mevcut durumu:\n{context}\n\nBu verilere göre operatöre önerilerin neler?")
         response = await chat.send_message(msg)
@@ -162,10 +162,7 @@ Kurallar:
 - Emoji kullanma"""
 
     try:
-        chat = LlmChat(
-            api_key=llm_key, session_id=req.session_id,
-            system_message=system_msg
-        ).with_model("openai", "gpt-5.2")
+        chat = build_chat(session_id=req.session_id, system_message=system_msg)
 
         for hist in chat_history:
             if hist.get("role") == "user":
@@ -268,8 +265,7 @@ Defo Durumu (Son 7 Gün): {round(total_defect_kg, 1)} kg
 {chr(10).join(defect_lines) if defect_lines else 'Defo kaydı yok'}"""
 
     try:
-        chat = LlmChat(
-            api_key=llm_key,
+        chat = build_chat(
             session_id=f"mgmt_overview_{uuid.uuid4().hex[:8]}",
             system_message="""Sen bir fabrika yönetim danışmanısın. Verilen fabrika verilerini analiz et ve yönetime kısa, net öneriler sun.
 Türkçe yanıt ver. Emoji kullanma.
@@ -279,7 +275,7 @@ Türkçe yanıt ver. Emoji kullanma.
 3. VERIMLILIK ONERILERI (iş dağılımı, kapasite kullanımı)
 4. UYARILAR (bakım, defo, geciken işler)
 Her maddeyi kısa tut. Maksimum 8 madde."""
-        ).with_model("openai", "gpt-5.2")
+        )
 
         response = await chat.send_message(UserMessage(text=f"Fabrika durumunu analiz et:\n{context}"))
 
@@ -358,10 +354,7 @@ Kurallar:
     ).sort("created_at", 1).to_list(20)
 
     try:
-        chat = LlmChat(
-            api_key=llm_key, session_id=req.session_id,
-            system_message=system_msg
-        ).with_model("openai", "gpt-5.2")
+        chat = build_chat(session_id=req.session_id, system_message=system_msg)
 
         for hist in chat_history:
             if hist.get("role") == "user":

@@ -14,6 +14,7 @@ import axios from "axios";
 import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 import { resumeCentralSession } from "../lib/auth";
 
 // Boya renk haritası (gerçek renklere yakın)
@@ -344,6 +345,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
             <Button variant="outline" size="icon" onClick={toggleTheme} data-testid="theme-toggle" className="border-border bg-surface hover:bg-surface-highlight h-9 w-9">
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
+            <AIAssistant panel="paint" />
             <UserMenu />
           </div>
         </div>

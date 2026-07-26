@@ -43,6 +43,7 @@ from routes.users import router as users_router
 from routes.warehouse import router as warehouse_router
 from routes.paints import router as paints_router
 from routes.ai import router as ai_router
+from routes.ai_panel import router as ai_panel_router
 from routes.dashboard import router as dashboard_router
 from routes.messages import router as messages_router
 from routes.visitors import router as visitors_router
@@ -100,6 +101,7 @@ api_router.include_router(users_router)
 api_router.include_router(warehouse_router)
 api_router.include_router(paints_router)
 api_router.include_router(ai_router)
+api_router.include_router(ai_panel_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(messages_router)
 api_router.include_router(visitors_router)
@@ -276,6 +278,7 @@ async def ensure_indexes():
     try:
         # jobs - en cok sorgulanan koleksiyon
         await db.jobs.create_index("id", unique=True)
+        await db.ai_panel_messages.create_index([("user_id", ASCENDING), ("panel", ASCENDING), ("created_at", ASCENDING)])
         await db.jobs.create_index([("status", ASCENDING), ("machine_id", ASCENDING)])
         await db.jobs.create_index([("status", ASCENDING), ("completed_at", DESCENDING)])
         await db.jobs.create_index("tracking_code", unique=True)

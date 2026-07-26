@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { toast } from "sonner";
 import axios from "axios";
@@ -537,6 +538,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
                 { id: "theme", label: theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema", icon: theme === "dark" ? Sun : Moon, onClick: toggleTheme, testId: "theme-toggle", accent: "default" },
               ]}
             />
+            <AIAssistant panel="depo" />
             <UserMenu />
           </div>
         </div>

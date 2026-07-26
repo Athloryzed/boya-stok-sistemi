@@ -7,7 +7,8 @@ import logging
 
 from database import db
 from models import Paint, PaintMovement, ActivePaintToMachine
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.llm.chat import UserMessage
+from services.ai_config import build_chat
 from auth import get_current_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -334,8 +335,7 @@ Bekleyen İşlerin Renkleri: {', '.join(job_colors[:20]) if job_colors else 'Bil
 Toplam Bekleyen İş: {len(pending_jobs)}"""
 
     try:
-        chat = LlmChat(
-            api_key=llm_key,
+        chat = build_chat(
             session_id=f"paint_forecast_{uuid.uuid4().hex[:8]}",
             system_message="""Sen bir boya stok yönetim uzmanısın. Türkçe yanıt ver. Emoji kullanma.
 Verilen verilere göre:
@@ -344,7 +344,7 @@ Verilen verilere göre:
 3. Bekleyen işlere göre hangi boyalara ihtiyaç olacağını tahmin et
 4. Genel stok durumu özeti ver
 Kısa ve net maddeler halinde yaz. Maksimum 6 madde."""
-        ).with_model("openai", "gpt-5.2")
+        )
 
         response = await chat.send_message(UserMessage(text=f"Boya stok durumunu analiz et:\n{context}"))
 

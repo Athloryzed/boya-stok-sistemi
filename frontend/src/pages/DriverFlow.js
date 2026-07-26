@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import UserMenu from "../components/UserMenu";
+import AIAssistant from "../components/AIAssistant";
 
 const DriverFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
@@ -312,6 +313,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
+          <AIAssistant panel="sofor" />
           <UserMenu />
           <Button variant="outline" size="icon" onClick={handleLogout} className="h-9 w-9 xl:w-auto xl:px-3 shrink-0">
             <LogOut className="w-4 h-4 xl:mr-1" />
