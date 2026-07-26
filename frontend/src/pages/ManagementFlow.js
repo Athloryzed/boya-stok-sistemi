@@ -3376,6 +3376,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     { value: "plan", label: "Planlama", icon: "📋" },
                     { value: "depo", label: "Depo", icon: "📦" },
                     { value: "sofor", label: "Şoför", icon: "🚚" },
+                    { value: "boyaci", label: "Boyacı", icon: "🎨" },
                     { value: "yonetim", label: "Yönetim", icon: "👑" },
                   ].map(r => {
                     const active = newUserData.roles.includes(r.value);
@@ -3449,6 +3450,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     { value: "plan", label: "Planlama", icon: "📋" },
                     { value: "depo", label: "Depo", icon: "📦" },
                     { value: "sofor", label: "Şoför", icon: "🚚" },
+                    { value: "boyaci", label: "Boyacı", icon: "🎨" },
                     { value: "yonetim", label: "Yönetim", icon: "👑" },
                   ].map(r => {
                     const active = editingUserRoles.roles.includes(r.value);

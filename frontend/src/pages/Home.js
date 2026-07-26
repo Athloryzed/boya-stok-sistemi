@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
@@ -122,6 +122,7 @@ const modules = [
   { name: "Operatör", path: "/operator", icon: HardHat, color: "#34D399", desc: "Üretim takibi" },
   { name: "Depo", path: "/warehouse", icon: Warehouse, color: "#F97316", desc: "Stok yönetimi" },
   { name: "Boya", path: "/paint", icon: Paintbrush, color: "#A78BFA", desc: "Boya takibi" },
+  { name: "Boyacı Paneli", path: "/boyaci", icon: Brush, color: "#EC4899", desc: "İş sırası & üretim" },
   { name: "Bobin", path: "/bobin", icon: Layers, color: "#10B981", desc: "Bobin takibi" },
   { name: "Marka/Koli Stok", path: "/marka-stok", icon: Package, color: "#22C55E", desc: "Stok takibi" },
   { name: "Sürücü", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
@@ -896,6 +897,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
                     { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/25 to-purple-600/10 border-purple-500/40 text-purple-300" },
                     { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/25 to-teal-600/10 border-teal-500/40 text-teal-300" },
                     { path: "/marka-stok", label: "Marka/Koli", icon: "🏷️", color: "from-green-500/25 to-green-600/10 border-green-500/40 text-green-300" },
+                    { path: "/boyaci", label: "Boyacı", icon: "🎨", color: "from-pink-500/25 to-pink-600/10 border-pink-500/40 text-pink-300" },
                     { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/25 to-rose-600/10 border-rose-500/40 text-rose-300" },
                   ].map(p => (
                     <button

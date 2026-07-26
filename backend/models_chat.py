@@ -96,7 +96,7 @@ SEED_CHANNELS = [
     {
         "key": "genel", "name": "Genel", "icon": "📢", "color": "#FFBF00",
         "description": "Tüm fabrika çalışanları — duyurular, paylaşımlar",
-        "auto_join_roles": ["yonetim", "plan", "operator", "depo", "sofor"],
+        "auto_join_roles": ["yonetim", "plan", "operator", "depo", "sofor", "boyaci"],
     },
     {
         "key": "yonetim", "name": "Yönetim", "icon": "👑", "color": "#FFD700",
@@ -106,7 +106,7 @@ SEED_CHANNELS = [
     {
         "key": "plan", "name": "Planlama", "icon": "📋", "color": "#60A5FA",
         "description": "Plan ekibi + Yönetim — iş atama, çizelge",
-        "auto_join_roles": ["yonetim", "plan"],
+        "auto_join_roles": ["yonetim", "plan", "boyaci"],
     },
     {
         "key": "operator", "name": "Operatörler", "icon": "👷", "color": "#34D399",

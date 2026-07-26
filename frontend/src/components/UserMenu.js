@@ -23,6 +23,7 @@ const ROUTE_META = {
   "/plan":       { name: "Plan", emoji: "📋" },
   "/warehouse":  { name: "Depo", emoji: "📦" },
   "/paint":      { name: "Boya", emoji: "🎨" },
+  "/boyaci":     { name: "Boyacı", emoji: "🖌️" },
   "/bobin":      { name: "Bobin", emoji: "📜" },
   "/marka-stok": { name: "Marka/Koli", emoji: "🏷️" },
   "/driver":     { name: "Sürücü", emoji: "🚚" },

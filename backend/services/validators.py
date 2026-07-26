@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{2,32}$")
 PHONE_RE = re.compile(r"^[0-9+\-\s()]{7,20}$")
-ROLE_WHITELIST = {"operator", "plan", "depo", "sofor", "yonetim"}
+ROLE_WHITELIST = {"operator", "plan", "depo", "sofor", "yonetim", "boyaci"}
 
 
 def _clean(v: Optional[str]) -> Optional[str]:

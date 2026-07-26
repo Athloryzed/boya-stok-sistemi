@@ -20,8 +20,8 @@ import { shouldAlertOnce, alertKeyForMessage as alertKeyFor } from "../../utils/
 
 const EMOJIS = ["😊","😂","👍","❤️","🎉","🔥","✅","⚠️","🆘","🚀","💪","🙏","👏","✨","💯","☕","🍕","🤝","😴","🤔","😅","😎","🙌","💡","📦","🎨","🚚","🏭","🔧","📋","👷","👑","🆗","⏳","⚡"];
 
-const ROLE_LABELS = { yonetim: "Yönetim", plan: "Plan", operator: "Operatör", depo: "Depo", sofor: "Sürücü" };
-const ROLE_COLORS = { yonetim: "#FFD24C", plan: "#60A5FA", operator: "#34D399", depo: "#A78BFA", sofor: "#FB7185" };
+const ROLE_LABELS = { yonetim: "Yönetim", plan: "Plan", operator: "Operatör", depo: "Depo", sofor: "Sürücü", boyaci: "Boyacı" };
+const ROLE_COLORS = { yonetim: "#FFD24C", plan: "#60A5FA", operator: "#34D399", depo: "#A78BFA", sofor: "#FB7185", boyaci: "#F472B6" };
 
 function timeAgo(iso) {
   if (!iso) return "";

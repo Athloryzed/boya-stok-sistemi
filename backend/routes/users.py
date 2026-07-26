@@ -23,8 +23,8 @@ router = APIRouter()
 limiter = Limiter(key_func=get_real_client_ip)
 
 
-VALID_ROLES = ["operator", "plan", "depo", "sofor", "yonetim"]
-ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim"]
+VALID_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
+ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
 
 
 def _public_user(user: dict) -> dict:

@@ -22,8 +22,9 @@ export const ROUTE_ROLES = {
   "/management": ["yonetim"],
   "/operator":   ["yonetim", "operator"],
   "/plan":       ["yonetim", "plan"],
+  "/boyaci":     ["yonetim", "boyaci"],
   "/warehouse":  ["yonetim", "plan", "depo"],
-  "/paint":      ["yonetim", "plan", "depo"],
+  "/paint":      ["yonetim", "plan", "depo", "boyaci"],
   "/bobin":      ["yonetim", "plan", "depo"],
   "/marka-stok": ["yonetim", "plan", "depo"],
   "/driver":     ["yonetim", "plan", "sofor"],
@@ -37,12 +38,13 @@ export const ROLE_DEFAULT_ROUTE = {
   operator: "/operator",
   depo: "/warehouse",
   sofor: "/driver",
+  boyaci: "/boyaci",
 };
 
 const PANEL_SESSION_KEYS = [
   "operator_session", "plan_session", "depo_session",
   "warehouse_session", "bobin_session", "yonetim_master",
-  "paint_session", "marka_stok_session",
+  "paint_session", "marka_stok_session", "boyaci_session",
 ];
 
 export function getSession() {
