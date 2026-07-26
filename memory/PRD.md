@@ -1576,3 +1576,35 @@ başlat/tamamla akışı, reorder persist + Plan panelinde aynı sıra, diğer p
 - **Filtre açıkken sürükleme güvenli**: `handleDragEnd` filtrelenen işleri GLOBAL slotlarına geri yerleştirir → filtre dışı işlerin sırası hiç değişmez (testing agent ile matematiksel olarak doğrulandı).
 - **BUG FIX — panel arası sıra senkronizasyonu**: `GET /api/jobs` artık `status == "pending"` iken `[("order",1),("created_at",1)]` ile sıralıyor (diğer statülerde created_at korunur → geçmiş listeleri bozulmaz). Ek olarak PlanFlow / OperatorFlow / ManagementFlow bekleyen iş listeleri istemci tarafında da `order`'a göre sıralanıyor.
 - Test: iteration_49.json (filtreler %100) + iteration_50.json (backend 3/3, Boyacı→Plan senkron doğrulandı).
+
+---
+
+## AI: GPT-5.2 → Claude Opus 4.8 + Her Panele AI Asistanı — 26 Tem 2026 (Iteration 51)
+
+### Kullanıcı isteği & kararlar
+"GPT-5.2'yi Claude Opus 5 ile değiştirip her panele ekleyelim."
+→ `claude-opus-5` Emergent Universal Key'de HENÜZ AÇIK DEĞİL (probe: "Invalid model name"). Kullanıcı onayıyla **Claude Opus 4.8** kuruldu.
+Kullanıcı seçimleri: (1a) tüm çağrılar en güçlü Claude · (2b) sohbet geçmişi kullanıcı+panel bazlı KALICI · (3a) AI SALT OKUNUR.
+
+### Backend
+- **YENİ** `services/ai_config.py` — merkezi model: `.env` `AI_PROVIDER=anthropic`, `AI_MODEL=claude-opus-4-8`; `build_chat()` helper. **Opus 5 açıldığında tek satır `.env` değişimi yeter.**
+- `routes/ai.py` (4 endpoint) + `routes/paints.py` (paint-forecast) → `build_chat` kullanıyor, `gpt-5.2` referansı kalmadı.
+- **YENİ** `routes/ai_panel.py`:
+  - `POST /api/ai/panel-chat` {panel, message} — panel bazlı canlı DB context (makine durumu, kuyruk/order, kalan koli, boya/bobin/marka stok, depo talepleri, sevkiyat).
+  - `GET|DELETE /api/ai/panel-history?panel=` — `ai_panel_messages` koleksiyonunda kalıcı geçmiş (son 12 mesaj system prompt'a bağlam olarak gömülür → tek LLM çağrısı, düşük token maliyeti).
+  - `GET /api/ai/panel-info` — aktif model bilgisi.
+  - RBAC: `PANEL_ROLES` (yonetim her panele erişir; boyaci → boyaci+paint; depo → depo/bobin/marka_stok/paint vb.), yetkisiz panel → 403.
+- `server.py` — router include + `ai_panel_messages` index.
+
+### Frontend
+- **YENİ** `components/AIAssistant.jsx` — header'da sparkle butonu + sağdan açılan sohbet çekmecesi; panel bazlı örnek sorular, kalıcı geçmiş, "Geçmişi temizle", model adı gösterimi.
+- Eklendiği paneller: **Plan, Boyacı, Depo, Bobin, Marka/Koli Stok, Sürücü, Boya**. Yönetim ve Operatör panellerindeki mevcut AI özellikleri korundu (artık Claude ile).
+- data-testid: `ai-assistant-btn-{panel}`, `ai-assistant-drawer-{panel}`, `ai-input-{panel}`, `ai-send-{panel}`, `ai-clear-{panel}`, `ai-suggestion-{panel}-{i}`.
+
+### Test (iteration_51.json — Backend 20/20 pytest, Frontend %100)
+Model doğrulaması, 9 panel için anlamlı Türkçe yanıt, RBAC 403, validation 400, kalıcı geçmiş GET/DELETE, UI e2e (Boyacı) ve 6/7 panel buton kontrolü (sofor paneli sürücü girişi arkasında).
+Sonrasında token optimizasyonu: geçmiş artık ek LLM çağrısı yerine system prompt'a gömülüyor — süreklilik curl ile doğrulandı ("bir önceki soruda ne sormuştum?" → doğru yanıt).
+
+### Backlog
+- (P2) Opus 5 Universal Key'de açıldığında `.env AI_MODEL=claude-opus-5` yap.
+- (P3) Sürücü paneli için test credential'ı oluştur (AI butonunu UI'da doğrulamak için).

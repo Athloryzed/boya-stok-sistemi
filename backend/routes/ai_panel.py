@@ -229,24 +229,22 @@ async def panel_chat(data: dict = Body(...), current_user: dict = Depends(get_cu
     history.reverse()
 
     context = await _build_context(panel)
+    transcript = ""
+    if history:
+        transcript = "\n".join(
+            f"{'Kullanici' if h.get('role') == 'user' else 'Asistan'}: {h.get('content', '')[:400]}"
+            for h in history
+        )
     system_msg = (
         BASE_SYSTEM
         + f"\n\nSu anda {PANEL_TITLES.get(panel, panel)} panelindeki bir kullanıcıyla konuşuyorsun."
+        + (f"\n\nÖNCEKİ KONUŞMA GEÇMİŞİ (bağlam):\n{transcript}" if transcript else "")
         + f"\n\nGÜNCEL FABRİKA VERİSİ:\n{context}"
     )
 
     session_id = f"panel_{panel}_{uid}"
     try:
         chat = build_chat(session_id=session_id, system_message=system_msg)
-        # Kalıcı geçmişi modele taşı (kısa özet olarak)
-        if history:
-            transcript = "\n".join(
-                f"{'Kullanici' if h.get('role') == 'user' else 'Asistan'}: {h.get('content', '')[:400]}"
-                for h in history
-            )
-            await chat.send_message(UserMessage(
-                text=f"[ONCEKI KONUSMA GECMISI — sadece baglam icin, cevap verme]\n{transcript}"
-            ))
         response = await chat.send_message(UserMessage(text=message))
     except Exception as e:
         logger.error(f"panel-chat error ({panel}): {e}")
