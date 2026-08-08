@@ -1,7 +1,19 @@
 # Buse Kagit - Uretim Yonetim Sistemi PRD
 
 ## Original Problem Statement
+
 Factory management system for Buse Kagit paper company. Full-stack React + FastAPI + MongoDB PWA with AI assistants, Excel exports, live dashboards, QR codes, drag & drop, and secure JWT/bcrypt authentication.
+
+## 🆕 Merkezi Bildirim Bekçisi — Kullanıcı Başına Tek Bildirim (Jun 2026) — Iteration 52
+Sorun: 2-3 role sahip kullanıcılar aynı olay için 2-3 bildirim alıyordu (çoklu kanal fan-out + FCM/WebPush çift gönderim + bayat token birikimi). Çözüm (7/7 backend test geçti):
+1. **`services/notification_guard.py`** — `claim_users(event_key, user_ids)`: `notification_receipts` koleksiyonuna atomik upsert (unique index event_key+user_id, TTL 6 saat). Aynı olay aynı kullanıcıya HANGİ kanaldan gelirse gelsin 1 kez gider.
+2. **`services/auto_chat.py`** — Tüm notify_* fonksiyonları (bobin, boya, düşük stok, bakım, acil, iş atandı/tamamlandı) çağrı başına tek `event_key` üretir ve `_save_and_broadcast(event_key=...)` üzerinden `send_push_to_users`'a iletir. Eski `push_dedup` set mekanizması kaldırıldı. Sohbet mesajları TÜM kanallara yazılmaya devam eder — sadece push tekilleşir.
+3. **FCM + WebPush çapraz dedup** — `complete_job` FCM'i `evt-job_completed-{id}` anahtarıyla önce claim eder; auto_chat web push aynı anahtarı kullandığından FCM alan kullanıcı web push almaz.
+4. **`services/notifications.py`** — `send_notification_to_user_types` yeniden yazıldı: token'lar user_id bazında gruplanır, guard claim sonrası kullanıcının TÜM cihazlarına gider (çoklu cihaz OK, seçenek a). Diğer sender'lar (managers/operators/plan/all_workers) buna delege eder, hepsi `event_key` parametresi alır. `send_fcm_notification` geçersiz token'ları (Unregistered/InvalidArgument/SenderIdMismatch) otomatik siler.
+5. **`routes/misc.py`** — register-token artık `user_types` array'ine `$addToSet` yapar (çok rollü kullanıcı tüm rollerinden bildirim alır).
+6. **`routes/jobs.py`, `shifts.py`, `messages.py`** — Tüm FCM gönderimlerine event_key + tag eklendi (evt-new_job-, evt-shift_started-, evt-shift_end-, evt-machine_msg-).
+7. **Frontend `utils/alertDedup.js`** — localStorage tabanlı cross-tab dedup: aynı olay başka bir sekmede/panelde toast gösterildiyse tekrar göstermez.
+- Test: `/app/backend/tests/test_notification_dedup.py` (7/7), rapor: `/app/test_reports/iteration_52.json`
 
 ## 🆕 Multi-Warehouse (Depo) Assignment System (Feb 28, 2026) — Iteration 45
 Implemented complete dual-warehouse tracking for Bobins and Marka/Stok items (12/12 backend tests, 13/13 frontend flows passed):

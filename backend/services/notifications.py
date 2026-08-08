@@ -74,8 +74,11 @@ async def send_fcm_notification(tokens: List[str], title: str, body: str, data: 
         dead = []
         for idx, resp in enumerate(response.responses):
             if not resp.success:
-                err = str(resp.exception or "").lower()
-                if "unregistered" in err or "not found" in err or "invalid" in err:
+                exc = resp.exception
+                cls = exc.__class__.__name__ if exc else ""
+                err = str(exc or "").lower()
+                if cls in ("UnregisteredError", "InvalidArgumentError", "SenderIdMismatchError") \
+                        or "unregistered" in err or "not found" in err or "invalid" in err or "not a valid" in err:
                     dead.append(tokens[idx])
         if dead:
             await db.fcm_tokens.delete_many({"token": {"$in": dead}})

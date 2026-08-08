@@ -144,10 +144,6 @@ async def _save_and_broadcast(
     # Web Push (online olmayan / sayfa kapalı kullanıcılar için)
     if push_title and push_body:
         offline_users = [u for u in participants if not ws_chat.is_online(u) and u != msg.sender_id]
-        if push_dedup is not None:
-            # Aynı olay birden fazla kanala düşüyorsa kullanıcıya SADECE 1 push gitsin
-            offline_users = [u for u in offline_users if u not in push_dedup]
-            push_dedup.update(offline_users)
         if offline_users:
             try:
                 await send_push_to_users(
@@ -157,7 +153,7 @@ async def _save_and_broadcast(
                         "body": push_body,
                         "icon": "/icon-192.png",
                         "badge": "/icon-192.png",
-                        "tag": push_tag or f"conv-{conv_id}",
+                        "tag": push_tag or event_key or f"conv-{conv_id}",
                         "data": {
                             "conversation_id": conv_id,
                             "message_id": msg.id,
@@ -166,6 +162,7 @@ async def _save_and_broadcast(
                         },
                     },
                     db,
+                    event_key=event_key,
                 )
             except Exception as e:
                 logger.warning(f"Push notification error: {e}")
