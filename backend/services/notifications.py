@@ -70,6 +70,16 @@ async def send_fcm_notification(tokens: List[str], title: str, body: str, data: 
         )
         response = fb_messaging.send_each_for_multicast(message)
         logger.info(f"FCM notification sent: {response.success_count} success, {response.failure_count} failed")
+        # Geçersiz/bayat token'ları temizle (bayat token birikimi aynı cihaza çift bildirim yollar)
+        dead = []
+        for idx, resp in enumerate(response.responses):
+            if not resp.success:
+                err = str(resp.exception or "").lower()
+                if "unregistered" in err or "not found" in err or "invalid" in err:
+                    dead.append(tokens[idx])
+        if dead:
+            await db.fcm_tokens.delete_many({"token": {"$in": dead}})
+            logger.info(f"Cleaned {len(dead)} stale FCM tokens")
         return True
     except Exception as e:
         logger.error(f"FCM notification error: {e}")
@@ -112,80 +122,66 @@ async def send_whatsapp_notification(message: str):
 from database import db
 
 
-async def send_notification_to_managers(title: str, body: str, data: dict = None):
-    """Tüm kayıtlı yöneticilere FCM bildirimi gönder"""
+async def send_notification_to_user_types(user_types: List[str], title: str, body: str, data: dict = None, event_key: str = None):
+    """Birden fazla user_type'a TEK seferde bildirim gönder.
+
+    - Token'lar tekilleştirilir (aynı cihaza 1 gönderim)
+    - event_key verilirse: kullanıcı başına bildirim bekçisi (guard) uygulanır —
+      aynı olay aynı kullanıcıya başka bir kanaldan da gitmişse ATLANIR.
+      Kullanıcının tüm cihazlarına (token'larına) yine tek seferde gider.
+    """
     try:
-        tokens_cursor = db.fcm_tokens.find({"user_type": "manager"}, {"token": 1, "_id": 0})
-        tokens = [doc["token"] async for doc in tokens_cursor]
-        if tokens:
-            await send_fcm_notification(tokens, title, body, data)
-            logger.info(f"Notification sent to {len(tokens)} managers")
-        else:
-            logger.warning("No manager FCM tokens found")
-    except Exception as e:
-        logger.error(f"Error sending notification to managers: {e}")
-
-
-async def send_notification_to_operators(machine_id: str, title: str, body: str, data: dict = None):
-    """Belirli bir makinedeki operatörlere FCM bildirimi gönder"""
-    try:
-        tokens_cursor = db.fcm_tokens.find({"user_type": "operator"}, {"token": 1, "_id": 0})
-        tokens = [doc["token"] async for doc in tokens_cursor]
-        if tokens:
-            await send_fcm_notification(tokens, title, body, data)
-            logger.info(f"Notification sent to {len(tokens)} operators for machine {machine_id}")
-        else:
-            logger.warning("No operator FCM tokens found")
-    except Exception as e:
-        logger.error(f"Error sending notification to operators: {e}")
-
-
-async def send_notification_to_plan_users(title: str, body: str, data: dict = None):
-    """Tüm kayıtlı Plan kullanıcılarına FCM bildirimi gönder"""
-    try:
-        tokens_cursor = db.fcm_tokens.find({"user_type": "plan"}, {"token": 1, "_id": 0})
-        tokens = [doc["token"] async for doc in tokens_cursor]
-        if tokens:
-            await send_fcm_notification(tokens, title, body, data)
-            logger.info(f"Notification sent to {len(tokens)} plan users")
-        else:
-            logger.warning("No plan FCM tokens found")
-    except Exception as e:
-        logger.error(f"Error sending notification to plan users: {e}")
-
-
-async def send_notification_to_user_types(user_types: List[str], title: str, body: str, data: dict = None):
-    """Birden fazla user_type'a TEK seferde bildirim gönder (token'lar tekilleştirilir → mükerrer bildirim olmaz)."""
-    try:
-        tokens_cursor = db.fcm_tokens.find({"user_type": {"$in": user_types}}, {"token": 1, "_id": 0})
+        tokens_cursor = db.fcm_tokens.find(
+            {"$or": [{"user_type": {"$in": user_types}}, {"user_types": {"$in": user_types}}]},
+            {"token": 1, "user_id": 1, "_id": 0}
+        )
         seen = set()
-        tokens = []
+        owner_tokens = {}  # kullanıcı (veya token) -> [token, ...]
         async for doc in tokens_cursor:
             t = doc.get("token")
-            if t and t not in seen:
-                seen.add(t)
-                tokens.append(t)
-        if tokens:
-            await send_fcm_notification(tokens, title, body, data)
-            logger.info(f"Notification sent to {len(tokens)} unique devices ({', '.join(user_types)})")
-        else:
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            owner = doc.get("user_id") or f"tok:{t[:48]}"
+            owner_tokens.setdefault(owner, []).append(t)
+
+        if not owner_tokens:
             logger.warning(f"No FCM tokens found for {user_types}")
+            return
+
+        owners = list(owner_tokens.keys())
+        if event_key:
+            from services.notification_guard import claim_users
+            owners = await claim_users(event_key, owners)
+            if not owners:
+                logger.info(f"FCM skipped (guard): all users already notified for {event_key}")
+                return
+
+        tokens = [t for o in owners for t in owner_tokens[o]]
+        payload = dict(data or {})
+        if event_key and not payload.get("tag"):
+            payload["tag"] = event_key
+        await send_fcm_notification(tokens, title, body, payload)
+        logger.info(f"Notification sent to {len(tokens)} devices / {len(owners)} users ({', '.join(user_types)})")
     except Exception as e:
         logger.error(f"Error sending notification to {user_types}: {e}")
 
 
-async def send_notification_to_all_workers(title: str, body: str, data: dict = None):
+async def send_notification_to_managers(title: str, body: str, data: dict = None, event_key: str = None):
+    """Tüm kayıtlı yöneticilere FCM bildirimi gönder"""
+    await send_notification_to_user_types(["manager"], title, body, data, event_key)
+
+
+async def send_notification_to_operators(machine_id: str, title: str, body: str, data: dict = None, event_key: str = None):
+    """Operatörlere FCM bildirimi gönder"""
+    await send_notification_to_user_types(["operator"], title, body, data, event_key)
+
+
+async def send_notification_to_plan_users(title: str, body: str, data: dict = None, event_key: str = None):
+    """Tüm kayıtlı Plan kullanıcılarına FCM bildirimi gönder"""
+    await send_notification_to_user_types(["plan"], title, body, data, event_key)
+
+
+async def send_notification_to_all_workers(title: str, body: str, data: dict = None, event_key: str = None):
     """Tüm operatör ve plan kullanıcılarına FCM bildirimi gönder"""
-    try:
-        tokens_cursor = db.fcm_tokens.find(
-            {"user_type": {"$in": ["operator", "plan"]}},
-            {"token": 1, "_id": 0}
-        )
-        tokens = [doc["token"] async for doc in tokens_cursor]
-        if tokens:
-            await send_fcm_notification(tokens, title, body, data)
-            logger.info(f"Notification sent to {len(tokens)} workers")
-        else:
-            logger.warning("No worker FCM tokens found")
-    except Exception as e:
-        logger.error(f"Error sending notification to all workers: {e}")
+    await send_notification_to_user_types(["operator", "plan"], title, body, data, event_key)

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="7" time="12.411" timestamp="2026-08-08T14:29:15.890094+00:00" hostname="agent-env-7503c089-b01f-4c21-b237-946afd4351f6"><testcase classname="tests.test_notification_dedup" name="test_claim_users_atomicity" time="0.019" /><testcase classname="tests.test_notification_dedup" name="test_claim_users_empty_inputs" time="0.000" /><testcase classname="tests.test_notification_dedup" name="test_register_token_addtoset_user_types" time="0.582" /><testcase classname="tests.test_notification_dedup" name="test_get_jobs_authenticated" time="0.107" /><testcase classname="tests.test_notification_dedup" name="test_create_complete_job_chat_broadcast" time="4.942"><failure message="AssertionError: chat message NOT posted to #yonetim channel&#10;assert None is not None">tests/test_notification_dedup.py:178: in test_create_complete_job_chat_broadcast
+    assert yon_msg is not None, "chat message NOT posted to #yonetim channel"
+E   AssertionError: chat message NOT posted to #yonetim channel
+E   assert None is not None</failure></testcase><testcase classname="tests.test_notification_dedup" name="test_stale_fcm_token_cleanup" time="6.329"><failure message="AssertionError: stale FCM token was NOT cleaned up (Firebase send should have flagged it invalid)&#10;assert {'_id': ObjectId('6a773d412fc2b1f416dc3bbf'), 'token': 'fake_test_token_a08170ffa4a9429c88ba1b5e10d7010c', 'updated_at': '2026-08-08T14:29:21.752604+00:00', 'user_id': 'TEST_stale_user', ...} is None">tests/test_notification_dedup.py:214: in test_stale_fcm_token_cleanup
+    assert doc is None, "stale FCM token was NOT cleaned up (Firebase send should have flagged it invalid)"
+E   AssertionError: stale FCM token was NOT cleaned up (Firebase send should have flagged it invalid)
+E   assert {'_id': ObjectId('6a773d412fc2b1f416dc3bbf'), 'token': 'fake_test_token_a08170ffa4a9429c88ba1b5e10d7010c', 'updated_at': '2026-08-08T14:29:21.752604+00:00', 'user_id': 'TEST_stale_user', ...} is None</failure></testcase><testcase classname="tests.test_notification_dedup" name="test_maintenance_multichannel_dedup" time="0.183"><failure message="NameError: name 'push_dedup' is not defined">tests/test_notification_dedup.py:238: in test_maintenance_multichannel_dedup
+    _run(run())
+tests/test_notification_dedup.py:66: in _run
+    return _LOOP.run_until_complete(coro)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:654: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_notification_dedup.py:232: in run
+    await auto_chat.notify_maintenance_request(
+services/auto_chat.py:329: in notify_maintenance_request
+    await _save_and_broadcast(
+services/auto_chat.py:147: in _save_and_broadcast
+    if push_dedup is not None:
+       ^^^^^^^^^^
+E   NameError: name 'push_dedup' is not defined</failure></testcase></testsuite></testsuites>

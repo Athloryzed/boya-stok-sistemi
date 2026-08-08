@@ -106,10 +106,19 @@ async def send_push(subscription: dict, payload: dict) -> bool:
         return False
 
 
-async def send_push_to_users(user_ids: List[str], payload: dict, db):
-    """Birden fazla kullanıcıya push gönder. Eski abonelikleri temizle."""
+async def send_push_to_users(user_ids: List[str], payload: dict, db, event_key: Optional[str] = None):
+    """Birden fazla kullanıcıya push gönder. Eski abonelikleri temizle.
+
+    event_key verilirse bildirim bekçisi uygulanır: aynı olay için daha önce
+    (FCM veya başka kanaldan) bildirim almış kullanıcılar atlanır.
+    """
     if not user_ids:
         return
+    if event_key:
+        from services.notification_guard import claim_users
+        user_ids = await claim_users(event_key, user_ids)
+        if not user_ids:
+            return
     subs = await db.push_subscriptions.find({"user_id": {"$in": user_ids}}, {"_id": 0}).to_list(500)
     if not subs:
         return

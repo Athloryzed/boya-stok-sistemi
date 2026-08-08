@@ -57,7 +57,7 @@ async def register_fcm_token(data: dict = Body(...)):
             "token": token, "user_type": user_type,
             "user_id": user_id,
             "updated_at": datetime.now(timezone.utc).isoformat()
-        }},
+        }, "$addToSet": {"user_types": user_type}},
         upsert=True
     )
     logging.info(f"FCM token registered for {user_type}: {token[:20]}...")

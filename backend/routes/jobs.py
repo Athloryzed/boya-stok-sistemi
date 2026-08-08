@@ -228,7 +228,8 @@ async def create_job(job: Job, created_by: str = None, current_user: dict = Depe
             machine_id=job.machine_id,
             title="Yeni Is Atandi",
             body=f"{job.name} - {job.machine_name}\n{job.koli_count} koli",
-            data={"type": "new_job", "job_id": job.id, "machine_id": job.machine_id}
+            data={"type": "new_job", "job_id": job.id, "machine_id": job.machine_id, "tag": f"evt-new_job-{job.id}"},
+            event_key=f"evt-new_job-{job.id}"
         )
     except Exception as e:
         logging.error(f"FCM notification error for new job: {e}")
@@ -443,11 +444,12 @@ async def _send_completion_notifications(job: dict, job_id: str, completed_koli:
 
         event_tag = f"evt-job_completed-{job_id}"
 
-        # TEK çağrı: manager + plan token'ları tekilleştirilir → aynı cihaza 2 bildirim gitmez
+        # TEK çağrı: manager + plan token'ları tekilleştirilir + kullanıcı başına bildirim bekçisi
         await send_notification_to_user_types(
             ["manager", "plan"],
             title=notification_title, body=notification_body,
-            data={"type": "job_completed", "job_id": job_id, "tag": event_tag}
+            data={"type": "job_completed", "job_id": job_id, "tag": event_tag},
+            event_key=event_tag
         )
 
         await ws_manager_mgmt.broadcast_to_managers({

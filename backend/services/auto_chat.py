@@ -11,6 +11,7 @@ Tetikleyiciler:
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import logging
+import uuid
 
 from database import db
 from models_chat import ChatMessage, Conversation, SEED_CHANNELS
@@ -112,7 +113,7 @@ async def _save_and_broadcast(
     push_body: Optional[str] = None,
     push_extra: Optional[Dict[str, Any]] = None,
     push_tag: Optional[str] = None,
-    push_dedup: Optional[set] = None,
+    event_key: Optional[str] = None,
 ):
     """Mesajı kaydet + WebSocket broadcast + Push gönder."""
     await db.chat_messages.insert_one(msg.model_dump())
@@ -198,6 +199,7 @@ async def notify_bobin_request(operator_name: str, machine_name: str, machine_id
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "quantity": quantity, **(extra or {})}
     settings = await _get_settings("bobin_request")
     channels = settings.get("target_channels") or ["depo"]
+    event_key = f"evt-bobin_request-{machine_id}-{uuid.uuid4().hex[:8]}"
     for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -207,6 +209,7 @@ async def notify_bobin_request(operator_name: str, machine_name: str, machine_id
                 push_title=f"📜 Bobin talebi · {machine_name}",
                 push_body=f"{operator_name}{qty_text} bobin istiyor.",
                 push_extra={"event_type": "bobin_request"},
+                event_key=event_key,
             )
     # Makine kanalı (varsa)
     mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
@@ -227,6 +230,7 @@ async def notify_paint_request(operator_name: str, machine_name: str, machine_id
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "color": color, "quantity_l": quantity_l}
     settings = await _get_settings("paint_request")
     channels = settings.get("target_channels") or ["depo"]
+    event_key = f"evt-paint_request-{machine_id}-{uuid.uuid4().hex[:8]}"
     for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -235,6 +239,7 @@ async def notify_paint_request(operator_name: str, machine_name: str, machine_id
                 push_title=f"🎨 Boya talebi · {machine_name}",
                 push_body=f"{operator_name} — {detail}",
                 push_extra={"event_type": "paint_request"},
+                event_key=event_key,
             )
 
 
@@ -246,6 +251,7 @@ async def notify_low_stock(item_type: str, item_name: str, current: float, thres
     text = f"⚠️ **Düşük Stok** — {item_name} ({item_type}) yalnızca {current} {unit} kaldı (eşik: {threshold} {unit})."
     meta = {"item_type": item_type, "item_name": item_name, "current": current, "threshold": threshold, "unit": unit}
     channels = settings.get("target_channels") or ["depo", "yonetim"]
+    event_key = f"evt-low_stock-{item_type}-{item_name}-{uuid.uuid4().hex[:8]}"
     for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -254,6 +260,7 @@ async def notify_low_stock(item_type: str, item_name: str, current: float, thres
                 push_title=f"⚠️ Düşük stok: {item_name}",
                 push_body=f"{current} {unit} kaldı (eşik {threshold} {unit})",
                 push_extra={"event_type": "low_stock"},
+                event_key=event_key,
             )
 
 
@@ -278,6 +285,7 @@ async def notify_job_assigned(job: dict):
                 push_title=f"📋 Yeni iş · {machine_name}",
                 push_body=f"{name} · {koli} koli",
                 push_extra={"event_type": "job_assigned", "job_id": job.get("id")},
+                event_key=f"evt-new_job-{job.get('id') or name}",
             )
 
 
@@ -295,7 +303,6 @@ async def notify_job_completed(job: dict):
     channels = settings.get("target_channels") or ["plan", "yonetim"]
     job_id = job.get("id") or name
     event_tag = f"evt-job_completed-{job_id}"
-    push_dedup: set = set()
     for ch_key in channels:
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -305,7 +312,7 @@ async def notify_job_completed(job: dict):
                 push_body=f"{name} · {koli} koli — {operator}",
                 push_extra={"event_type": "job_completed", "event_key": event_tag},
                 push_tag=event_tag,
-                push_dedup=push_dedup,
+                event_key=event_tag,
             )
 
 
@@ -315,6 +322,7 @@ async def notify_maintenance_request(operator_name: str, machine_name: str, mach
     if note:
         text += f"\n_Not: {note}_"
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "note": note}
+    event_key = f"evt-maintenance-{machine_id}-{uuid.uuid4().hex[:8]}"
     for ch_key in ("yonetim", "plan"):
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -323,6 +331,7 @@ async def notify_maintenance_request(operator_name: str, machine_name: str, mach
                 push_title=f"🔧 Bakım talebi · {machine_name}",
                 push_body=f"{operator_name} bakım istiyor" + (f": {note[:50]}" if note else ""),
                 push_extra={"event_type": "maintenance_request"},
+                event_key=event_key,
             )
     mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
     if mach_conv:
@@ -335,6 +344,7 @@ async def notify_emergency(operator_name: str, machine_name: str, machine_id: st
     if note:
         text += f"\n_Detay: {note}_"
     meta = {"machine_id": machine_id, "machine_name": machine_name, "operator_name": operator_name, "note": note, "priority": "emergency"}
+    event_key = f"evt-emergency-{machine_id}-{uuid.uuid4().hex[:8]}"
     for ch_key in ("yonetim", "plan", "operator", "depo"):
         ch = await db.conversations.find_one({"channel_key": ch_key}, {"_id": 0})
         if ch:
@@ -343,6 +353,7 @@ async def notify_emergency(operator_name: str, machine_name: str, machine_id: st
                 push_title=f"🆘 ACİL · {machine_name}",
                 push_body=f"{operator_name} yardım istiyor!",
                 push_extra={"event_type": "emergency", "priority": "high"},
+                event_key=event_key,
             )
     mach_conv = await db.conversations.find_one({"machine_id": machine_id, "type": "machine"}, {"_id": 0})
     if mach_conv:

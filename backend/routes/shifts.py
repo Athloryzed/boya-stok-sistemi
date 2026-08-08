@@ -358,7 +358,8 @@ async def start_shift(started_by: str = None):
         await send_notification_to_all_workers(
             title="Vardiya Basladi!",
             body=f"Gunluk vardiya baslamistir. {resumed_count} is otomatik devam etti." if resumed_count > 0 else "Gunluk vardiya baslamistir. Iyi calismalar!",
-            data={"type": "shift_started", "shift_id": shift.id}
+            data={"type": "shift_started", "shift_id": shift.id, "tag": f"evt-shift_started-{shift.id}"},
+            event_key=f"evt-shift_started-{shift.id}"
         )
     except Exception as e:
         logging.error(f"Shift start notification error: {e}")
@@ -398,7 +399,8 @@ async def notify_shift_end():
             machine_id="all",
             title="Vardiya Bitti!",
             body="Lütfen üretim ve defo bilgilerinizi girin.",
-            data={"type": "shift_end_report", "shift_id": active_shift["id"]}
+            data={"type": "shift_end_report", "shift_id": active_shift["id"], "tag": f"evt-shift_end-{active_shift['id']}"},
+            event_key=f"evt-shift_end-{active_shift['id']}"
         )
     except Exception as e:
         logging.error(f"Shift end notification error: {e}")

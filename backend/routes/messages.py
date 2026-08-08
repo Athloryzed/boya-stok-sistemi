@@ -44,7 +44,8 @@ async def send_message(data: dict = Body(...)):
             machine_id=machine_id,
             title=f"Yeni Mesaj - {sender_name}",
             body=message_text[:100],
-            data={"type": "new_message", "machine_id": machine_id}
+            data={"type": "new_message", "machine_id": machine_id, "tag": f"evt-machine_msg-{message.id}"},
+            event_key=f"evt-machine_msg-{message.id}"
         )
     except Exception as e:
         logging.error(f"FCM notification error for message: {e}")

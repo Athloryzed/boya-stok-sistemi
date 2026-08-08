@@ -362,6 +362,11 @@ async def ensure_indexes():
         # fcm_tokens
         await db.fcm_tokens.create_index("token", unique=True)
         await db.fcm_tokens.create_index("user_type")
+        await db.fcm_tokens.create_index("user_types")
+
+        # notification_receipts (bildirim bekçisi — aynı olay kullanıcıya 1 kez)
+        await db.notification_receipts.create_index([("event_key", ASCENDING), ("user_id", ASCENDING)], unique=True)
+        await db.notification_receipts.create_index("created_at", expireAfterSeconds=21600)
 
         # shipments
         await db.shipments.create_index("id", unique=True)
