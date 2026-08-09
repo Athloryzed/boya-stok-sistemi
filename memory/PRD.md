@@ -4,6 +4,9 @@
 
 Factory management system for Buse Kagit paper company. Full-stack React + FastAPI + MongoDB PWA with AI assistants, Excel exports, live dashboards, QR codes, drag & drop, and secure JWT/bcrypt authentication.
 
+## 🆕 Depo Paneli — Üretilecek Toplam Koli (Yönetim tarzı) (Jun 2026)
+- `WarehouseFlow.js`: compact `ExpectedKoliSummary` yerine Yönetim panelindeki gibi `ExpectedKoliCard` (variant="large") kullanıldı — tıklanınca makine bazlı üretim yükü pop-up'ı + iş drill-down açılır. Aktif işler için `GET /api/jobs` fetch'i eklendi (allJobs state). testId: `warehouse-expected-koli` (+ `-dialog`).
+
 ## 🆕 Merkezi Bildirim Bekçisi — Kullanıcı Başına Tek Bildirim (Jun 2026) — Iteration 52
 Sorun: 2-3 role sahip kullanıcılar aynı olay için 2-3 bildirim alıyordu (çoklu kanal fan-out + FCM/WebPush çift gönderim + bayat token birikimi). Çözüm (7/7 backend test geçti):
 1. **`services/notification_guard.py`** — `claim_users(event_key, user_ids)`: `notification_receipts` koleksiyonuna atomik upsert (unique index event_key+user_id, TTL 6 saat). Aynı olay aynı kullanıcıya HANGİ kanaldan gelirse gelsin 1 kez gider.

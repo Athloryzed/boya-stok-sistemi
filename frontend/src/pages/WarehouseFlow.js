@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import { API } from "../App";
 import { Html5QrcodeScanner } from "html5-qrcode";
-import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
+import { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import { resumeCentralSession, clearSession } from "../lib/auth";
@@ -47,6 +47,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const [shipmentLogForm, setShipmentLogForm] = useState({ delivered_koli: 0, partial: false });
   const [completedJobs, setCompletedJobs] = useState([]);
   const [expectedSummary, setExpectedSummary] = useState(null);
+  const [allJobs, setAllJobs] = useState([]);
   const [completedSearch, setCompletedSearch] = useState("");
   const [completedMachineFilter, setCompletedMachineFilter] = useState("all");
   const [completedDaysFilter, setCompletedDaysFilter] = useState("30");
@@ -296,6 +297,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         axios.get(`${API}/warehouse/shipment-logs`),
         axios.get(`${API}/jobs?status=completed`),
         axios.get(`${API}/jobs/expected-summary`),
+        axios.get(`${API}/jobs`),
       ]);
       const safeArray = (res) =>
         res.status === "fulfilled" && Array.isArray(res.value.data) ? res.value.data : null;
@@ -307,6 +309,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       if (results[5].status === "fulfilled" && results[5].value?.data) {
         setExpectedSummary(results[5].value.data);
       }
+      const aj = safeArray(results[6]); if (aj) setAllJobs(aj);
     } catch (error) {
       console.error("Data fetch error:", error);
     }
@@ -559,17 +562,17 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
           )}
         </div>
 
-        {/* Beklenen Üretim Özeti */}
-        {expectedSummary && (
-          <div className="mb-6 max-w-2xl">
-            <ExpectedKoliSummary
-              summary={expectedSummary}
-              variant="compact"
-              title="Üretilecek Toplam Koli"
-              testId="warehouse-expected-koli"
-            />
-          </div>
-        )}
+        {/* Beklenen Üretim Özeti — Yönetim paneli gibi: büyük kart + makine kırılımı pop-up */}
+        <div className="mb-6">
+          <ExpectedKoliCard
+            summary={expectedSummary || computeExpectedSummary(allJobs)}
+            jobs={allJobs}
+            variant="large"
+            title="Üretilecek Toplam Koli"
+            subtitle="Aktif kuyruktaki tüm işler (Bekleyen + Devam Eden + Durdurulmuş) — makine kırılımı için tıkla"
+            testId="warehouse-expected-koli"
+          />
+        </div>
 
         <Tabs defaultValue="alerts" className="space-y-6">
           {/* DEPO ÖZET + TRANSFER GEÇMİŞİ */}
