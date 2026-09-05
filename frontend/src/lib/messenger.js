@@ -186,7 +186,11 @@ export function connectChatWS() {
   ws.onclose = async (ev) => {
     if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
     // 4401/1008/4403 = auth reddi → access token expire olmuş, refresh dene
-    const authRejected = ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 1008);
+    // 1006 = anormal kapanma; sunucu tarafında accept() öncesi close() çağrılırsa
+    // (auth reddi de dahil) tarayıcı bunu 1006 olarak raporlayabilir — savunma amaçlı
+    // buraya da ekliyoruz. Zararsız: token geçerliyse refresh isteği başarısız olur
+    // ve MAX_AUTH_RETRIES ile sınırlı kalır (aşağıya bakınız).
+    const authRejected = ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 1008 || ev.code === 1006);
     if (authRejected && wsAuthRetries < MAX_AUTH_RETRIES) {
       wsAuthRetries += 1;
       const newToken = await tryRefreshAuthToken();
@@ -196,7 +200,12 @@ export function connectChatWS() {
         wsReconnectTimer = setTimeout(() => connectChatWS(), 200);
         return;
       }
-      // Refresh başarısız → kullanıcı yeniden giriş yapmalı, reconnect döngüsünü durdur
+      // Refresh başarısız (geçici ağ kesintisi olabilir, illa token geçersiz demek değil) →
+      // tamamen durmak yerine 30 sn sonra tekrar dene; sayacı sıfırla ki o denemede
+      // yeni bir refresh şansı olsun (aksi halde MAX_AUTH_RETRIES tükenmiş kalırdı).
+      wsAuthRetries = 0;
+      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(() => connectChatWS(), 30000);
       return;
     }
     // Normal kapanma → 3 sn sonra reconnect

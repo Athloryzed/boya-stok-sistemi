@@ -29,7 +29,8 @@ class ChatConnectionManager:
         self._lock = asyncio.Lock()
 
     async def connect(self, websocket: WebSocket, user_id: str):
-        await websocket.accept()
+        # accept() çağrısı server.py'deki chat_websocket'te, token doğrulamasından
+        # ÖNCE yapılıyor (geçersiz token'da düzgün close code'u dönebilmek için).
         async with self._lock:
             if user_id not in self.user_sockets:
                 self.user_sockets[user_id] = set()

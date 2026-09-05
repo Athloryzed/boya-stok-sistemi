@@ -183,8 +183,15 @@ async def operator_websocket(websocket: WebSocket, machine_id: str):
 
 @app.websocket("/api/ws/chat")
 async def chat_websocket(websocket: WebSocket, token: str = None):
-    """Chat WebSocket — user_id query param ile bağlanır (JWT token verified)."""
+    """Chat WebSocket — user_id query param ile bağlanır (JWT token verified).
+
+    accept() token doğrulamasından ÖNCE çağrılır: RFC 6455/ASGI'de, bir websocket
+    henüz accept edilmeden close() çağrılırsa tarayıcıya özel close code (4401)
+    değil, düz bir HTTP red kodu (403) gider ve close event'te code=1006 görünür.
+    Bu da frontend'in token yenileme mantığının hiç tetiklenmemesine yol açıyordu.
+    """
     from auth import decode_token
+    await websocket.accept()
     user_id = None
     try:
         token = websocket.query_params.get("token")
