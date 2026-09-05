@@ -116,6 +116,11 @@ async def _save_and_broadcast(
     event_key: Optional[str] = None,
 ):
     """Mesajı kaydet + WebSocket broadcast + Push gönder."""
+    # Push tekilleştirmesinde kullanılan event_key'i event_meta'ya da yaz —
+    # frontend'in alertKeyForMessage()'ı böylece WS/toast tarafında da AYNI
+    # key'i kullanır (push ile WS uyarısı artık aynı olayı tekilleştirir).
+    if event_key:
+        msg.event_meta["event_key"] = event_key
     await db.chat_messages.insert_one(msg.model_dump())
     await db.conversations.update_one(
         {"id": conv_id},

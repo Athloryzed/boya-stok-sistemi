@@ -298,6 +298,12 @@ const MessengerPanel = () => {
         // Aynı olay (ör. iş tamamlandı) hem #plan hem #yonetim kanalına düşerse SADECE 1 kez uyar
         const alertKey = alertKeyFor(m);
         const alertOnce = shouldAlertOnce(alertKey);
+        // Sistem/otomatik olay mesajları (job_assigned, job_completed vb.) için backend
+        // zaten ayrı bir push bildirimi gönderiyor (telefonda bildirim + titreşim).
+        // Burada tarayıcı Notification'ı ve beep'i TEKRAR göstermiyoruz — sadece
+        // in-app toast (geçmiş/okuma amaçlı) kalıyor. Normal kullanıcı mesajlarında
+        // (msg_type === "text") üçü de aynen çalışmaya devam ediyor.
+        const isSystemMsg = m.msg_type === "auto_event";
         // Toast (sadece drawer kapalıysa)
         if (!open && alertOnce) {
           toast(`${m.sender_name}`, {
@@ -307,7 +313,7 @@ const MessengerPanel = () => {
         }
         // Browser notification — online kullanıcı için (drawer kapalı veya tab arka planda)
         try {
-          if (alertOnce && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          if (!isSystemMsg && alertOnce && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
             const shouldNotify = !open || document.hidden;
             if (shouldNotify) {
               const convInfo = evt.conversation || {};
@@ -334,7 +340,7 @@ const MessengerPanel = () => {
         } catch (_) { /* notification API yoksa noop */ }
         // Kısa beep — WebAudio ile inline (asset gerektirmez)
         try {
-          if (alertOnce && (!open || document.hidden)) {
+          if (!isSystemMsg && alertOnce && (!open || document.hidden)) {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (AudioCtx) {
               const ctx = new AudioCtx();
