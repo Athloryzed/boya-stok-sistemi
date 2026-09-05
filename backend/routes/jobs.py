@@ -8,14 +8,14 @@ import logging
 import base64
 
 from database import db
-from models import Job
+from models import Job, JobReturn
 from services.audit import log_audit
 from services.notifications import (
     send_notification_to_operators, send_notification_to_managers,
     send_notification_to_plan_users, send_notification_to_user_types
 )
 from websocket_manager import ws_manager, ws_manager_mgmt
-from auth import get_current_user, get_user_roles, is_yonetim
+from auth import get_current_user, get_user_roles, is_yonetim, require_yonetim
 from services.image_utils import create_thumb_data_url
 
 router = APIRouter()
@@ -418,6 +418,63 @@ async def delete_job(job_id: str, deleted_by: str = None, current_user: dict = D
         raise HTTPException(status_code=404, detail="Job not found")
     await log_audit(deleted_by or "Yonetim", "delete", "job", job.get("name", "") if job else job_id)
     return {"message": "Job deleted"}
+
+
+@router.post("/jobs/{job_id}/return", response_model=JobReturn)
+async def create_job_return(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """İş için iade kaydı oluşturur. Job'ın kendisini değiştirmez — sadece
+    job_returns koleksiyonuna, sunucuda hesaplanmış tutarla bir kayıt ekler."""
+    await require_yonetim(current_user)
+
+    koli_count = data.get("koli_count")
+    reason = data.get("reason")
+    if not isinstance(koli_count, (int, float)) or koli_count <= 0:
+        raise HTTPException(status_code=400, detail="Geçerli bir koli_count girin")
+
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    unit_price = job.get("unit_price")
+    if unit_price is None:
+        raise HTTPException(status_code=400, detail="Bu işin birim fiyatı girilmemiş, iade oluşturulamaz")
+
+    koli_count = int(koli_count)
+    existing_returns = await db.job_returns.find({"job_id": job_id}, {"_id": 0, "koli_count": 1}).to_list(1000)
+    already_returned = sum(r.get("koli_count", 0) for r in existing_returns)
+    if already_returned + koli_count > job.get("koli_count", 0):
+        raise HTTPException(
+            status_code=400,
+            detail=f"İade edilen toplam koli ({already_returned + koli_count}) işin koli sayısını ({job.get('koli_count', 0)}) aşamaz"
+        )
+
+    job_return = JobReturn(
+        job_id=job_id,
+        job_name=job.get("name", ""),
+        customer_id=job.get("customer_id"),
+        customer_name=job.get("customer_name"),
+        koli_count=koli_count,
+        unit_price=unit_price,
+        amount=unit_price * koli_count,
+        reason=reason,
+        created_by=current_user.get("display_name") or current_user.get("username"),
+    )
+    await db.job_returns.insert_one(job_return.model_dump())
+    await log_audit(
+        job_return.created_by or "Yonetim", "create", "job_return", job.get("name", ""),
+        f"Koli: {koli_count}, Tutar: {job_return.amount}"
+    )
+    return job_return
+
+
+@router.get("/job-returns", response_model=List[JobReturn])
+async def list_job_returns(job_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    await require_yonetim(current_user)
+    query = {}
+    if job_id:
+        query["job_id"] = job_id
+    returns = await db.job_returns.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return returns
 
 
 @router.put("/jobs/{job_id}/start")

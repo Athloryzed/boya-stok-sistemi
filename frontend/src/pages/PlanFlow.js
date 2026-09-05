@@ -89,7 +89,8 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [isEditJobOpen, setIsEditJobOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState(null);
   const [editFormData, setEditFormData] = useState({
-    name: "", koli_count: "", colors: "", format: "", notes: "", delivery_date: "", delivery_address: "", delivery_phone: ""
+    name: "", koli_count: "", colors: "", format: "", notes: "", delivery_date: "", delivery_address: "", delivery_phone: "",
+    unit_price: "", extra_charge: "", extra_charge_note: ""
   });
   
   // Sevkiyat state'leri
@@ -139,6 +140,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     delivery_phone: "",
     image_url: "",
     customer: null, // { id, name, code, phone }
+    unit_price: "",
+    extra_charge: "",
+    extra_charge_note: "",
   });
 
   const [cloneFormData, setCloneFormData] = useState({
@@ -750,7 +754,10 @@ const PlanFlow = ({ theme, toggleTheme }) => {
       format: job.format || "",
       notes: job.notes || "",
       delivery_date: job.delivery_date || "",
-      image_url: imgUrl
+      image_url: imgUrl,
+      unit_price: job.unit_price != null ? job.unit_price.toString() : "",
+      extra_charge: job.extra_charge ? job.extra_charge.toString() : "",
+      extra_charge_note: job.extra_charge_note || "",
     });
     setEditPreviewImage(imgUrl || null);
     setIsEditJobOpen(true);
@@ -770,6 +777,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         notes: editFormData.notes,
         delivery_date: editFormData.delivery_date,
         image_url: editFormData.image_url || null,
+        unit_price: editFormData.unit_price !== "" ? parseFloat(editFormData.unit_price) : null,
+        extra_charge: editFormData.extra_charge !== "" ? parseFloat(editFormData.extra_charge) : 0,
+        extra_charge_note: editFormData.extra_charge_note || null,
         updated_by: userData?.display_name || userData?.username || "Plan"
       });
       toast.success("İş güncellendi!");
@@ -983,7 +993,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
 
     try {
-      const { customer, ...rest } = formData;
+      const { customer, unit_price, extra_charge, extra_charge_note, ...rest } = formData;
       await axios.post(`${API}/jobs?created_by=${encodeURIComponent(userData?.display_name || userData?.username || "Plan")}`, {
         ...rest,
         koli_count: parseInt(formData.koli_count),
@@ -992,6 +1002,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         image_url: formData.image_url || null,
         customer_id: customer?.id || null,
         customer_name: customer?.name || null,
+        unit_price: unit_price !== "" ? parseFloat(unit_price) : null,
+        extra_charge: extra_charge !== "" ? parseFloat(extra_charge) : 0,
+        extra_charge_note: extra_charge_note || null,
       });
       toast.success("İş eklendi!");
       setIsDialogOpen(false);
@@ -1007,6 +1020,9 @@ const PlanFlow = ({ theme, toggleTheme }) => {
         delivery_phone: "",
         image_url: "",
         customer: null,
+        unit_price: "",
+        extra_charge: "",
+        extra_charge_note: "",
       });
       setPreviewImage(null);
       fetchJobs();
@@ -1359,7 +1375,52 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                     )}
                   </div>
                 </div>
-                
+
+                {hasYonetimRole(userData?.roles) && (
+                  <>
+                    <div>
+                      <Label className="text-text-primary">Koli Birim Fiyatı (TL)</Label>
+                      <Input
+                        data-testid="job-unit-price-input"
+                        type="number"
+                        step="0.01"
+                        value={formData.unit_price}
+                        onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
+                        className="bg-background border-border text-text-primary"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-text-primary">Ek Ücret (TL)</Label>
+                      <Input
+                        data-testid="job-extra-charge-input"
+                        type="number"
+                        step="0.01"
+                        value={formData.extra_charge}
+                        onChange={(e) => setFormData({...formData, extra_charge: e.target.value})}
+                        className="bg-background border-border text-text-primary"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-text-primary">Ek Ücret Notu</Label>
+                      <Input
+                        data-testid="job-extra-charge-note-input"
+                        value={formData.extra_charge_note}
+                        onChange={(e) => setFormData({...formData, extra_charge_note: e.target.value})}
+                        className="bg-background border-border text-text-primary"
+                        placeholder="Örn: Klişe, nakliye"
+                      />
+                    </div>
+                    {formData.unit_price !== "" && (
+                      <div className="text-sm text-text-secondary bg-background border border-border rounded-md px-3 py-2">
+                        Toplam: {(
+                          (parseFloat(formData.unit_price) || 0) * (parseInt(formData.koli_count) || 0)
+                          + (parseFloat(formData.extra_charge) || 0)
+                        ).toLocaleString("tr-TR")} TL
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <Button
                   data-testid="submit-job-button"
                   onClick={handleAddJob}
@@ -2565,6 +2626,52 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   )}
                 </div>
               </div>
+
+              {hasYonetimRole(userData?.roles) && (
+                <>
+                  <div>
+                    <Label className="text-text-primary">Koli Birim Fiyatı (TL)</Label>
+                    <Input
+                      data-testid="edit-job-unit-price-input"
+                      type="number"
+                      step="0.01"
+                      value={editFormData.unit_price}
+                      onChange={(e) => setEditFormData({...editFormData, unit_price: e.target.value})}
+                      className="bg-background border-border text-text-primary"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-text-primary">Ek Ücret (TL)</Label>
+                    <Input
+                      data-testid="edit-job-extra-charge-input"
+                      type="number"
+                      step="0.01"
+                      value={editFormData.extra_charge}
+                      onChange={(e) => setEditFormData({...editFormData, extra_charge: e.target.value})}
+                      className="bg-background border-border text-text-primary"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-text-primary">Ek Ücret Notu</Label>
+                    <Input
+                      data-testid="edit-job-extra-charge-note-input"
+                      value={editFormData.extra_charge_note}
+                      onChange={(e) => setEditFormData({...editFormData, extra_charge_note: e.target.value})}
+                      className="bg-background border-border text-text-primary"
+                      placeholder="Örn: Klişe, nakliye"
+                    />
+                  </div>
+                  {editFormData.unit_price !== "" && (
+                    <div className="text-sm text-text-secondary bg-background border border-border rounded-md px-3 py-2">
+                      Toplam: {(
+                        (parseFloat(editFormData.unit_price) || 0) * (parseInt(editFormData.koli_count) || 0)
+                        + (parseFloat(editFormData.extra_charge) || 0)
+                      ).toLocaleString("tr-TR")} TL
+                    </div>
+                  )}
+                </>
+              )}
+
               <Button
                 data-testid="submit-edit-button"
                 onClick={handleUpdateJob}

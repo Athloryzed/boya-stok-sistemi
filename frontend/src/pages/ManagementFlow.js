@@ -196,6 +196,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const [isMachineDetailOpen, setIsMachineDetailOpen] = useState(false);
   const [isEditJobOpen, setIsEditJobOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState(null);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const [jobToReturn, setJobToReturn] = useState(null);
+  const [returnFormData, setReturnFormData] = useState({ koli_count: "", reason: "" });
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [selectedMachineForMessage, setSelectedMachineForMessage] = useState(null);
   const [messageText, setMessageText] = useState("");
@@ -1171,6 +1174,30 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       fetchData();
     } catch (error) {
       toast.error("İş silinemedi");
+    }
+  };
+
+  const openReturnDialog = (job) => {
+    setJobToReturn(job);
+    setReturnFormData({ koli_count: "", reason: "" });
+    setIsReturnDialogOpen(true);
+  };
+
+  const handleCreateJobReturn = async () => {
+    if (!returnFormData.koli_count || parseInt(returnFormData.koli_count) <= 0) {
+      toast.error("Geçerli bir koli sayısı girin");
+      return;
+    }
+    try {
+      await axios.post(`${API}/jobs/${jobToReturn.id}/return`, {
+        koli_count: parseInt(returnFormData.koli_count),
+        reason: returnFormData.reason || null,
+      });
+      toast.success("İade kaydedildi!");
+      setIsReturnDialogOpen(false);
+      setJobToReturn(null);
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "İade kaydedilemedi");
     }
   };
 
@@ -3295,9 +3322,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <h4 className="font-heading font-bold text-text-primary">{job.name}</h4>
                                 <p className="text-sm text-text-secondary">Koli: {job.completed_koli} / {job.koli_count}</p>
                               </div>
-                              <Button size="sm" variant="outline" onClick={() => handleDeleteJob(job.id)} className="text-error hover:bg-error hover:text-white">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex gap-2">
+                                {job.unit_price != null && (
+                                  <Button size="sm" variant="outline" onClick={() => openReturnDialog(job)}>
+                                    İade Gir
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="outline" onClick={() => handleDeleteJob(job.id)} className="text-error hover:bg-error hover:text-white">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -3307,6 +3341,44 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* İADE GİR DIALOG */}
+        <Dialog open={isReturnDialogOpen} onOpenChange={setIsReturnDialogOpen}>
+          <DialogContent className="bg-surface border-border">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-heading">İade Gir</DialogTitle>
+              <DialogDescription className="text-text-secondary">
+                {jobToReturn?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-text-primary">İade Edilen Koli Sayısı *</Label>
+                <Input
+                  type="number"
+                  value={returnFormData.koli_count}
+                  onChange={(e) => setReturnFormData({...returnFormData, koli_count: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                />
+              </div>
+              <div>
+                <Label className="text-text-primary">Sebep</Label>
+                <Input
+                  value={returnFormData.reason}
+                  onChange={(e) => setReturnFormData({...returnFormData, reason: e.target.value})}
+                  className="bg-background border-border text-text-primary"
+                  placeholder="Opsiyonel"
+                />
+              </div>
+              <Button
+                onClick={handleCreateJobReturn}
+                className="w-full bg-success text-white hover:bg-success/90"
+              >
+                İadeyi Kaydet
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 
