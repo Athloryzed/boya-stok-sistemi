@@ -214,6 +214,15 @@ async def create_job(job: Job, created_by: str = None, current_user: dict = Depe
             job.thumb_url = create_thumb_data_url(job.image_url)
         except Exception as e:
             logging.warning(f"Thumb creation failed: {e}")
+    # ─── Fiyatlandırma: total_price her zaman sunucuda hesaplanır, istemciden gelen yok sayılır ───
+    if job.unit_price is not None:
+        job.total_price = job.unit_price * job.koli_count + (job.extra_charge or 0.0)
+        job.priced_by = current_user.get("display_name") or current_user.get("username")
+        job.priced_at = datetime.now(timezone.utc).isoformat()
+    else:
+        job.total_price = None
+        job.priced_by = None
+        job.priced_at = None
     # ─── Customer hook: customer_id varsa, snapshot ismi düzelt + aggregate güncelle ───
     if job.customer_id:
         customer = await db.customers.find_one({"id": job.customer_id}, {"_id": 0, "name": 1})
@@ -358,6 +367,22 @@ async def update_job(job_id: str, updates: dict = Body(...), current_user: dict 
         raise HTTPException(status_code=404, detail="Job not found")
 
     updated_by = updates.pop("updated_by", None) or "Yonetim"
+    # ─── Fiyatlandırma: total_price her zaman sunucuda hesaplanır, istemciden gelen yok sayılır ───
+    updates.pop("total_price", None)
+    effective_unit_price = updates.get("unit_price", job.get("unit_price"))
+    effective_koli_count = updates.get("koli_count", job.get("koli_count"))
+    effective_extra_charge = updates.get("extra_charge", job.get("extra_charge", 0.0)) or 0.0
+    if effective_unit_price is not None:
+        updates["total_price"] = effective_unit_price * effective_koli_count + effective_extra_charge
+    else:
+        updates["total_price"] = None
+    if "unit_price" in updates:
+        if updates["unit_price"] is not None:
+            updates["priced_by"] = current_user.get("display_name") or current_user.get("username")
+            updates["priced_at"] = datetime.now(timezone.utc).isoformat()
+        else:
+            updates["priced_by"] = None
+            updates["priced_at"] = None
     # image_url değişiyorsa thumb_url'i de yeniden üret
     if "image_url" in updates:
         try:
@@ -734,16 +759,26 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...), current_user: 
     updated_history = existing_history + [transfer_entry]
 
     if total_produced > 0 and total_produced < original_koli:
+        # ─── Fiyatlandırma: unit_price koli başına sabit, her parça kendi koli
+        # sayısına göre total_price alır. extra_charge bölünmez, orijinalde kalır. ───
+        unit_price = job.get("unit_price")
+        original_extra_charge = job.get("extra_charge", 0.0) or 0.0
+        original_total_price = (
+            unit_price * total_produced + original_extra_charge
+            if unit_price is not None else None
+        )
         await db.jobs.update_one(
             {"id": job_id},
             {"$set": {
                 "status": "completed",
                 "completed_at": datetime.now(timezone.utc).isoformat(),
                 "completed_koli": total_produced,
-                "transfer_history": updated_history
+                "transfer_history": updated_history,
+                "total_price": original_total_price
             }}
         )
         remaining_koli = original_koli - total_produced
+        new_total_price = unit_price * remaining_koli if unit_price is not None else None
         new_job = Job(
             name=job["name"], koli_count=remaining_koli,
             colors=job.get("colors", ""), machine_id=target_machine_id,
@@ -753,6 +788,9 @@ async def quick_transfer_job(job_id: str, data: dict = Body(...), current_user: 
             delivery_phone=job.get("delivery_phone"),
             image_url=job.get("image_url"), status="pending", order=0,
             transfer_history=updated_history,
+            unit_price=unit_price, extra_charge=0.0,
+            total_price=new_total_price,
+            priced_by=job.get("priced_by"), priced_at=job.get("priced_at"),
         )
         await db.jobs.insert_one(new_job.model_dump())
 

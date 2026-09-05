@@ -67,6 +67,29 @@ class Job(BaseModel):
     pause_reason: Optional[str] = None
     produced_before_pause: int = 0
     transfer_history: List[dict] = Field(default_factory=list)
+    # ─── Fiyatlandırma (eklendi) ───
+    unit_price: Optional[float] = None
+    extra_charge: float = 0.0
+    extra_charge_note: Optional[str] = None
+    total_price: Optional[float] = None
+    priced_by: Optional[str] = None
+    priced_at: Optional[str] = None
+
+
+class JobReturn(BaseModel):
+    """İade edilen iş kaydı — koli bazlı iade ve tutar."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    job_id: str
+    job_name: str
+    customer_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    koli_count: int
+    unit_price: Optional[float] = None
+    amount: Optional[float] = None
+    reason: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class Shift(BaseModel):

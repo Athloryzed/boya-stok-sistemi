@@ -2301,6 +2301,11 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   className="bg-background border-border text-text-primary"
                 />
               </div>
+              {jobToClone?.unit_price != null && userData?.roles?.includes("yonetim") && (
+                <div className="text-sm text-text-secondary bg-background border border-border rounded-md px-3 py-2">
+                  Orijinal işin fiyatı: {jobToClone.unit_price.toLocaleString("tr-TR")} TL/koli
+                </div>
+              )}
               <div>
                 <Label className="text-text-primary">Renkler *</Label>
                 <Input
