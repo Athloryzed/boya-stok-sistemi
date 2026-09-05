@@ -10,7 +10,7 @@ import logging
 
 from database import db
 from models import Bobin, BobinMovement
-from auth import get_current_user
+from auth import get_current_user, get_user_roles
 from services.audit import log_audit
 from pymongo import ReturnDocument
 
@@ -391,12 +391,11 @@ async def get_bobin_movements(bobin_id: Optional[str] = None, movement_type: Opt
 
 # ==================== STOK YENİDEN HESAPLAMA (DATA INTEGRITY) ====================
 
-def _require_yonetim(user: dict):
-    roles = user.get("roles") or []
-    role = user.get("role")
-    if role in ("yonetim", "management", "depo", "planlama") or any(
-        r in roles for r in ("yonetim", "management", "depo", "planlama")
-    ):
+async def _require_yonetim(user: dict):
+    """Bu endpoint yonetim/management dışında depo ve planlama rollerine de açık —
+    rol çözümlemesi ortak get_user_roles()'a devredildi, yetki seti burada kalıyor."""
+    roles = await get_user_roles(user)
+    if any(r in roles for r in ("yonetim", "management", "depo", "planlama")):
         return
     raise HTTPException(status_code=403, detail="Yetkisiz")
 
@@ -410,7 +409,7 @@ async def recalculate_bobin_stock(current_user: dict = Depends(get_current_user)
 
     Hesap: SUM(purchase) - SUM(to_machine) - SUM(sale)
     """
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
 
     # Tüm hareketleri bobin_id bazında topla
     pipeline = [

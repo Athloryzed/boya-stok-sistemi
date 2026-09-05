@@ -11,9 +11,12 @@ from services.notifications import (
     send_whatsapp_notification
 )
 from websocket_manager import ws_manager
-from auth import get_current_user
+from auth import get_current_user, get_user_roles, is_yonetim, require_yonetim
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
+
+# Yonetim dışına gösterilmeyecek fiyat alanları
+PRICING_FIELDS = ["unit_price", "extra_charge", "extra_charge_note", "total_price", "priced_by", "priced_at"]
 
 
 @router.post("/shifts/request-end")
@@ -384,14 +387,22 @@ async def end_shift():
 
 
 @router.post("/shifts/notify-end")
-async def notify_shift_end():
-    """Vardiya bitiş bildirimi gönder"""
+async def notify_shift_end(current_user: dict = Depends(get_current_user)):
+    """Vardiya bitiş bildirimi gönder — sadece Yönetim (bu endpoint yönetim panelinden çağrılır)."""
+    await require_yonetim(current_user)
+
     active_shift = await db.shifts.find_one({"status": "active"}, {"_id": 0}, sort=[("started_at", -1)])
     if not active_shift:
         raise HTTPException(status_code=400, detail="Aktif vardiya bulunamadı")
 
+    # Fiyat alanları defense-in-depth olarak da gizleniyor (require_yonetim zaten erişimi kısıtlıyor)
+    projection = {"_id": 0}
+    roles = await get_user_roles(current_user)
+    if not is_yonetim(roles):
+        for field in PRICING_FIELDS:
+            projection[field] = 0
     active_jobs = await db.jobs.find(
-        {"status": {"$in": ["in_progress", "paused"]}}, {"_id": 0}
+        {"status": {"$in": ["in_progress", "paused"]}}, projection
     ).to_list(100)
 
     try:

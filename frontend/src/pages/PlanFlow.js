@@ -30,7 +30,7 @@ import CustomerCombobox from "../components/CustomerCombobox";
 import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
-import { resumeCentralSession, clearSession } from "../lib/auth";
+import { resumeCentralSession, clearSession, hasYonetimRole } from "../lib/auth";
 import { shouldAlertOnce } from "../utils/alertDedup";
 
 // Sürüklenebilir İş Kartı Wrapper
@@ -2301,7 +2301,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                   className="bg-background border-border text-text-primary"
                 />
               </div>
-              {jobToClone?.unit_price != null && userData?.roles?.includes("yonetim") && (
+              {jobToClone?.unit_price != null && hasYonetimRole(userData?.roles) && (
                 <div className="text-sm text-text-secondary bg-background border border-border rounded-md px-3 py-2">
                   Orijinal işin fiyatı: {jobToClone.unit_price.toLocaleString("tr-TR")} TL/koli
                 </div>

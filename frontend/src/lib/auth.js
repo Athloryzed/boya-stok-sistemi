@@ -77,6 +77,12 @@ export function isSessionValid() {
   return ageMs < 24 * 60 * 60 * 1000; // 24 saat
 }
 
+/** Rol dizisinde yönetim yetkisi var mı? ("yonetim" veya /management/login'in
+ *  sentetik "management" alias'ı — backend'deki YONETIM_ALIASES ile tutarlı). */
+export function hasYonetimRole(roles) {
+  return !!roles && (roles.includes("yonetim") || roles.includes("management"));
+}
+
 /** Kullanıcının panele erişimi var mı? */
 export function canAccessRoute(pathname) {
   const s = getSession();

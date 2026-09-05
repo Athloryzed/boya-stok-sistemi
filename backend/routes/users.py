@@ -9,7 +9,7 @@ from models import User
 from auth import (
     hash_password, verify_password,
     create_access_token, create_token_pair,
-    get_current_user, MANAGEMENT_PASSWORD,
+    get_current_user, MANAGEMENT_PASSWORD, ALL_PANEL_ROLES,
 )
 from services.audit import log_audit
 from services.account_lockout import assert_not_locked, record_failure, record_success
@@ -24,7 +24,7 @@ limiter = Limiter(key_func=get_real_client_ip)
 
 
 VALID_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
-ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
+# ALL_PANEL_ROLES artık auth.py'de tanımlı (tek kaynak) — buradan import edildi.
 
 
 def _public_user(user: dict) -> dict:

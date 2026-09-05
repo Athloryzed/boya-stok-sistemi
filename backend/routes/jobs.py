@@ -15,10 +15,13 @@ from services.notifications import (
     send_notification_to_plan_users, send_notification_to_user_types
 )
 from websocket_manager import ws_manager, ws_manager_mgmt
-from auth import get_current_user
+from auth import get_current_user, get_user_roles, is_yonetim
 from services.image_utils import create_thumb_data_url
 
 router = APIRouter()
+
+# Yonetim dışına gösterilmeyecek fiyat alanları (GET /jobs, /jobs/paused vb.)
+PRICING_FIELDS = ["unit_price", "extra_charge", "extra_charge_note", "total_price", "priced_by", "priced_at"]
 
 
 # Dosya Yükleme Endpoint'i
@@ -95,6 +98,11 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     # PERFORMANS: image_url base64 büyük (full image, ~50-300KB). Listeden çıkar.
     # Ama thumb_url küçük (~3-8KB) — küçük önizleme için listede tut.
     projection = {"_id": 0, "image_url": 0}
+    # Fiyatlandırma alanları sadece yonetim'e görünür
+    roles = await get_user_roles(current_user)
+    if not is_yonetim(roles):
+        for field in PRICING_FIELDS:
+            projection[field] = 0
     # Bekleyen işler kullanıcı tanımlı sıraya (order) göre döner → tüm panellerde aynı sıra
     if status == "pending":
         sort_spec = [("order", 1), ("created_at", 1)]
@@ -354,7 +362,12 @@ async def get_operators_list(current_user: dict = Depends(get_current_user)):
 @router.get("/jobs/paused")
 async def get_paused_jobs(current_user: dict = Depends(get_current_user)):
     """Durdurulmuş işleri listele"""
-    paused = await db.jobs.find({"status": "paused"}, {"_id": 0, "image_url": 0}).to_list(100)
+    projection = {"_id": 0, "image_url": 0}
+    roles = await get_user_roles(current_user)
+    if not is_yonetim(roles):
+        for field in PRICING_FIELDS:
+            projection[field] = 0
+    paused = await db.jobs.find({"status": "paused"}, projection).to_list(100)
     for j in paused:
         j["has_image"] = False  # paused listede ihtiyaç yok; lazy load /jobs/{id}/image ile
     return paused

@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from auth import get_current_user
+from auth import get_current_user, require_yonetim as _require_yonetim
 from database import db
 
 # Google Drive (Service Account)
@@ -77,14 +77,6 @@ def upload_to_drive(local_path: Path) -> dict:
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 _scheduler: Optional[AsyncIOScheduler] = None
-
-
-def _require_yonetim(user: dict):
-    roles = user.get("roles") or []
-    role = user.get("role")
-    if role in ("yonetim", "management") or "yonetim" in roles or "management" in roles:
-        return
-    raise HTTPException(status_code=403, detail="Sadece Yönetim erişebilir")
 
 
 def _mongo_uri() -> str:
@@ -247,7 +239,7 @@ def start_scheduler():
 
 @router.get("/admin/backups")
 async def list_backups(current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     files = []
     # Hem yeni (.enc) hem eski (.gz) dosyaları listele
     patterns = ["backup_*.archive.gz.enc", "backup_*.archive.gz"]
@@ -299,7 +291,7 @@ async def list_backups(current_user: dict = Depends(get_current_user)):
 
 @router.post("/admin/backups/run")
 async def trigger_backup(current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     result = run_backup_sync(upload_drive=True)
     if not result["success"]:
         raise HTTPException(status_code=500, detail=result.get("error", "Yedekleme başarısız"))
@@ -308,7 +300,7 @@ async def trigger_backup(current_user: dict = Depends(get_current_user)):
 
 @router.get("/admin/backups/download/{filename}")
 async def download_backup(filename: str, current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     if "/" in filename or ".." in filename or not filename.startswith("backup_"):
         raise HTTPException(status_code=400, detail="Geçersiz dosya adı")
     path = BACKUP_DIR / filename
@@ -321,7 +313,7 @@ async def download_backup(filename: str, current_user: dict = Depends(get_curren
 @router.post("/admin/backups/verify/{filename}")
 async def verify_backup(filename: str, current_user: dict = Depends(get_current_user)):
     """Restore dry-run + checksum doğrula (Madde 11)."""
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     if "/" in filename or ".." in filename or not filename.startswith("backup_"):
         raise HTTPException(status_code=400, detail="Geçersiz dosya adı")
     path = BACKUP_DIR / filename
@@ -349,7 +341,7 @@ async def verify_backup(filename: str, current_user: dict = Depends(get_current_
 
 @router.delete("/admin/backups/{filename}")
 async def delete_backup(filename: str, current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     if "/" in filename or ".." in filename or not filename.startswith("backup_"):
         raise HTTPException(status_code=400, detail="Geçersiz dosya adı")
     path = BACKUP_DIR / filename
@@ -368,7 +360,7 @@ async def delete_backup(filename: str, current_user: dict = Depends(get_current_
 @router.post("/admin/backups/drive/upload/{filename}")
 async def manual_drive_upload(filename: str, current_user: dict = Depends(get_current_user)):
     """Var olan lokal yedeği Drive'a yükle."""
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     if "/" in filename or ".." in filename or not filename.startswith("backup_"):
         raise HTTPException(status_code=400, detail="Geçersiz dosya adı")
     path = BACKUP_DIR / filename
@@ -383,7 +375,7 @@ async def manual_drive_upload(filename: str, current_user: dict = Depends(get_cu
 @router.get("/admin/backups/drive")
 async def list_drive_backups(current_user: dict = Depends(get_current_user)):
     """Google Drive klasöründeki tüm yedekleri listele."""
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     svc, folder_id = _drive_service()
     if not svc:
         return {"enabled": False, "files": []}
@@ -410,7 +402,7 @@ async def list_drive_backups(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/admin/backups/drive/{file_id}")
 async def delete_drive_backup(file_id: str, current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     svc, _ = _drive_service()
     if not svc:
         raise HTTPException(status_code=400, detail="Drive yapılandırması yok")

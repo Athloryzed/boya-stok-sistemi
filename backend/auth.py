@@ -8,6 +8,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from pathlib import Path
 
+from database import db
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -116,3 +118,47 @@ async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(
         return decode_token(credentials.credentials)
     except Exception:
         return None
+
+
+# ==================== ROL ÇÖZÜMLEME (çoklu rol + yonetim/management alias) ====================
+
+ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
+# "management" = /management/login sabit şifre girişinin sentetik rolü — "yonetim" ile eşdeğer.
+YONETIM_ALIASES = ("yonetim", "management")
+
+
+async def get_user_roles(current_user: dict) -> list:
+    """current_user (JWT payload) için gerçek rol listesini döner.
+
+    JWT'nin kendisi sadece tekil `role` claim'i taşır; çoklu rol desteği için
+    current_user["sub"] (kullanıcı id'si) ile db.users'tan tam kullanıcı
+    dokümanı çekilip oradaki `roles` dizisi kullanılır. Kullanıcı bulunamazsa
+    (örn. /management/login ile gelen sentetik token, gerçek bir db.users
+    kaydına karşılık gelmez) JWT'nin tekil `role` alanına düşülür.
+
+    Yonetim/management rolü varsa — /users/login'deki mevcut admin muafiyeti
+    mantığıyla tutarlı olarak — tüm panel rolleri otomatik eklenir.
+    """
+    user_id = current_user.get("sub")
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "roles": 1, "role": 1}) if user_id else None
+    if user_doc:
+        roles = user_doc.get("roles") or ([user_doc.get("role")] if user_doc.get("role") else [])
+    else:
+        role = current_user.get("role")
+        roles = [role] if role else []
+
+    if any(r in YONETIM_ALIASES for r in roles):
+        roles = list(set(roles) | {"yonetim"} | set(ALL_PANEL_ROLES))
+    return roles
+
+
+def is_yonetim(roles) -> bool:
+    """Rol listesinde yonetim veya management (alias) var mı?"""
+    return any(r in YONETIM_ALIASES for r in (roles or []))
+
+
+async def require_yonetim(current_user: dict) -> None:
+    """Sadece yonetim/management erişebilsin — yetkisizse 403 fırlatır."""
+    roles = await get_user_roles(current_user)
+    if not is_yonetim(roles):
+        raise HTTPException(status_code=403, detail="Sadece Yönetim erişebilir")

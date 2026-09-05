@@ -17,10 +17,13 @@ import uuid
 
 from database import db
 from models import Customer
-from auth import get_current_user
+from auth import get_current_user, get_user_roles, is_yonetim
 from services.audit import log_audit
 
 router = APIRouter()
+
+# Yonetim dışına gösterilmeyecek fiyat alanları
+PRICING_FIELDS = ["unit_price", "extra_charge", "extra_charge_note", "total_price", "priced_by", "priced_at"]
 
 
 def _now_iso() -> str:
@@ -107,7 +110,12 @@ async def customer_jobs(
     query = {"customer_id": customer_id}
     if status:
         query["status"] = status
-    jobs = await db.jobs.find(query, {"_id": 0, "thumb_url": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    projection = {"_id": 0, "thumb_url": 0}
+    roles = await get_user_roles(user)
+    if not is_yonetim(roles):
+        for field in PRICING_FIELDS:
+            projection[field] = 0
+    jobs = await db.jobs.find(query, projection).sort("created_at", -1).limit(limit).to_list(limit)
     active = [j for j in jobs if j.get("status") not in ("completed", "cancelled")]
     history = [j for j in jobs if j.get("status") in ("completed", "cancelled")]
     return {

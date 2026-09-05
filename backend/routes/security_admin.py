@@ -6,7 +6,7 @@ import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 
-from auth import get_current_user
+from auth import get_current_user, require_yonetim as _require_yonetim
 from database import db
 from services.audit import verify_chain
 
@@ -14,18 +14,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-def _require_yonetim(user: dict):
-    roles = user.get("roles") or []
-    role = user.get("role")
-    if role in ("yonetim", "management") or "yonetim" in roles or "management" in roles:
-        return
-    raise HTTPException(status_code=403, detail="Sadece Yönetim erişebilir")
-
-
 @router.get("/admin/audit/verify")
 async def admin_audit_verify(current_user: dict = Depends(get_current_user), limit: int = 5000):
     """Audit log hash chain bütünlüğünü doğrular."""
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     return await verify_chain(limit=limit)
 
 
@@ -36,7 +28,7 @@ async def list_alarms(
     acknowledged: Optional[bool] = Query(None),
     limit: int = 100,
 ):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     q = {}
     if severity:
         q["severity"] = severity
@@ -48,7 +40,7 @@ async def list_alarms(
 
 @router.post("/admin/alarms/{alarm_id}/ack")
 async def ack_alarm(alarm_id: str, current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     result = await db.audit_alarms.update_one(
         {"id": alarm_id},
         {"$set": {"acknowledged": True, "acknowledged_by": current_user.get("display_name", "yonetim")}},
@@ -60,7 +52,7 @@ async def ack_alarm(alarm_id: str, current_user: dict = Depends(get_current_user
 
 @router.get("/admin/lockouts")
 async def list_lockouts(current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     items = await db.account_lockouts.find({}, {}).sort("locked_until", -1).to_list(500)
     # _id (string) → account
     for it in items:
@@ -70,7 +62,7 @@ async def list_lockouts(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/admin/lockouts/{account}")
 async def clear_lockout(account: str, current_user: dict = Depends(get_current_user)):
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     await db.account_lockouts.delete_one({"_id": account})
     await db.login_attempts.delete_many({"account": account})
     return {"success": True}
@@ -79,7 +71,7 @@ async def clear_lockout(account: str, current_user: dict = Depends(get_current_u
 @router.get("/admin/security/status")
 async def security_status(current_user: dict = Depends(get_current_user)):
     """Tek bakışta güvenlik durumu — Yönetim panelinde gösterilecek."""
-    _require_yonetim(current_user)
+    await _require_yonetim(current_user)
     chain = await verify_chain(limit=2000)
     alarm_count = await db.audit_alarms.count_documents({"acknowledged": False})
     lockout_count = await db.account_lockouts.count_documents({})
