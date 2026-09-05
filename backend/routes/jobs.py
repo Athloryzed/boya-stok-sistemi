@@ -81,7 +81,7 @@ async def upload_image(file: UploadFile = File(...), current_user: dict = Depend
 
 
 @router.get("/jobs", response_model=List[Job])
-async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = None, search: Optional[str] = None, limit: int = 2000, current_user: dict = Depends(get_current_user)):
     query = {}
     if status:
         query["status"] = status
@@ -96,13 +96,21 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     # Ama thumb_url küçük (~3-8KB) — küçük önizleme için listede tut.
     projection = {"_id": 0, "image_url": 0}
     # Bekleyen işler kullanıcı tanımlı sıraya (order) göre döner → tüm panellerde aynı sıra
-    sort_spec = [("order", 1), ("created_at", 1)] if status == "pending" else [("created_at", 1)]
-    jobs = await db.jobs.find(query, projection).sort(sort_spec).to_list(1000)
+    if status == "pending":
+        sort_spec = [("order", 1), ("created_at", 1)]
+        jobs = await db.jobs.find(query, projection).sort(sort_spec).to_list(limit)
+    else:
+        # limit en eskileri kessin, en yeni işler kaybolmasın: azalan sırada çekip
+        # sonra eski->yeni sıraya çevir (frontend'in gördüğü sıra değişmez)
+        sort_spec = [("created_at", -1)]
+        jobs = await db.jobs.find(query, projection).sort(sort_spec).to_list(limit)
+        jobs = list(reversed(jobs))
     # has_image alanını sonradan ekle (Pydantic image_url None döner)
+    ids = [j.get("id") for j in jobs]
     img_ids = await db.jobs.find(
-        {"image_url": {"$exists": True, "$nin": [None, ""]}},
+        {"id": {"$in": ids}, "image_url": {"$exists": True, "$nin": [None, ""]}},
         {"_id": 0, "id": 1},
-    ).to_list(1000)
+    ).to_list(len(ids) or 1)
     with_img = {x["id"] for x in img_ids}
     for j in jobs:
         j["has_image"] = j.get("id") in with_img
