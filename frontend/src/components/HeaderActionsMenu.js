@@ -1,5 +1,5 @@
 /**
- * HeaderActionsMenu — Mobil cihazlarda panel header'ındaki ikincil aksiyonları
+ * HeaderActionsMenu — panel header'ındaki ikincil aksiyonları HER genişlikte
  * tek bir "Daha Fazla" (kebab) menüsünde toplar.
  *
  * Kullanım:
@@ -8,22 +8,16 @@
  *     ...
  *   ]} />
  *
- * Desktop'ta items inline render olur (md:flex). Mobilde tek dropdown.
+ * Önceden geniş ekranlarda items inline (ayrı buton olarak) render ediliyordu,
+ * ama header satırı max-w-7xl (1280px) ile sabitlendiği için içerik alanı
+ * viewport büyüse de asla genişlemiyor — inline mod hiçbir monitör
+ * genişliğinde 10 öğeyi çakışmadan sığdıramıyordu (2600px'te bile test edilip
+ * doğrulandı). Bu yüzden inline mod tamamen kaldırıldı, her zaman kebab.
  */
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
 import { Button } from "./ui/button";
-
-const ACCENT_MAP = {
-  amber: "border-amber-500/40 text-amber-400 hover:bg-amber-500/10",
-  emerald: "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10",
-  cyan: "border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10",
-  sky: "border-sky-500/40 text-sky-400 hover:bg-sky-500/10",
-  rose: "border-rose-500/40 text-rose-400 hover:bg-rose-500/10",
-  violet: "border-violet-500/40 text-violet-400 hover:bg-violet-500/10",
-  default: "border-border text-text-secondary hover:bg-surface-highlight",
-};
 
 export default function HeaderActionsMenu({ items = [], className = "" }) {
   const [open, setOpen] = useState(false);
@@ -46,32 +40,8 @@ export default function HeaderActionsMenu({ items = [], className = "" }) {
 
   return (
     <>
-      {/* Desktop (md+): all inline */}
-      <div className={`hidden md:flex items-center gap-2 ${className}`}>
-        {items.map((it) => {
-          if (it.render) return <React.Fragment key={it.id}>{it.render()}</React.Fragment>;
-          const Icon = it.icon;
-          const tone = ACCENT_MAP[it.accent || "default"];
-          return (
-            <Button
-              key={it.id}
-              variant="outline"
-              size="sm"
-              onClick={it.onClick}
-              disabled={it.disabled}
-              data-testid={it.testId}
-              title={it.title || it.label}
-              className={`h-9 gap-1.5 ${tone}`}
-            >
-              {Icon ? <Icon className="h-4 w-4" /> : null}
-              <span className="hidden xl:inline text-xs">{it.label}</span>
-            </Button>
-          );
-        })}
-      </div>
-
-      {/* Mobile (<md): kebab dropdown */}
-      <div className={`md:hidden relative ${className}`} ref={ref}>
+      {/* Kebab dropdown — tüm genişliklerde */}
+      <div className={`relative ${className}`} ref={ref}>
         <Button
           variant="outline"
           size="icon"

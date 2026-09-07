@@ -14,8 +14,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, Home as HomeIcon, ChevronDown, Shield, Clock } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getSession, clearSession, getAccessibleRoutes, ROUTE_ROLES,
+  getSession, clearSession, getAccessibleRoutes, ROUTE_ROLES, hasYonetimRole,
 } from "../lib/auth";
+
+const ROLE_LABELS = {
+  operator: "Operatör",
+  plan: "Plan",
+  depo: "Depo",
+  sofor: "Şoför",
+  yonetim: "Yönetim",
+  boyaci: "Boyacı",
+};
 
 const ROUTE_META = {
   "/management": { name: "Yönetim", emoji: "📊" },
@@ -75,6 +84,15 @@ export default function UserMenu({ className = "" }) {
 
   const displayName = session.display_name || session.username || "Kullanıcı";
   const roles = (session.roles && session.roles.length ? session.roles : [session.role]).filter(Boolean);
+  // Yönetim/management admin genişlemesiyle roles dizisine tüm panel rolleri
+  // eklendiğinden (bkz. auth.py get_user_roles), üst çubuktaki KISA etikette
+  // yönetici için tek ve sabit "Yönetim" gösterilir — aksi halde rastgele bir
+  // alt rol görünürdü. Dropdown içindeki TAM liste ise Türkçeleştirilmiş
+  // haliyle bütün rolleri gösterir, kullanıcı hangi yetkilere sahip görebilsin.
+  const shortRoleLabel = hasYonetimRole(roles)
+    ? "Yönetim"
+    : roles.map((r) => ROLE_LABELS[r] || r).join(" · ");
+  const fullRoleLabel = roles.map((r) => ROLE_LABELS[r] || r).join(" · ");
   const initial = displayName.trim()[0]?.toUpperCase() || "?";
   const color = avatarColor(displayName);
 
@@ -111,7 +129,7 @@ export default function UserMenu({ className = "" }) {
         </span>
         <span className="hidden xl:flex flex-col items-start leading-tight pr-1 max-w-[140px]">
           <span className="text-xs font-semibold text-text-primary truncate w-full">{displayName}</span>
-          <span className="text-[9px] font-mono uppercase text-text-secondary tracking-wider">{roles[0]}</span>
+          <span className="text-[9px] font-mono uppercase text-text-secondary tracking-wider">{shortRoleLabel}</span>
         </span>
         <ChevronDown className={`w-3.5 h-3.5 text-text-secondary transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -135,7 +153,7 @@ export default function UserMenu({ className = "" }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-text-primary truncate">{displayName}</p>
                   <p className="text-[10px] font-mono uppercase tracking-wider text-amber-400">
-                    {roles.join(" · ")}
+                    {fullRoleLabel}
                   </p>
                   {loginAt && (
                     <p className="text-[10px] text-text-secondary mt-0.5 flex items-center gap-1">

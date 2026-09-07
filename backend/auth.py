@@ -148,7 +148,14 @@ async def get_user_roles(current_user: dict) -> list:
         roles = [role] if role else []
 
     if any(r in YONETIM_ALIASES for r in roles):
-        roles = list(set(roles) | {"yonetim"} | set(ALL_PANEL_ROLES))
+        # set() sırası deterministik değil (hash randomization) — aynı kullanıcı
+        # farklı girişlerde farklı sırada roller görebiliyordu. ALL_PANEL_ROLES
+        # sırasına göre sabitleniyor; bilinmeyen/eski rol kodları (örn. "management")
+        # sona, alfabetik sırayla ekleniyor.
+        combined = set(roles) | {"yonetim"} | set(ALL_PANEL_ROLES)
+        ordered = [r for r in ALL_PANEL_ROLES if r in combined]
+        extras = sorted(r for r in combined if r not in ALL_PANEL_ROLES)
+        roles = ordered + extras
     return roles
 
 

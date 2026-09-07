@@ -1485,7 +1485,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
             {currentShift ? (
               <Button data-testid="end-shift-button" onClick={handleEndShift} size="sm" className="bg-error/90 text-white hover:bg-error h-9 px-2.5 lg:px-3 shrink-0">
                 <PowerOff className="h-4 w-4 lg:mr-1.5" />
