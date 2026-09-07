@@ -8,7 +8,8 @@ class ConnectionManager:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
-        await websocket.accept()
+        # accept() çağrısı server.py'deki _authenticate_ws()'te, token doğrulamasından
+        # ÖNCE yapılıyor (geçersiz token'da düzgün close code'u dönebilmek için).
         self.active_connections.append(websocket)
         logging.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
 
@@ -35,7 +36,8 @@ class ManagerConnectionManager:
         self.active_connections: dict = {}
 
     async def connect(self, websocket: WebSocket, manager_id: str):
-        await websocket.accept()
+        # accept() çağrısı server.py'deki _authenticate_ws()'te, token doğrulamasından
+        # ÖNCE yapılıyor (geçersiz token'da düzgün close code'u dönebilmek için).
         self.active_connections[manager_id] = websocket
         logging.info(f"Manager WebSocket connected: {manager_id}. Total: {len(self.active_connections)}")
 

@@ -9,7 +9,7 @@ from database import db
 from models import Paint, PaintMovement, ActivePaintToMachine
 from emergentintegrations.llm.chat import UserMessage
 from services.ai_config import build_chat
-from auth import get_current_user
+from auth import get_current_user, require_yonetim
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -55,7 +55,8 @@ async def delete_paint(paint_id: str):
 
 
 @router.delete("/paints/movements/clear")
-async def clear_paint_movements():
+async def clear_paint_movements(current_user: dict = Depends(get_current_user)):
+    await require_yonetim(current_user)
     result = await db.paint_movements.delete_many({})
     return {"message": f"{result.deleted_count} hareket silindi"}
 

@@ -29,6 +29,7 @@ import WeeklyMenuEditor from "../components/WeeklyMenuEditor";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 import { shouldAlertOnce } from "../utils/alertDedup";
+import { handleWsAuthRejection } from "../lib/wsAuthRetry";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -551,17 +552,20 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const wsRetryCountRef = useRef(0);
+  const wsAuthRetryRef = useRef(0);
 
   // WebSocket bağlantısı - Yönetici bildirimleri için
   const connectWebSocket = useCallback((mgrId) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     
     const wsUrl = API.replace('https://', 'wss://').replace('http://', 'ws://');
-    const ws = new WebSocket(`${wsUrl}/ws/manager/${mgrId}`);
+    const wsToken = localStorage.getItem("auth_token");
+    const ws = new WebSocket(`${wsUrl}/ws/manager/${mgrId}?token=${encodeURIComponent(wsToken || "")}`);
     
     ws.onopen = () => {
       console.log("Manager WebSocket connected");
       wsRetryCountRef.current = 0; // reset retry counter
+      wsAuthRetryRef.current = 0;
       // Ping gönder (bağlantıyı canlı tut)
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -603,9 +607,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       }
     };
     
-    ws.onclose = () => {
+    ws.onclose = async (ev) => {
       console.log("Manager WebSocket disconnected");
       if (ws.pingInterval) clearInterval(ws.pingInterval);
+
+      const handled = await handleWsAuthRejection(ev, wsAuthRetryRef, () => connectWebSocket(mgrId));
+      if (handled) return;
+
       // Exponential backoff ile yeniden bağlan (3s, 6s, 12s, 24s, max 60s)
       // 5 başarısız denemeden sonra pes et — veriler zaten polling ile geliyor
       if (authenticated && managerId && wsRetryCountRef.current < 5) {

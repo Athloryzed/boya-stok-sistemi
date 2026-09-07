@@ -122,7 +122,7 @@ let wsHeartbeat = null;
 let wsAuthRetries = 0;
 const MAX_AUTH_RETRIES = 2;
 
-async function tryRefreshAuthToken() {
+export async function tryRefreshAuthToken() {
   try {
     const refreshToken = localStorage.getItem("refresh_token");
     if (!refreshToken) return null;

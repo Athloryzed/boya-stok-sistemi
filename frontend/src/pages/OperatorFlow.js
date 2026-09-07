@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Play, CheckCircle, Sun, Moon, Package, MessageSquare, Bell, X, Send, GripVertical, Image, BellRing, Pause, Sparkles, Bot, ChevronUp, QrCode, Link2, Share2, LogOut } from "lucide-react";
@@ -20,6 +20,7 @@ import JobThumb from "../components/JobThumb";
 import UserMenu from "../components/UserMenu";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import { handleWsAuthRejection } from "../lib/wsAuthRetry";
 import { initializePushNotifications, isNativePlatform } from "../pushNotifications";
 import { notifyAlert } from "../utils/notify";
 import ExpectedKoliSummary, { computeExpectedSummary } from "../components/ExpectedKoliSummary";
@@ -507,17 +508,26 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   }, [messages, isChatOpen]);
 
   // WebSocket ile vardiya sonu bildirimi dinle
-  useEffect(() => {
+  const wsRef = useRef(null);
+  const wsReconnectTimeoutRef = useRef(null);
+  const wsAuthRetryRef = useRef(0);
+
+  const connectOperatorWs = useCallback(() => {
     if (!selectedMachine?.id) return;
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = API.replace('https://', '').replace('http://', '').replace('/api', '');
-    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/operator/${selectedMachine.id}`;
-    
+    const wsToken = localStorage.getItem("auth_token");
+    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/operator/${selectedMachine.id}?token=${encodeURIComponent(wsToken || "")}`;
+
     let ws;
     try {
       ws = new WebSocket(wsUrl);
-      
+
+      ws.onopen = () => {
+        wsAuthRetryRef.current = 0;
+      };
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -569,14 +579,30 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       ws.onerror = (error) => {
         console.error("WebSocket error:", error);
       };
+
+      ws.onclose = async (ev) => {
+        const handled = await handleWsAuthRejection(ev, wsAuthRetryRef, connectOperatorWs);
+        if (!handled) {
+          // Fabrika ekranı — bağlantı sessizce ölmemeli, 3 sn sonra tekrar dene.
+          if (wsReconnectTimeoutRef.current) clearTimeout(wsReconnectTimeoutRef.current);
+          wsReconnectTimeoutRef.current = setTimeout(connectOperatorWs, 3000);
+        }
+      };
+
+      wsRef.current = ws;
     } catch (e) {
       console.error("WebSocket connection error:", e);
     }
-
-    return () => {
-      if (ws) ws.close();
-    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMachine?.id, notificationPermission]);
+
+  useEffect(() => {
+    connectOperatorWs();
+    return () => {
+      if (wsReconnectTimeoutRef.current) clearTimeout(wsReconnectTimeoutRef.current);
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, [connectOperatorWs]);
 
   // Vardiya sonu raporu gönder
   const handleSubmitShiftEndReport = async () => {

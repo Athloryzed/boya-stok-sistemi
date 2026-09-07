@@ -27,7 +27,7 @@ limiter = Limiter(key_func=get_real_client_ip)
 
 # Core modules
 from database import client, db
-from auth import hash_password
+from auth import hash_password, decode_token
 from websocket_manager import ws_manager, ws_manager_mgmt
 from websocket_chat import ws_chat
 
@@ -132,8 +132,34 @@ app.include_router(api_router)
 
 # ==================== WebSocket Endpoints ====================
 
+async def _authenticate_ws(websocket: WebSocket):
+    """Tüm WS endpoint'leri için ortak kimlik doğrulama.
+
+    accept() HER ZAMAN token doğrulamasından ÖNCE çağrılır: bir websocket henüz
+    accept edilmeden close() çağrılırsa tarayıcıya özel close code (4401) değil,
+    düz bir HTTP red kodu gider ve close event'te code=1006 görünür — frontend'in
+    token yenileme mantığı hiç tetiklenmez (bkz. chat_websocket geçmişi).
+
+    Geçerliyse decode edilmiş JWT payload'ını döner. Token yok/geçersizse
+    websocket'i close(code=4401) ile kapatır ve None döner — çağıran taraf
+    None görünce hemen return etmeli, bağlantı zaten kapatılmış olur.
+    """
+    await websocket.accept()
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4401)
+        return None
+    try:
+        return decode_token(token)
+    except Exception:
+        await websocket.close(code=4401)
+        return None
+
+
 @app.websocket("/api/ws/manager/{manager_id}")
 async def manager_websocket(websocket: WebSocket, manager_id: str):
+    if not await _authenticate_ws(websocket):
+        return
     await ws_manager_mgmt.connect(websocket, manager_id)
     logging.info(f"Manager WebSocket connected: {manager_id}")
     try:
@@ -151,6 +177,8 @@ async def manager_websocket(websocket: WebSocket, manager_id: str):
 
 @app.websocket("/api/ws/warehouse")
 async def warehouse_websocket(websocket: WebSocket):
+    if not await _authenticate_ws(websocket):
+        return
     await ws_manager.connect(websocket)
     try:
         while True:
@@ -166,6 +194,8 @@ async def warehouse_websocket(websocket: WebSocket):
 
 @app.websocket("/api/ws/operator/{machine_id}")
 async def operator_websocket(websocket: WebSocket, machine_id: str):
+    if not await _authenticate_ws(websocket):
+        return
     await ws_manager.connect(websocket)
     logging.info(f"Operator WebSocket connected for machine: {machine_id}")
     try:
@@ -183,30 +213,15 @@ async def operator_websocket(websocket: WebSocket, machine_id: str):
 
 @app.websocket("/api/ws/chat")
 async def chat_websocket(websocket: WebSocket, token: str = None):
-    """Chat WebSocket — user_id query param ile bağlanır (JWT token verified).
-
-    accept() token doğrulamasından ÖNCE çağrılır: RFC 6455/ASGI'de, bir websocket
-    henüz accept edilmeden close() çağrılırsa tarayıcıya özel close code (4401)
-    değil, düz bir HTTP red kodu (403) gider ve close event'te code=1006 görünür.
-    Bu da frontend'in token yenileme mantığının hiç tetiklenmemesine yol açıyordu.
-    """
-    from auth import decode_token
-    await websocket.accept()
-    user_id = None
+    """Chat WebSocket — user_id query param ile bağlanır (JWT token verified)."""
+    payload = await _authenticate_ws(websocket)
+    if not payload:
+        return
+    user_id = payload.get("sub") or payload.get("user_id") or payload.get("id")
+    if not user_id:
+        await websocket.close(code=4401)
+        return
     try:
-        token = websocket.query_params.get("token")
-        if not token:
-            await websocket.close(code=4401)
-            return
-        try:
-            payload = decode_token(token)
-            user_id = payload.get("sub") or payload.get("user_id") or payload.get("id")
-        except Exception:
-            await websocket.close(code=4401)
-            return
-        if not user_id:
-            await websocket.close(code=4401)
-            return
         await ws_chat.connect(websocket, user_id)
         while True:
             data = await websocket.receive_text()

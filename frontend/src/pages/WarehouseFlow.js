@@ -21,6 +21,7 @@ import { computeExpectedSummary, ExpectedKoliCard } from "../components/Expected
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import { handleWsAuthRejection } from "../lib/wsAuthRetry";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 
@@ -80,6 +81,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   };
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const wsAuthRetryRef = useRef(0);
 
   // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
   useEffect(() => {
@@ -175,7 +177,8 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     // WebSocket URL'ini environment variable'dan türet
     const apiUrl = new URL(API);
     const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${apiUrl.host}/api/ws/warehouse`;
+    const wsToken = localStorage.getItem("auth_token");
+    const wsUrl = `${wsProtocol}//${apiUrl.host}/api/ws/warehouse?token=${encodeURIComponent(wsToken || "")}`;
     
     console.log("Connecting to WebSocket:", wsUrl);
     
@@ -184,6 +187,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
       
       ws.onopen = () => {
         console.log("WebSocket connected");
+        wsAuthRetryRef.current = 0;
         setWsConnected(true);
         toast.success("Gerçek zamanlı bağlantı kuruldu!", { duration: 2000 });
       };
@@ -216,11 +220,14 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
         }
       };
       
-      ws.onclose = () => {
+      ws.onclose = async (ev) => {
         console.log("WebSocket disconnected");
         setWsConnected(false);
-        
-        // 3 saniye sonra yeniden bağlan
+
+        const handled = await handleWsAuthRejection(ev, wsAuthRetryRef, connectWebSocket);
+        if (handled) return;
+
+        // Auth reddi değil (normal kapanma/ağ sorunu) → 3 saniye sonra yeniden bağlan
         reconnectTimeoutRef.current = setTimeout(() => {
           console.log("Attempting to reconnect...");
           connectWebSocket();
