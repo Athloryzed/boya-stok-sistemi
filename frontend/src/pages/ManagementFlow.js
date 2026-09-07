@@ -76,9 +76,9 @@ const calculateDaysElapsed = (dateString) => {
 // Geçen gün rengini belirle
 const getDaysElapsedColor = (days) => {
   if (days === null) return "text-text-secondary";
-  if (days <= 2) return "text-emerald-500";
+  if (days <= 2) return "text-success";
   if (days <= 10) return "text-warning";
-  return "text-red-500";
+  return "text-error";
 };
 
 // VERİ SENKRONU ROZETİ
@@ -107,10 +107,10 @@ const SyncBadge = ({ lastSyncAt, syncing, onRefresh }) => {
   const tone = !lastSyncAt
     ? "border-zinc-600/40 text-zinc-500"
     : ageMs < 90 * 1000
-      ? "border-emerald-500/40 text-emerald-400"
+      ? "border-success/40 text-emerald-400"
       : ageMs < 5 * 60 * 1000
         ? "border-warning/40 text-warning"
-        : "border-red-500/40 text-red-400";
+        : "border-error/40 text-red-400";
 
   const titleText = lastSyncAt
     ? `Son senkron: ${lastSyncAt.toLocaleString("tr-TR")}`
@@ -1545,13 +1545,13 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Düşük Stok Uyarısı */}
         {lowStockPaints.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/40 rounded-lg">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-error/10 border border-error/40 rounded-lg">
             <div className="flex items-center gap-2 text-red-400 font-bold mb-2">
               <AlertTriangle className="h-5 w-5" /> DÜŞÜK BOYA STOKU ({LOW_STOCK_THRESHOLD}L altı)
             </div>
             <div className="flex flex-wrap gap-2">
               {lowStockPaints.map(paint => (
-                <span key={paint.id} className="px-3 py-1 bg-red-500/20 rounded-full text-sm text-red-200 border border-red-500/30">
+                <span key={paint.id} className="px-3 py-1 bg-error/20 rounded-full text-sm text-red-200 border border-error/30">
                   {paint.name}: {paint.stock_kg.toFixed(1)} L
                 </span>
               ))}
@@ -1754,7 +1754,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               variant="outline" size="sm"
               onClick={() => setIsTransferLogOpen(true)}
               data-testid="management-open-transfer-log"
-              className="border-amber-500/30 text-amber-300 hover:bg-amber-500/10 h-8"
+              className="border-primary/30 text-amber-300 hover:bg-primary/10 h-8"
             >
               Transfer Geçmişi
             </Button>
@@ -1785,7 +1785,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="messages" data-testid="messages-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs py-2">
                   Mesaj
                   {unreadMessagesCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px] badge-bounce">
+                    <span className="absolute -top-1 -right-1 bg-error text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px] badge-bounce">
                       {unreadMessagesCount}
                     </span>
                   )}
@@ -1837,7 +1837,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <TabsTrigger value="messages" data-testid="messages-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-sm px-3">
                 <Inbox className="h-4 w-4 mr-1" /> Mesajlar
                 {unreadMessagesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                  <span className="absolute -top-1 -right-1 bg-error text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
                     {unreadMessagesCount}
                   </span>
                 )}
@@ -2067,7 +2067,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
                   <Inbox className="h-6 w-6 text-blue-500" /> Operatör Mesajları
                   {unreadMessagesCount > 0 && (
-                    <span className="bg-red-500 text-white text-sm px-2 py-1 rounded-full">
+                    <span className="bg-error text-white text-sm px-2 py-1 rounded-full">
                       {unreadMessagesCount} yeni
                     </span>
                   )}
@@ -2105,7 +2105,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleMarkMessageRead(msg.id)}
-                                className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
+                                className="text-success border-success hover:bg-success/10"
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -2184,7 +2184,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               )}
                             </div>
                             {userRoles.includes("sofor") && user.current_location_lat && (
-                              <span className="text-emerald-500 text-xs flex items-center gap-1">
+                              <span className="text-success text-xs flex items-center gap-1">
                                 <MapPin className="h-3 w-3" /> Aktif
                               </span>
                             )}
@@ -2211,7 +2211,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <Card className="bg-surface border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-emerald-500" /> Şoför Konumları
+                      <MapPin className="h-5 w-5 text-success" /> Şoför Konumları
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -2381,7 +2381,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       {paints.map((paint) => {
                         const isLowStock = paint.stock_kg < LOW_STOCK_THRESHOLD;
                         return (
-                          <tr key={paint.id} className={`border-b border-border ${isLowStock ? "bg-red-500/10" : ""}`}>
+                          <tr key={paint.id} className={`border-b border-border ${isLowStock ? "bg-error/10" : ""}`}>
                             <td className="p-3">
                               <div
                                 className="w-8 h-8 rounded-full border-2"
@@ -2392,16 +2392,16 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               />
                             </td>
                             <td className="p-3 text-text-primary font-semibold">{paint.name}</td>
-                            <td className={`p-3 text-right font-bold ${isLowStock ? "text-red-500" : "text-text-primary"}`}>
+                            <td className={`p-3 text-right font-bold ${isLowStock ? "text-error" : "text-text-primary"}`}>
                               {paint.stock_kg.toFixed(1)}
                             </td>
                             <td className="p-3 text-center">
                               {isLowStock ? (
-                                <span className="px-2 py-1 bg-red-500/20 text-red-500 rounded-full text-xs font-semibold flex items-center justify-center gap-1">
+                                <span className="px-2 py-1 bg-error/20 text-error rounded-full text-xs font-semibold flex items-center justify-center gap-1">
                                   <AlertTriangle className="h-3 w-3" /> Düşük
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-500 rounded-full text-xs font-semibold">
+                                <span className="px-2 py-1 bg-success/20 text-success rounded-full text-xs font-semibold">
                                   Normal
                                 </span>
                               )}
@@ -2839,7 +2839,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 {(() => {
                                   const ActionIcon = AUDIT_ACTION_ICONS[log.action] || Circle;
                                   const classes = log.action === "delete"
-                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                    ? "bg-error/20 text-red-400 border border-error/30"
                                     : ROLE_BADGE_CLASSES;
                                   return (
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
@@ -2891,7 +2891,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => { setIsMgmtAIOpen(true); if (!mgmtAIOverview) fetchMgmtAIOverview(); }}
-                className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 text-white shadow-lg flex items-center justify-center"
+                className="fixed bottom-20 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-success to-cyan-600 text-white shadow-lg flex items-center justify-center"
                 data-testid="mgmt-ai-btn"
               >
                 <Bot className="h-6 w-6" />
@@ -2910,11 +2910,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                   data-testid="mgmt-ai-panel"
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-500/20 to-cyan-600/20 border-b border-border">
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-success/20 to-cyan-600/20 border-b border-border">
                     <div className="flex items-center gap-2">
                       <Bot className="h-5 w-5 text-emerald-400" />
                       <span className="font-heading font-bold text-text-primary">Yonetim AI</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">GPT-5.2</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-emerald-400">GPT-5.2</span>
                     </div>
                     <button onClick={() => setIsMgmtAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
                       <X className="h-5 w-5 text-text-secondary" />
@@ -2979,10 +2979,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               </div>
                             </div>
                             {/* AI Analizi */}
-                            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3" data-testid="mgmt-ai-overview-content">
+                            <div className="bg-success/5 border border-success/20 rounded-xl p-3" data-testid="mgmt-ai-overview-content">
                               <p className="text-sm text-text-primary whitespace-pre-line leading-relaxed">{mgmtAIOverview.overview}</p>
                             </div>
-                            <Button size="sm" variant="outline" onClick={fetchMgmtAIOverview} className="w-full text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" data-testid="mgmt-ai-refresh-btn">
+                            <Button size="sm" variant="outline" onClick={fetchMgmtAIOverview} className="w-full text-emerald-400 border-success/30 hover:bg-success/10" data-testid="mgmt-ai-refresh-btn">
                               <Sparkles className="mr-2 h-4 w-4" /> Yenile
                             </Button>
                           </>
@@ -3005,7 +3005,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               <p className="text-text-secondary text-sm">Fabrika hakkinda soru sorun.</p>
                               <div className="flex flex-wrap justify-center gap-2 mt-3">
                                 {["En verimli operator kim?", "Hangi makine bosta?", "Bu hafta kac koli urettik?"].map((q) => (
-                                  <button key={q} onClick={() => setMgmtAIInput(q)} className="text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                                  <button key={q} onClick={() => setMgmtAIInput(q)} className="text-xs px-3 py-1.5 rounded-full bg-success/10 text-emerald-400 border border-success/20 hover:bg-success/20 transition-colors">
                                     {q}
                                   </button>
                                 ))}
@@ -3016,7 +3016,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                                 msg.role === "user"
-                                  ? "bg-emerald-500 text-white rounded-br-sm"
+                                  ? "bg-success text-white rounded-br-sm"
                                   : "bg-surface-highlight text-text-primary rounded-bl-sm border border-border"
                               }`}>
                                 {msg.content}
@@ -3046,7 +3046,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               className="bg-background border-border text-text-primary text-sm"
                               data-testid="mgmt-ai-chat-input"
                             />
-                            <Button size="sm" onClick={sendMgmtAIMessage} disabled={!mgmtAIInput.trim() || mgmtAIChatLoading} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3" data-testid="mgmt-ai-chat-send">
+                            <Button size="sm" onClick={sendMgmtAIMessage} disabled={!mgmtAIInput.trim() || mgmtAIChatLoading} className="bg-success hover:bg-emerald-600 text-white px-3" data-testid="mgmt-ai-chat-send">
                               <ChevronUp className="h-4 w-4" />
                             </Button>
                           </div>
@@ -3144,7 +3144,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <h3 className="text-sm font-heading text-text-primary mb-2">Defo Dagilimi (kg)</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {Object.entries(dailyDetailData.defect_by_machine).map(([machine, kg]) => (
-                        <div key={machine} className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                        <div key={machine} className="bg-error/10 border border-error/30 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-red-400">{kg} kg</p>
                           <p className="text-xs text-text-secondary">{machine}</p>
                         </div>
@@ -3879,7 +3879,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     {events.map((ev, i) => {
                       // start = durum (aktif/başladı → emerald). op_change/diğer = kategorik
                       // ayrım, ikon (Users/RefreshCw) zaten yeterli — nötr gri.
-                      const iconBg = ev.type === "start" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
+                      const iconBg = ev.type === "start" ? "bg-success/20 text-emerald-400 border-success/30" :
                         "bg-gray-500/20 text-gray-400 border-gray-500/30";
                       const Icon = ev.type === "start" ? Play : ev.type === "op_change" ? Users : RefreshCw;
                       return (
@@ -3920,7 +3920,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                   </div>
 
                   {/* Şu anki durum */}
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-md text-xs">
+                  <div className="p-3 bg-success/10 border border-success/30 rounded-md text-xs">
                     <p className="text-text-secondary">Şu an aktif operatör:</p>
                     <p className="text-emerald-400 font-bold font-mono mt-0.5">{finalOp}</p>
                     <p className="text-text-secondary mt-1">
@@ -4135,7 +4135,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
           <DialogContent className="bg-surface border-border max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="backups-dialog">
             <DialogHeader>
               <DialogTitle className="text-xl font-heading flex items-center gap-2">
-                <Database className="h-5 w-5 text-emerald-500" /> Veritabanı Yedekleri
+                <Database className="h-5 w-5 text-success" /> Veritabanı Yedekleri
               </DialogTitle>
               <DialogDescription className="text-text-secondary">
                 Otomatik yedekleme her gece <span className="font-mono">03:00 UTC</span>. Son {backupsMeta.retention_days} gün saklanır. Manuel tetikleyebilir, indirebilir ve silebilirsin.
@@ -4144,7 +4144,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
             <div className="flex items-center justify-between gap-3 p-3 bg-background rounded-lg border border-border">
               <div className="text-xs text-text-secondary">
                 <p>Sonraki otomatik yedekleme:</p>
-                <p className="text-sm font-mono text-emerald-500">
+                <p className="text-sm font-mono text-success">
                   {backupsMeta.next_run_utc ? new Date(backupsMeta.next_run_utc).toLocaleString("tr-TR") : "—"}
                 </p>
               </div>
@@ -4161,11 +4161,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                   <p className="text-sm">Henüz yedek yok. "Şimdi Yedek Al" diyerek ilk yedeği oluşturabilirsin.</p>
                 </div>
               ) : backupsList.map(b => (
-                <div key={b.filename} className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-emerald-500/40 transition-colors" data-testid={`backup-${b.filename}`}>
+                <div key={b.filename} className="flex items-center justify-between p-3 bg-background rounded-lg border border-border hover:border-success/40 transition-colors" data-testid={`backup-${b.filename}`}>
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-sm text-text-primary truncate">{b.filename}</p>
                     <p className="text-xs text-text-secondary">
-                      {new Date(b.created_at).toLocaleString("tr-TR")} · <span className="text-emerald-500">{b.size_mb} MB</span>
+                      {new Date(b.created_at).toLocaleString("tr-TR")} · <span className="text-success">{b.size_mb} MB</span>
                     </p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
