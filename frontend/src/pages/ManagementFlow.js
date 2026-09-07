@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User, Warehouse } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User, Warehouse, HardHat, ClipboardList, Paintbrush, Plus, Pencil, RotateCw, Circle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -38,6 +38,18 @@ const PAINT_COLORS = {
   "Sarı": "#ffeb3b", "Gold": "#ffc107", "Gümüş": "#9e9e9e", "Pasta": "#bcaaa4"
 };
 const LOW_STOCK_THRESHOLD = 5;
+
+// Audit log "İşlem" rozeti — ikon + Türkçe etiket. Renk nötr gri (ROLE_BADGE_CLASSES
+// ile aynı desen); tek istisna "delete" — geri alınamaz olduğu için durumsal
+// vurgu olarak kırmızı kalıyor, kategorik değil.
+const AUDIT_ACTION_ICONS = {
+  create: Plus, update: Pencil, delete: Trash2, start: Play,
+  complete: CheckCircle, pause: Pause, resume: RotateCw,
+};
+const AUDIT_ACTION_LABELS = {
+  create: "Ekledi", update: "Düzenledi", delete: "Sildi", start: "Başlattı",
+  complete: "Tamamladı", pause: "Durdurdu", resume: "Devam Etti",
+};
 
 // React #31 koruması: object/array gelirse okunabilir metne çevir
 const safeText = (v) => {
@@ -885,13 +897,17 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   };
 
   const getRoleLabel = (role) => {
-    const labels = { operator: "Operatör", plan: "Planlama", depo: "Depo", sofor: "Şoför" };
+    const labels = { operator: "Operatör", plan: "Planlama", depo: "Depo", sofor: "Şoför", yonetim: "Yönetim", boyaci: "Boyacı" };
     return labels[role] || role;
   };
 
-  const getRoleColor = (role) => {
-    const colors = { operator: "bg-blue-500/20 text-blue-400", plan: "bg-green-500/20 text-green-400", depo: "bg-yellow-500/20 text-yellow-400", sofor: "bg-purple-500/20 text-purple-400" };
-    return colors[role] || "bg-gray-500/20 text-gray-400";
+  // Rol rozetleri artık renkle değil ikonla ayrışıyor — renk sadece durum/aksiyon
+  // anlamına geldiği için hepsi aynı nötr gri (timeline'daki desenle aynı).
+  const ROLE_BADGE_CLASSES = "bg-gray-500/20 text-gray-400 border border-gray-500/30";
+
+  const getRoleIcon = (role) => {
+    const icons = { operator: HardHat, plan: ClipboardList, depo: Package, sofor: Truck, yonetim: Shield, boyaci: Paintbrush };
+    return icons[role] || User;
   };
 
   const handleStartShift = async () => {
@@ -2139,11 +2155,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <div className="space-y-3">
                       {users.map(user => {
                         const userRoles = (user.roles && user.roles.length > 0) ? user.roles : (user.role ? [user.role] : []);
+                        const AvatarIcon = getRoleIcon(userRoles[0] || user.role);
                         return (
                         <div key={user.id} className="flex flex-wrap justify-between items-center gap-3 p-3 bg-background rounded-lg border border-border hover:border-primary/30 transition-colors" data-testid={`user-row-${user.username}`}>
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getRoleColor(userRoles[0] || user.role)}`}>
-                              {userRoles.includes("sofor") ? <Truck className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${ROLE_BADGE_CLASSES}`}>
+                              <AvatarIcon className="h-5 w-5" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold truncate">{user.display_name || user.username}</p>
@@ -2152,11 +2169,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="flex flex-wrap gap-1">
-                              {userRoles.map(r => (
-                                <span key={r} className={`px-2 py-0.5 rounded text-[11px] font-semibold ${getRoleColor(r)}`} data-testid={`user-role-badge-${user.username}-${r}`}>
-                                  {getRoleLabel(r)}
-                                </span>
-                              ))}
+                              {userRoles.map(r => {
+                                const RoleIcon = getRoleIcon(r);
+                                return (
+                                  <span key={r} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${ROLE_BADGE_CLASSES}`} data-testid={`user-role-badge-${user.username}-${r}`}>
+                                    <RoleIcon className="h-3 w-3" />
+                                    {getRoleLabel(r)}
+                                  </span>
+                                );
+                              })}
                               {userRoles.length > 1 && (
                                 <span className="badge-gold" title="Çoklu rol" data-testid={`multi-role-indicator-${user.username}`}>
                                   ×{userRoles.length}
@@ -2816,24 +2837,18 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               </td>
                               <td className="py-2 px-2 text-text-primary font-medium">{safeText(log.user)}</td>
                               <td className="py-2 px-2">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  log.action === "create" ? "bg-emerald-500/20 text-emerald-400" :
-                                  log.action === "update" ? "bg-blue-500/20 text-blue-400" :
-                                  log.action === "delete" ? "bg-red-500/20 text-red-400" :
-                                  log.action === "start" ? "bg-emerald-500/20 text-emerald-400" :
-                                  log.action === "complete" ? "bg-purple-500/20 text-purple-400" :
-                                  log.action === "pause" ? "bg-yellow-500/20 text-yellow-400" :
-                                  log.action === "resume" ? "bg-cyan-500/20 text-cyan-400" :
-                                  "bg-gray-500/20 text-gray-400"
-                                }`}>
-                                  {log.action === "create" ? "Ekledi" :
-                                   log.action === "update" ? "Duzenledi" :
-                                   log.action === "delete" ? "Sildi" :
-                                   log.action === "start" ? "Baslatti" :
-                                   log.action === "complete" ? "Tamamladi" :
-                                   log.action === "pause" ? "Durdurdu" :
-                                   log.action === "resume" ? "Devam Etti" : safeText(log.action)}
-                                </span>
+                                {(() => {
+                                  const ActionIcon = AUDIT_ACTION_ICONS[log.action] || Circle;
+                                  const classes = log.action === "delete"
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                    : ROLE_BADGE_CLASSES;
+                                  return (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
+                                      <ActionIcon className="h-3 w-3" />
+                                      {AUDIT_ACTION_LABELS[log.action] || safeText(log.action)}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td className="py-2 px-2 text-text-secondary capitalize">{safeText(log.entity_type)}</td>
                               <td className="py-2 px-2 text-text-primary">{safeText(log.entity_name)}</td>
