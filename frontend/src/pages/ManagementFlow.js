@@ -64,7 +64,7 @@ const calculateDaysElapsed = (dateString) => {
 // Geçen gün rengini belirle
 const getDaysElapsedColor = (days) => {
   if (days === null) return "text-text-secondary";
-  if (days <= 2) return "text-green-500";
+  if (days <= 2) return "text-emerald-500";
   if (days <= 5) return "text-yellow-500";
   if (days <= 10) return "text-orange-500";
   return "text-red-500";
@@ -2090,7 +2090,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleMarkMessageRead(msg.id)}
-                                className="text-green-500 border-green-500 hover:bg-green-500/10"
+                                className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/10"
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
@@ -2164,7 +2164,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               )}
                             </div>
                             {userRoles.includes("sofor") && user.current_location_lat && (
-                              <span className="text-green-500 text-xs flex items-center gap-1">
+                              <span className="text-emerald-500 text-xs flex items-center gap-1">
                                 <MapPin className="h-3 w-3" /> Aktif
                               </span>
                             )}
@@ -2191,7 +2191,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <Card className="bg-surface border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-green-500" /> Şoför Konumları
+                      <MapPin className="h-5 w-5 text-emerald-500" /> Şoför Konumları
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -2381,7 +2381,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                   <AlertTriangle className="h-3 w-3" /> Düşük
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 bg-green-500/20 text-green-500 rounded-full text-xs font-semibold">
+                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-500 rounded-full text-xs font-semibold">
                                   Normal
                                 </span>
                               )}
@@ -2817,7 +2817,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               <td className="py-2 px-2 text-text-primary font-medium">{safeText(log.user)}</td>
                               <td className="py-2 px-2">
                                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  log.action === "create" ? "bg-green-500/20 text-green-400" :
+                                  log.action === "create" ? "bg-emerald-500/20 text-emerald-400" :
                                   log.action === "update" ? "bg-blue-500/20 text-blue-400" :
                                   log.action === "delete" ? "bg-red-500/20 text-red-400" :
                                   log.action === "start" ? "bg-emerald-500/20 text-emerald-400" :
@@ -2952,7 +2952,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <p className="text-xs text-text-secondary">Bekleyen</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
-                                <p className="text-lg font-bold text-green-400">{mgmtAIOverview.stats.completed_7d}</p>
+                                <p className="text-lg font-bold text-emerald-400">{mgmtAIOverview.stats.completed_7d}</p>
                                 <p className="text-xs text-text-secondary">7g Tamamlanan</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
@@ -3068,7 +3068,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <p className="text-xs text-text-secondary">Toplam Koli</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
-                    <p className="text-2xl font-black text-green-400">{dailyDetailData.summary.completed_jobs}</p>
+                    <p className="text-2xl font-black text-emerald-400">{dailyDetailData.summary.completed_jobs}</p>
                     <p className="text-xs text-text-secondary">Tamamlanan</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
@@ -3863,7 +3863,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       <p className="text-xs text-text-secondary text-center py-4">Henüz değişim kaydı yok.</p>
                     )}
                     {events.map((ev, i) => {
-                      const iconBg = ev.type === "start" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                      const iconBg = ev.type === "start" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
                         ev.type === "op_change" ? "bg-purple-500/20 text-purple-400 border-purple-500/30" :
                           "bg-amber-500/20 text-amber-400 border-amber-500/30";
                       const Icon = ev.type === "start" ? Play : ev.type === "op_change" ? Users : RefreshCw;
@@ -3905,9 +3905,9 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                   </div>
 
                   {/* Şu anki durum */}
-                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-md text-xs">
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-md text-xs">
                     <p className="text-text-secondary">Şu an aktif operatör:</p>
-                    <p className="text-green-400 font-bold font-mono mt-0.5">{finalOp}</p>
+                    <p className="text-emerald-400 font-bold font-mono mt-0.5">{finalOp}</p>
                     <p className="text-text-secondary mt-1">
                       İlerleme: <span className="text-text-primary font-bold">{completed} / {target} koli</span>
                     </p>
