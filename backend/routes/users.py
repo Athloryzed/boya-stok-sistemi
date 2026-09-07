@@ -9,7 +9,8 @@ from models import User
 from auth import (
     hash_password, verify_password,
     create_access_token, create_token_pair,
-    get_current_user, MANAGEMENT_PASSWORD, ALL_PANEL_ROLES,
+    get_current_user, MANAGEMENT_PASSWORD, ALL_PANEL_ROLES, require_yonetim,
+    get_user_roles, is_yonetim,
 )
 from services.audit import log_audit
 from services.account_lockout import assert_not_locked, record_failure, record_success
@@ -40,6 +41,7 @@ def _public_user(user: dict) -> dict:
 @router.post("/users")
 async def create_user(data: CreateUserRequest = Body(...), current_user: dict = Depends(get_current_user)):
     """Yeni kullanıcı oluştur (yetkili). 'role' (tek) veya 'roles' (çoklu) kabul eder."""
+    await require_yonetim(current_user)
     roles_input = data.roles
     role = data.role
 
@@ -78,6 +80,7 @@ async def create_user(data: CreateUserRequest = Body(...), current_user: dict = 
 @router.patch("/users/{user_id}/roles")
 async def update_user_roles(user_id: str, data: UpdateUserRolesRequest = Body(...), current_user: dict = Depends(get_current_user)):
     """Bir kullanıcının rollerini güncelle (yetkili)."""
+    await require_yonetim(current_user)
     roles = data.roles
     user = await db.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
     if not user:
@@ -97,17 +100,23 @@ async def update_user_roles(user_id: str, data: UpdateUserRolesRequest = Body(..
 
 @router.get("/users")
 async def get_users(role: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    """Kullanıcıları listele (yetkili). role param'ı roles[] içinde de arar."""
+    """Kullanıcıları listele. role param'ı roles[] içinde de arar.
+    Telefon numarası (PII) sadece yonetim'e görünür."""
     query = {"is_active": True}
     if role:
         query["$or"] = [{"role": role}, {"roles": role}]
     users = await db.users.find(query, {"_id": 0, "password": 0, "totp_secret": 0, "backup_codes": 0}).sort("created_at", -1).to_list(200)
+    roles = await get_user_roles(current_user)
+    caller_is_yonetim = is_yonetim(roles)
     for u in users:
         if not u.get("roles"):
             u["roles"] = [u.get("role", "")] if u.get("role") else []
-        # PII decrypt — frontend için
+        # PII: yonetim değilse telefon alanını hiç dönme
         if "phone" in u:
-            u["phone"] = decrypt_pii(u.get("phone"))
+            if caller_is_yonetim:
+                u["phone"] = decrypt_pii(u.get("phone"))
+            else:
+                del u["phone"]
     return users
 
 
@@ -193,6 +202,7 @@ async def management_login(request: Request, data: PasswordRequest = Body(...)):
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
     """Kullanıcı sil (yetkili) — soft delete."""
+    await require_yonetim(current_user)
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "username": 1})
     result = await db.users.update_one({"id": user_id}, {"$set": {"is_active": False}})
     if result.modified_count == 0:
@@ -206,8 +216,10 @@ async def delete_user(user_id: str, current_user: dict = Depends(get_current_use
 
 
 @router.put("/users/{user_id}/location")
-async def update_user_location(user_id: str, data: dict = Body(...)):
-    """Kullanıcı konumunu güncelle (şoförler için)"""
+async def update_user_location(user_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """Kullanıcı konumunu güncelle (şoförler için) — sadece kendi konumunu veya yonetim herkesinkini güncelleyebilir."""
+    if current_user.get("sub") != user_id:
+        await require_yonetim(current_user)
     lat = data.get("lat")
     lng = data.get("lng")
     await db.users.update_one(
@@ -222,8 +234,9 @@ async def update_user_location(user_id: str, data: dict = Body(...)):
 
 
 @router.get("/users/drivers/locations")
-async def get_driver_locations():
-    """Tüm şoförlerin konumlarını getir"""
+async def get_driver_locations(current_user: dict = Depends(get_current_user)):
+    """Tüm şoförlerin konumlarını getir — sadece Yönetim (tek çağıran: ManagementFlow.js)."""
+    await require_yonetim(current_user)
     drivers = await db.users.find({
         "role": "sofor", "is_active": True,
         "current_location_lat": {"$ne": None}
