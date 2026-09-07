@@ -2469,11 +2469,11 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <td className="p-3">
                                   <div className="flex items-center gap-2">
                                     {visitor.device_type === "Mobil" ? (
-                                      <Smartphone className="h-4 w-4 text-blue-500" />
+                                      <Smartphone className="h-4 w-4 text-text-secondary" />
                                     ) : visitor.device_type === "Tablet" ? (
-                                      <Tablet className="h-4 w-4 text-purple-500" />
+                                      <Tablet className="h-4 w-4 text-text-secondary" />
                                     ) : (
-                                      <Monitor className="h-4 w-4 text-green-500" />
+                                      <Monitor className="h-4 w-4 text-text-secondary" />
                                     )}
                                     <span className="text-text-primary text-sm">{visitor.device_model}</span>
                                   </div>
@@ -3827,7 +3827,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <div className="space-y-3 mt-2">
                   {/* Zincir özeti */}
                   {opChanges.length > 0 && (
-                    <div data-testid="operator-chain-summary" className="p-3 bg-background border border-purple-500/20 rounded-md">
+                    <div data-testid="operator-chain-summary" className="p-3 bg-background border border-gray-500/20 rounded-md">
                       <p className="text-[10px] font-mono uppercase tracking-wider text-text-secondary mb-2">
                         Operatör Zinciri
                       </p>
@@ -3845,10 +3845,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                           });
                           return chain.map((c, i) => (
                             <React.Fragment key={i}>
-                              {i > 0 && <span className="text-purple-400 font-bold">→</span>}
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300 font-mono">
+                              {i > 0 && <span className="text-gray-400 font-bold">→</span>}
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-500/10 border border-gray-500/30 text-gray-300 font-mono">
                                 {c.name}
-                                <span className="text-purple-400/70">({c.from}→{c.to ?? "?"})</span>
+                                <span className="text-gray-400/70">({c.from}→{c.to ?? "?"})</span>
                               </span>
                             </React.Fragment>
                           ));
@@ -3863,9 +3863,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       <p className="text-xs text-text-secondary text-center py-4">Henüz değişim kaydı yok.</p>
                     )}
                     {events.map((ev, i) => {
+                      // start = durum (aktif/başladı → emerald). op_change/diğer = kategorik
+                      // ayrım, ikon (Users/RefreshCw) zaten yeterli — nötr gri.
                       const iconBg = ev.type === "start" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
-                        ev.type === "op_change" ? "bg-purple-500/20 text-purple-400 border-purple-500/30" :
-                          "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                        "bg-gray-500/20 text-gray-400 border-gray-500/30";
                       const Icon = ev.type === "start" ? Play : ev.type === "op_change" ? Users : RefreshCw;
                       return (
                         <div key={i} className="flex gap-3 p-3 bg-background border border-border rounded-md" data-testid={`timeline-event-${i}`}>
@@ -3883,7 +3884,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                             {ev.type !== "start" && (
                               <p className="text-xs text-text-secondary mt-0.5">
                                 <span className="text-text-primary font-mono">{ev.from}</span>
-                                <span className="mx-1 text-purple-400">→</span>
+                                <span className="mx-1 text-text-secondary">→</span>
                                 <span className="text-text-primary font-mono">{ev.to}</span>
                                 {ev.produced != null && (
                                   <span className="ml-2 text-amber-400">· {ev.produced} koli ile</span>
