@@ -4149,7 +4149,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 </p>
               </div>
               <Button onClick={runManualBackup} disabled={backupRunning} data-testid="run-backup-btn"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                className="bg-success hover:bg-emerald-600 text-white">
                 {backupRunning ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
                 {backupRunning ? "Alınıyor..." : "Şimdi Yedek Al"}
               </Button>
