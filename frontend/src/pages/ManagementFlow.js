@@ -77,8 +77,7 @@ const calculateDaysElapsed = (dateString) => {
 const getDaysElapsedColor = (days) => {
   if (days === null) return "text-text-secondary";
   if (days <= 2) return "text-emerald-500";
-  if (days <= 5) return "text-yellow-500";
-  if (days <= 10) return "text-orange-500";
+  if (days <= 10) return "text-warning";
   return "text-red-500";
 };
 
@@ -110,7 +109,7 @@ const SyncBadge = ({ lastSyncAt, syncing, onRefresh }) => {
     : ageMs < 90 * 1000
       ? "border-emerald-500/40 text-emerald-400"
       : ageMs < 5 * 60 * 1000
-        ? "border-yellow-500/40 text-yellow-400"
+        ? "border-warning/40 text-warning"
         : "border-red-500/40 text-red-400";
 
   const titleText = lastSyncAt
@@ -1803,7 +1802,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                 <TabsTrigger value="pending-approval" data-testid="pending-approval-tab-mobile" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-xs py-2">
                   Onay
                   {pendingReports.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+                    <span className="absolute -top-1 -right-1 bg-warning text-white text-xs w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
                       {pendingReports.length}
                     </span>
                   )}
@@ -1855,7 +1854,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <TabsTrigger value="pending-approval" data-testid="pending-approval-tab" className="data-[state=active]:bg-primary data-[state=active]:text-black relative text-sm px-3">
                 <Clock className="h-4 w-4 mr-1" /> Onay Bekleyen
                 {pendingReports.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
+                  <span className="absolute -top-1 -right-1 bg-warning text-white text-xs w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
                     {pendingReports.length}
                   </span>
                 )}
@@ -1971,7 +1970,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 variant="outline"
                                 data-testid={`edit-job-${currentJob.id}`}
                                 onClick={(e) => { e.stopPropagation(); openEditJob(currentJob); }}
-                                className="border-blue-500 text-blue-500 hover:bg-blue-500/20 text-xs"
+                                className="border-border text-text-secondary hover:bg-surface-highlight text-xs"
                               >
                                 <Edit className="h-3 w-3 mr-1" /> Düzenle
                               </Button>
@@ -2084,7 +2083,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         key={msg.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className={`p-4 rounded-lg border ${msg.is_read ? "bg-background border-border" : "bg-blue-500/10 border-blue-500"}`}
+                        className={`p-4 rounded-lg border ${msg.is_read ? "bg-background border-border" : "bg-info/10 border-info"}`}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -2092,7 +2091,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               <span className="font-heading font-bold text-text-primary">{msg.sender_name}</span>
                               <span className="text-xs px-2 py-0.5 bg-secondary/20 text-secondary rounded-full">{msg.machine_name}</span>
                               {!msg.is_read && (
-                                <span className="text-xs px-2 py-0.5 bg-blue-500 text-white rounded-full">Yeni</span>
+                                <span className="text-xs px-2 py-0.5 bg-info text-white rounded-full">Yeni</span>
                               )}
                             </div>
                             <p className="text-text-primary">{msg.message}</p>
@@ -2459,7 +2458,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <Card className="bg-surface border-border">
                 <CardHeader>
                   <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
-                    <Users className="h-6 w-6 text-blue-500" /> Son Ziyaretçiler
+                    <Users className="h-6 w-6 text-text-secondary" /> Son Ziyaretçiler
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -2715,7 +2714,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <CardTitle className="text-xl md:text-2xl font-heading flex items-center gap-2">
-                    <Clock className="h-6 w-6 text-orange-500" /> Onay Bekleyen Raporlar
+                    <Clock className="h-6 w-6 text-warning" /> Onay Bekleyen Raporlar
                   </CardTitle>
                   {pendingReports.length > 0 && (
                     <Button
@@ -2963,7 +2962,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <p className="text-xs text-text-secondary">Bugun Koli</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
-                                <p className="text-lg font-bold text-blue-400">{mgmtAIOverview.stats.pending_jobs}</p>
+                                <p className="text-lg font-bold text-text-secondary">{mgmtAIOverview.stats.pending_jobs}</p>
                                 <p className="text-xs text-text-secondary">Bekleyen</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
@@ -2971,7 +2970,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                 <p className="text-xs text-text-secondary">7g Tamamlanan</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
-                                <p className="text-lg font-bold text-orange-400">{mgmtAIOverview.stats.active_operators}</p>
+                                <p className="text-lg font-bold text-text-secondary">{mgmtAIOverview.stats.active_operators}</p>
                                 <p className="text-xs text-text-secondary">Operator</p>
                               </div>
                               <div className="bg-background rounded-lg p-2 text-center border border-border">
@@ -3087,15 +3086,15 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <p className="text-xs text-text-secondary">Tamamlanan</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
-                    <p className="text-2xl font-black text-blue-400">{dailyDetailData.summary.started_jobs}</p>
+                    <p className="text-2xl font-black text-text-secondary">{dailyDetailData.summary.started_jobs}</p>
                     <p className="text-xs text-text-secondary">Baslayan</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
-                    <p className="text-2xl font-black text-orange-400">{dailyDetailData.summary.active_operators}</p>
+                    <p className="text-2xl font-black text-text-secondary">{dailyDetailData.summary.active_operators}</p>
                     <p className="text-xs text-text-secondary">Operator</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
-                    <p className="text-2xl font-black text-yellow-400">{dailyDetailData.summary.partial_koli}</p>
+                    <p className="text-2xl font-black text-warning">{dailyDetailData.summary.partial_koli}</p>
                     <p className="text-xs text-text-secondary">Kismi Uretim</p>
                   </div>
                   <div className="bg-background rounded-xl p-3 border border-border text-center">
@@ -3284,7 +3283,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                                     }
                                   }
                                 }}
-                                className="text-blue-400 border-blue-400"
+                                className="text-text-secondary border-border"
                                 data-testid={`copy-link-${machineJobs.current.id}`}
                               >
                                 <Link2 className="h-4 w-4" />
