@@ -105,7 +105,7 @@ const SyncBadge = ({ lastSyncAt, syncing, onRefresh }) => {
 
   const ageMs = lastSyncAt ? Date.now() - lastSyncAt.getTime() : Infinity;
   const tone = !lastSyncAt
-    ? "border-zinc-600/40 text-zinc-500"
+    ? "border-zinc-600/40 text-text-secondary"
     : ageMs < 90 * 1000
       ? "border-success/40 text-emerald-400"
       : ageMs < 5 * 60 * 1000
@@ -3859,10 +3859,10 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                           });
                           return chain.map((c, i) => (
                             <React.Fragment key={i}>
-                              {i > 0 && <span className="text-gray-400 font-bold">→</span>}
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-500/10 border border-gray-500/30 text-gray-300 font-mono">
+                              {i > 0 && <span className="text-text-secondary font-bold">→</span>}
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-500/10 border border-gray-500/30 text-text-primary font-mono">
                                 {c.name}
-                                <span className="text-gray-400/70">({c.from}→{c.to ?? "?"})</span>
+                                <span className="text-text-secondary/70">({c.from}→{c.to ?? "?"})</span>
                               </span>
                             </React.Fragment>
                           ));
