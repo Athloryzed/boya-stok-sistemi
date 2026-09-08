@@ -34,6 +34,59 @@
 .light .text-text-secondary { color: #52525B !important; }
 .light .border-border { border-color: #E4E4E7 !important; }
 
+/* Durum renkleri (success/warning/error/info ve ham emerald/red/sky/blue
+   varyantları) koyu tema için ayarlanmış; beyaz zeminde WCAG AA (metin
+   4.5:1) veya non-text (kenarlık, 3:1) eşiğini geçemiyor. Aydınlık temada
+   aynı ailenin koyu bir tonuna sabitleniyor. Ölçülmüş oranlar (beyaza
+   karşı): emerald grubu hedefi #047857 5.48:1, warning hedefi #B45309
+   5.02:1, red/error hedefi #DC2626 4.83:1, blue/info hedefi #2563EB
+   5.17:1, sky hedefi #0369A1 5.93:1. emerald-700/red-600/blue-600+ zaten
+   geçiyor, dokunulmadı. */
+.light .text-success,
+.light .text-emerald-200,
+.light .text-emerald-300,
+.light .text-emerald-400,
+.light .text-emerald-500,
+.light .text-emerald-600 { color: #047857 !important; }
+
+.light .text-warning { color: #B45309 !important; }
+
+.light .text-error,
+.light .text-red-300,
+.light .text-red-400,
+.light .text-red-500 { color: #DC2626 !important; }
+
+.light .text-info,
+.light .text-blue-300,
+.light .text-blue-400,
+.light .text-blue-500 { color: #2563EB !important; }
+
+.light .text-sky-300,
+.light .text-sky-400,
+.light .text-sky-500 { color: #0369A1 !important; }
+
+/* Aynı aileler kenarlık olarak da kullanılıyor, çoğu opaklık varyantıyla
+   (border-error/40 gibi) — Tailwind'in ürettiği her opaklık sınıfını tek
+   tek eşlemek yerine substring seçici ile tüm varyantları (ve gelecekte
+   eklenecek yeni opaklık değerlerini) tek satırda kapsıyoruz. */
+.light [class*="border-success"],
+.light [class*="border-emerald-200"],
+.light [class*="border-emerald-300"],
+.light [class*="border-emerald-400"],
+.light [class*="border-emerald-500"] { border-color: #047857 !important; }
+
+.light [class*="border-warning"] { border-color: #B45309 !important; }
+
+.light [class*="border-error"],
+.light [class*="border-red-500"] { border-color: #DC2626 !important; }
+
+.light [class*="border-info"],
+.light [class*="border-blue-200"],
+.light [class*="border-blue-400"],
+.light [class*="border-blue-500"] { border-color: #2563EB !important; }
+
+.light [class*="border-sky-500"] { border-color: #0369A1 !important; }
+
 /* ===== BUTTON ANIMATIONS ===== */
 
 /* Base button transition */
