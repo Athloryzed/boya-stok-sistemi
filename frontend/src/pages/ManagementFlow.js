@@ -902,7 +902,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
 
   // Rol rozetleri artık renkle değil ikonla ayrışıyor — renk sadece durum/aksiyon
   // anlamına geldiği için hepsi aynı nötr gri (timeline'daki desenle aynı).
-  const ROLE_BADGE_CLASSES = "bg-gray-500/20 text-gray-400 border border-gray-500/30";
+  const ROLE_BADGE_CLASSES = "bg-gray-500/20 text-text-secondary border border-gray-500/30";
 
   const getRoleIcon = (role) => {
     const icons = { operator: HardHat, plan: ClipboardList, depo: Package, sofor: Truck, yonetim: Shield, boyaci: Paintbrush };
@@ -3880,7 +3880,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                       // start = durum (aktif/başladı → emerald). op_change/diğer = kategorik
                       // ayrım, ikon (Users/RefreshCw) zaten yeterli — nötr gri.
                       const iconBg = ev.type === "start" ? "bg-success/20 text-emerald-400 border-success/30" :
-                        "bg-gray-500/20 text-gray-400 border-gray-500/30";
+                        "bg-gray-500/20 text-text-secondary border-gray-500/30";
                       const Icon = ev.type === "start" ? Play : ev.type === "op_change" ? Users : RefreshCw;
                       return (
                         <div key={i} className="flex gap-3 p-3 bg-background border border-border rounded-md" data-testid={`timeline-event-${i}`}>
