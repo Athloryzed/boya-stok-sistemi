@@ -134,6 +134,39 @@
 .light .text-zinc-300,
 .light .text-zinc-400 { color: #71717A !important; }
 
+/* amber/primary (marka altını): amber-500 = primary = #FFBF00, beyazda
+   1.65:1. amber-100/400/600/700 marka için özelleştirilmiş, 50/200/300/
+   800/900 Tailwind'in stok amber'ı (resolveConfig ile doğrulandı) — hepsi
+   700'e kadar FAIL. Hedef metin için .light .badge-gold ile aynı #7A5A00
+   6.38:1 (yeni ton icat edilmedi). amber-700 (16+ kullanım) KASITLI
+   dışlandı: tamamı ya Home.js'in kendi isDarkBg koşulunda ya da
+   ExpectedKoliSummary.js/IOSInstallGuide.js'in ayrı dark: eşleşmesinde
+   zaten doğru. amber-800/900 zaten geçiyor (7.09/9.07), dokunulmadı. */
+.light .text-primary,
+.light .text-primary\/80,
+.light .text-amber-50,
+.light .text-amber-100,
+.light .text-amber-100\/50,
+.light .text-amber-100\/90,
+.light .text-amber-200,
+.light .text-amber-200\/40,
+.light .text-amber-200\/60,
+.light .text-amber-200\/70,
+.light .text-amber-200\/75,
+.light .text-amber-200\/80,
+.light .text-amber-300,
+.light .text-amber-300\/40,
+.light .text-amber-300\/60,
+.light .text-amber-300\/70,
+.light .text-amber-300\/80,
+.light .text-amber-300\/90,
+.light .text-amber-400,
+.light .text-amber-400\/70,
+.light .text-amber-400\/80,
+.light .text-amber-400\/90,
+.light .text-amber-500,
+.light .text-amber-600 { color: #7A5A00 !important; }
+
 /* Aynı aileler kenarlık olarak da kullanılıyor, çoğu opaklık varyantıyla
    (border-error/40 gibi). Tam class eşleşmesi (substring değil) kullanılıyor:
    codebase'de hover:/focus:/dark: önekli aynı renkler ayrı, kasıtlı amaçlarla
@@ -230,6 +263,31 @@
 .light .border-zinc-500\/40,
 .light .border-zinc-600\/40 { border-color: #71717A !important; }
 /* dark:border-zinc-700 aynı üçlünün dark-mode tarafı, kasıtlı dışlandı. */
+
+/* amber/primary kenarlık: metinden farklı hedef — amber-700 #B38200
+   3.44:1, sadece 3:1 non-text eşiğini geçiyor (4.5 metin eşiğini geçmiyor,
+   bu yüzden text grubunda kullanılmadı). Kenarlıklar dekoratif çerçeve,
+   #7A5A00 kadar koyu olması gerekmiyor — amber-700 hâlâ altın ailesinde
+   kalıp marka hissini koruyor. */
+.light .border-primary,
+.light .border-primary\/30,
+.light .border-primary\/40,
+.light .border-primary\/50,
+.light .border-amber-200,
+.light .border-amber-300,
+.light .border-amber-300\/40,
+.light .border-amber-300\/50,
+.light .border-amber-300\/60,
+.light .border-amber-400,
+.light .border-amber-500\/5,
+.light .border-amber-500\/10,
+.light .border-amber-500\/15,
+.light .border-amber-500\/20,
+.light .border-amber-500\/25,
+.light .border-amber-500\/30,
+.light .border-amber-500\/40,
+.light .border-amber-500\/50,
+.light .border-amber-500\/60 { border-color: #B38200 !important; }
 
 /* ===== BUTTON ANIMATIONS ===== */
 
