@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil, Archive, Calendar, ChevronRight } from "lucide-react";
+import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil, Archive, Calendar, ChevronRight, Circle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -449,7 +449,18 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const availableWidths = Array.from(new Set(bobins.map(b => Number(b.width_cm)).filter(w => w > 0))).sort((a, b) => a - b);
 
   const typeLabel = (t) => ({ purchase: "Alis", to_machine: "Makineye", sale: "Satis" }[t] || t);
-  const typeBg = (t) => ({ purchase: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", to_machine: "bg-sky-500/10 text-sky-400 border-sky-500/20", sale: "bg-amber-500/10 text-amber-400 border-amber-500/20" }[t] || "bg-zinc-500/10 text-zinc-400");
+  // Hareket tipi kategorik bir ayrım — renkle değil ikonla ayrışır (nötr rozet,
+  // bkz. ManagementFlow ROLE_BADGE_CLASSES deseni).
+  const TYPE_ICONS = { purchase: Plus, to_machine: Factory, sale: ShoppingCart };
+  const TYPE_BADGE_CLASSES = "bg-gray-500/20 text-gray-400 border-gray-500/30";
+  const TypeBadge = ({ type }) => {
+    const Icon = TYPE_ICONS[type] || Circle;
+    return (
+      <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${TYPE_BADGE_CLASSES}`}>
+        <Icon className="h-2.5 w-2.5" /> {typeLabel(type)}
+      </span>
+    );
+  };
 
   const totalWt = bobins.reduce((s, b) => s + (b.total_weight_kg || 0), 0);
 
@@ -540,7 +551,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
           </Card>
           <Card className="bg-surface border-border p-4 text-center">
             <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Toplam Agirlik</p>
-            <p className="text-2xl font-bold mt-1 text-sky-400">{totalWt.toFixed(0)} kg</p>
+            <p className="text-2xl font-bold mt-1 text-white">{totalWt.toFixed(0)} kg</p>
           </Card>
         </div>
 
@@ -592,7 +603,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   <button key={o.v} onClick={() => setFilterLayers(o.v)} data-testid={`filter-layers-${o.v}`}
                     className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                       filterLayers === o.v
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        ? "bg-primary/15 text-primary border-primary/30"
                         : "bg-white/[0.03] text-zinc-500 border-border hover:text-zinc-300"
                     }`}>{o.label}</button>
                 ))}
@@ -608,7 +619,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   <button key={o.v} onClick={() => setFilterColor(o.v)} data-testid={`filter-color-${o.v}`}
                     className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                       filterColor === o.v
-                        ? "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                        ? "bg-primary/15 text-primary border-primary/30"
                         : "bg-white/[0.03] text-zinc-500 border-border hover:text-zinc-300"
                     }`}>{o.label}</button>
                 ))}
@@ -619,14 +630,14 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   <button onClick={() => setFilterWidth("all")} data-testid="filter-width-all"
                     className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                       filterWidth === "all"
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        ? "bg-primary/15 text-primary border-primary/30"
                         : "bg-white/[0.03] text-zinc-500 border-border hover:text-zinc-300"
                     }`}>Hepsi</button>
                   {availableWidths.map(w => (
                     <button key={w} onClick={() => setFilterWidth(String(w))} data-testid={`filter-width-${w}`}
                       className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                         Number(filterWidth) === w
-                          ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                          ? "bg-primary/15 text-primary border-primary/30"
                           : "bg-white/[0.03] text-zinc-500 border-border hover:text-zinc-300"
                       }`}>{Number.isInteger(w) ? w : w.toFixed(1)} cm</button>
                   ))}
@@ -644,7 +655,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                   <button key={o.v} onClick={() => setFilterWarehouse(o.v)} data-testid={`filter-warehouse-${o.v}`}
                     className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
                       filterWarehouse === o.v
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        ? "bg-primary/15 text-primary border-primary/30"
                         : "bg-white/[0.03] text-zinc-500 border-border hover:text-zinc-300"
                     }`}>{o.label}</button>
                 ))}
@@ -679,7 +690,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                       <div className="flex items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500 flex-wrap">
                         <span className="inline-flex items-center gap-1 whitespace-nowrap"><Ruler className="h-3 w-3" /> {b.width_cm} cm</span>
                         <span className="inline-flex items-center gap-1 whitespace-nowrap"><Hash className="h-3 w-3" /> {b.grammage} gr</span>
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-sky-400 font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-text-primary font-medium"><Weight className="h-3 w-3" /> {b.total_weight_kg?.toFixed(1)} kg</span>
                       </div>
                     </button>
                     <div className="flex items-center gap-2 sm:self-start" onClick={(e) => e.stopPropagation()}>
@@ -701,7 +712,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                         onClick={() => { setSelectedBobin(b); setMachineForm({ weight_kg: "", machine_id: "" }); setActiveDialog("machine"); }}>
                         <Factory className="h-3.5 w-3.5" /> <span>Makine</span>
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-amber-400 hover:bg-amber-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
+                      <Button size="sm" variant="ghost" className="h-9 px-2 text-xs text-rose-400 hover:bg-rose-500/10 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1"
                         data-testid={`bobin-sale-${b.id}`}
                         onClick={() => { setSelectedBobin(b); setSaleForm({ weight_kg: "", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
                         <ShoppingCart className="h-3.5 w-3.5" /> <span>Sat</span>
@@ -729,15 +740,13 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               <div key={m.id} className="bg-surface/40 border border-border rounded-lg px-4 py-3 flex items-center justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${typeBg(m.movement_type)}`}>
-                      {typeLabel(m.movement_type)}
-                    </span>
+                    <TypeBadge type={m.movement_type} />
                     <span className="text-sm text-zinc-300 truncate">{m.bobin_label}</span>
                   </div>
                   <div className="flex gap-3 mt-1 text-[11px] text-zinc-600 flex-wrap">
                     <span>{m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg</span>
                     {m.machine_name && <span className="text-sky-400/60">Makine: {m.machine_name}</span>}
-                    {m.customer_name && <span className="text-amber-400/60">Musteri: {m.customer_name}</span>}
+                    {m.customer_name && <span className="text-rose-400/60">Musteri: {m.customer_name}</span>}
                     <span>Kullanici: {m.user_name || "-"}</span>
                   </div>
                 </div>
@@ -778,7 +787,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
               onClick={() => { setMachineForm({ weight_kg: "", machine_id: "" }); setActiveDialog("machine"); }}>
               <Factory className="h-5 w-5" /> Makineye Ver
             </Button>
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white h-14 text-sm gap-2"
+            <Button className="bg-rose-500 hover:bg-rose-600 text-white h-14 text-sm gap-2"
               data-testid="scan-to-sale"
               onClick={() => { setSaleForm({ weight_kg: "", customer_name: "", note: "" }); setActiveDialog("sale"); }}>
               <ShoppingCart className="h-5 w-5" /> Sat
@@ -881,7 +890,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                     onClick={() => setAddForm(p => ({...p, warehouse: o.v}))}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                       (addForm.warehouse || "") === o.v
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                        ? "bg-primary/15 text-primary border-primary/40"
                         : "bg-white/[0.03] text-zinc-400 border-border hover:text-zinc-200"
                     }`}>{o.label}</button>
                 ))}
@@ -959,7 +968,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             <div><Label className="text-zinc-400">Musteri Adi *</Label><Input data-testid="sale-customer" value={saleForm.customer_name} onChange={e => setSaleForm(p => ({...p, customer_name: e.target.value}))} className="bg-white/[0.04] border-border text-white" /></div>
             <div><Label className="text-zinc-400">Agirlik (kg) *</Label><Input data-testid="sale-weight" type="number" step="0.01" min="0.01" max={selectedBobin?.total_weight_kg || 0} value={saleForm.weight_kg} onChange={e => setSaleForm(p => ({...p, weight_kg: e.target.value}))} className="bg-white/[0.04] border-border text-white" /></div>
             <div><Label className="text-zinc-400">Not</Label><Input data-testid="sale-note" value={saleForm.note} onChange={e => setSaleForm(p => ({...p, note: e.target.value}))} className="bg-white/[0.04] border-border text-white" /></div>
-            <Button data-testid="sale-submit" onClick={handleSale} className="w-full bg-amber-500 hover:bg-amber-600 text-white h-11">Sat</Button>
+            <Button data-testid="sale-submit" onClick={handleSale} className="w-full bg-rose-500 hover:bg-rose-600 text-white h-11">Sat</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1118,7 +1127,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                       </span>
                     </div>
                     <p className="text-xs text-zinc-500 mt-1">
-                      {drawerBobin.width_cm}cm · {drawerBobin.grammage}gr · <span className="text-sky-400">{drawerBobin.total_weight_kg?.toFixed(1)} kg stokta</span>
+                      {drawerBobin.width_cm}cm · {drawerBobin.grammage}gr · <span className="text-text-primary font-medium">{drawerBobin.total_weight_kg?.toFixed(1)} kg stokta</span>
                     </p>
                     {drawerBobin.barcode && <p className="text-[10px] font-mono text-zinc-600 mt-0.5">{drawerBobin.barcode}</p>}
                   </div>
@@ -1134,9 +1143,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                     {drawerMovements.map(m => (
                       <div key={m.id} className="bg-background/60 border border-border rounded-lg px-3 py-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${typeBg(m.movement_type)}`}>
-                            {typeLabel(m.movement_type)}
-                          </span>
+                          <TypeBadge type={m.movement_type} />
                           <span className="text-[10px] text-zinc-600 whitespace-nowrap">
                             {m.created_at ? new Date(m.created_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}
                           </span>
@@ -1146,7 +1153,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
                             {m.movement_type === "purchase" ? "+" : "-"}{m.weight_kg?.toFixed(1)} kg
                           </span>
                           {m.machine_name && <span className="text-sky-400/80">→ {m.machine_name}</span>}
-                          {m.customer_name && <span className="text-amber-400/80">→ {m.customer_name}</span>}
+                          {m.customer_name && <span className="text-rose-400/80">→ {m.customer_name}</span>}
                           <span className="text-zinc-600 ml-auto">{m.user_name || "-"}</span>
                         </div>
                         {m.note && <p className="text-[10px] text-zinc-600 mt-1 italic">{m.note}</p>}
