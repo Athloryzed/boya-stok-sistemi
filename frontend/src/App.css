@@ -66,26 +66,51 @@
 .light .text-sky-500 { color: #0369A1 !important; }
 
 /* Aynı aileler kenarlık olarak da kullanılıyor, çoğu opaklık varyantıyla
-   (border-error/40 gibi) — Tailwind'in ürettiği her opaklık sınıfını tek
-   tek eşlemek yerine substring seçici ile tüm varyantları (ve gelecekte
-   eklenecek yeni opaklık değerlerini) tek satırda kapsıyoruz. */
-.light [class*="border-success"],
-.light [class*="border-emerald-200"],
-.light [class*="border-emerald-300"],
-.light [class*="border-emerald-400"],
-.light [class*="border-emerald-500"] { border-color: #047857 !important; }
+   (border-error/40 gibi). Tam class eşleşmesi (substring değil) kullanılıyor:
+   codebase'de hover:/focus:/dark: önekli aynı renkler ayrı, kasıtlı amaçlarla
+   var (örn. hover:border-warning sadece hover'da vurgulanmalı, dark:border-
+   emerald-500/30 zaten IOSInstallGuide.js'in kendi light/dark eşleşmesinin
+   parçası) — bir substring seçici bunları da yakalayıp her zaman-görünür hale
+   getirir ya da elle ayarlanmış bir çifti ezerdi. Sadece aşağıda listelenen,
+   önek taşımayan tam sınıflar override edilir. */
+.light .border-success,
+.light .border-success\/20,
+.light .border-success\/30,
+.light .border-success\/40,
+.light .border-emerald-300,
+.light .border-emerald-400,
+.light .border-emerald-500\/20,
+.light .border-emerald-500\/30,
+.light .border-emerald-500\/40 { border-color: #047857 !important; }
+/* border-emerald-200 kasıtlı dışlandı: tek kullanımı IOSInstallGuide.js'te
+   zaten kendi dark:border-emerald-500/30 eşiyle doğru çalışan bir pastel
+   light/dark çifti — üzerine yazmak o bileşenin tasarımını bozar. */
 
-.light [class*="border-warning"] { border-color: #B45309 !important; }
+.light .border-warning,
+.light .border-warning\/30,
+.light .border-warning\/40 { border-color: #B45309 !important; }
 
-.light [class*="border-error"],
-.light [class*="border-red-500"] { border-color: #DC2626 !important; }
+.light .border-error,
+.light .border-error\/30,
+.light .border-error\/40,
+.light .border-red-500,
+.light .border-red-500\/20,
+.light .border-red-500\/30,
+.light .border-red-500\/40,
+.light .border-red-500\/50 { border-color: #DC2626 !important; }
 
-.light [class*="border-info"],
-.light [class*="border-blue-200"],
-.light [class*="border-blue-400"],
-.light [class*="border-blue-500"] { border-color: #2563EB !important; }
+.light .border-info,
+.light .border-info\/30,
+.light .border-blue-400,
+.light .border-blue-500,
+.light .border-blue-500\/20,
+.light .border-blue-500\/30,
+.light .border-blue-500\/40,
+.light .border-blue-500\/50 { border-color: #2563EB !important; }
+/* border-blue-200 kasıtlı dışlandı: aynı sebep — IOSInstallGuide.js'teki
+   dark:border-blue-500/30 ile eşleşen pastel light-mode değeri. */
 
-.light [class*="border-sky-500"] { border-color: #0369A1 !important; }
+.light .border-sky-500\/30 { border-color: #0369A1 !important; }
 
 /* ===== BUTTON ANIMATIONS ===== */
 
