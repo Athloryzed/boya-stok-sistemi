@@ -100,8 +100,8 @@
    tonu kullanıldı.
    amber KASITLI OLARAK DIŞLANDI: 300+ kullanım, primary/warning ile aynı
    renk ailesi tartışmasının parçası, ayrı bir turda ele alınmalı.
-   cyan'ın hiç text-*/border-* kullanımı yok (sadece gradient stop), bu
-   yüzden kapsam dışı — override edilecek bir şey yok. */
+   cyan'ın hiç text-* veya border-* kullanımı yok (sadece gradient stop),
+   bu yüzden kapsam dışı — override edilecek bir şey yok. */
 .light .text-purple-200,
 .light .text-purple-300,
 .light .text-purple-400,
