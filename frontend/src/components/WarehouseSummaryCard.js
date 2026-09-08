@@ -21,7 +21,7 @@ function auth() {
 const META = {
   DEPO1:      { label: "Depo 1",     accent: "blue",    text: "text-blue-300",     bg: "bg-blue-500/10",    border: "border-blue-500/30",    dot: "bg-blue-400" },
   DEPO2:      { label: "Depo 2",     accent: "emerald", text: "text-emerald-300",  bg: "bg-emerald-500/10", border: "border-emerald-500/30", dot: "bg-emerald-400" },
-  UNASSIGNED: { label: "Atanmamış",  accent: "zinc",    text: "text-zinc-300",     bg: "bg-zinc-500/10",    border: "border-zinc-500/30",    dot: "bg-zinc-400" },
+  UNASSIGNED: { label: "Atanmamış",  accent: "zinc",    text: "text-text-secondary", bg: "bg-surface-highlight", border: "border-border",    dot: "bg-zinc-400" },
 };
 
 const ORDER = ["DEPO1", "DEPO2", "UNASSIGNED"];
@@ -53,8 +53,8 @@ export default function WarehouseSummaryCard({ compact = false, className = "", 
 
   if (loading && !data) {
     return (
-      <div className={`rounded-xl border border-white/[0.06] bg-[#1a1f2e]/40 p-4 ${className}`} data-testid="wh-summary-loading">
-        <div className="flex items-center gap-2 text-zinc-500 text-sm">
+      <div className={`rounded-xl border border-border bg-surface/40 p-4 ${className}`} data-testid="wh-summary-loading">
+        <div className="flex items-center gap-2 text-text-secondary text-sm">
           <RefreshCw className="h-4 w-4 animate-spin" /> Depo özeti yükleniyor…
         </div>
       </div>
@@ -69,8 +69,8 @@ export default function WarehouseSummaryCard({ compact = false, className = "", 
 
   if (compact) {
     return (
-      <div className={`rounded-xl border border-white/[0.06] bg-[#1a1f2e]/40 p-3 ${className}`} data-testid="wh-summary-compact">
-        <div className="flex items-center gap-2 mb-2 text-[10px] uppercase tracking-wider text-zinc-500">
+      <div className={`rounded-xl border border-border bg-surface/40 p-3 ${className}`} data-testid="wh-summary-compact">
+        <div className="flex items-center gap-2 mb-2 text-[10px] uppercase tracking-wider text-text-secondary">
           <Warehouse className="h-3 w-3" /> Depo Özeti
           <button onClick={load} className="ml-auto text-zinc-600 hover:text-amber-400" title="Yenile" data-testid="wh-summary-refresh">
             <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
@@ -140,7 +140,7 @@ export default function WarehouseSummaryCard({ compact = false, className = "", 
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-0.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-text-secondary mb-0.5">
                   <Package className="h-3 w-3" /> Bobin
                 </div>
                 <div className={`text-2xl font-bold tabular-nums ${meta.text}`}>{d.bobin_count}</div>
@@ -149,7 +149,7 @@ export default function WarehouseSummaryCard({ compact = false, className = "", 
                 )}
               </div>
               <div>
-                <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-0.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-text-secondary mb-0.5">
                   <Layers className="h-3 w-3" /> Marka Stok
                 </div>
                 <div className={`text-2xl font-bold tabular-nums ${meta.text}`}>{d.marka_stok_count}</div>

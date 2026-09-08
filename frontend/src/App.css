@@ -33,6 +33,19 @@
 .light .text-text-primary { color: #09090B !important; }
 .light .text-text-secondary { color: #52525B !important; }
 .light .border-border { border-color: #E4E4E7 !important; }
+/* Yukarıdaki 6 kural sadece TAM class adını hedefliyor; bg-surface/60 gibi
+   opaklık varyantları Tailwind'de FARKLI bir class (bg-surface/60 !=
+   bg-surface), bu yüzden ayrı ayrı eşlenmesi gerekiyor — aksi halde ör.
+   arama kutusu (BobinFlow) gibi yerler override'sız kalıp koyu #18181B'nin
+   %60 opaklıktaki halini (beyaz üstünde koyu gri) gösteriyor. */
+.light .bg-surface\/40,
+.light .bg-surface\/60,
+.light .bg-surface\/80 { background: #F4F4F5 !important; }
+.light .bg-background\/50,
+.light .bg-background\/60 { background: #FFFFFF !important; }
+.light .border-border\/40,
+.light .border-border\/50 { border-color: #E4E4E7 !important; }
+.light .text-text-secondary\/70 { color: #52525B !important; }
 
 /* Durum renkleri (success/warning/error/info ve ham emerald/red/sky/blue
    varyantları) koyu tema için ayarlanmış; beyaz zeminde WCAG AA (metin
@@ -64,6 +77,16 @@
 .light .text-sky-300,
 .light .text-sky-400,
 .light .text-sky-500 { color: #0369A1 !important; }
+
+/* rose (BobinFlow'un satış-akışı kimlik rengi) beyazda 1.2-2.7:1 — rose-400
+   2.69:1, en çok kullanılan halk, AA'nın çok altında. Hedef rose-700
+   #BE123C 6.29:1. hover:text-rose-300 ve focus:border-rose-400 kasıtlı
+   dışlandı (yukarıdaki hover/focus dersi — koşullu varyantlara dokunma). */
+.light .text-rose-100,
+.light .text-rose-300,
+.light .text-rose-400,
+.light .text-rose-400\/60,
+.light .text-rose-400\/80 { color: #BE123C !important; }
 
 /* Aynı aileler kenarlık olarak da kullanılıyor, çoğu opaklık varyantıyla
    (border-error/40 gibi). Tam class eşleşmesi (substring değil) kullanılıyor:
@@ -111,6 +134,14 @@
    dark:border-blue-500/30 ile eşleşen pastel light-mode değeri. */
 
 .light .border-sky-500\/30 { border-color: #0369A1 !important; }
+
+.light .border-rose-300\/40,
+.light .border-rose-300\/50,
+.light .border-rose-500\/30,
+.light .border-rose-500\/40,
+.light .border-rose-500\/50,
+.light .border-rose-500\/60 { border-color: #BE123C !important; }
+/* focus:border-rose-400 kasıtlı dışlandı — sadece focus'ta görünmeli. */
 
 /* ===== BUTTON ANIMATIONS ===== */
 
