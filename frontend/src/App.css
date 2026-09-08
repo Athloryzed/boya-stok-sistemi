@@ -88,6 +88,52 @@
 .light .text-rose-400\/60,
 .light .text-rose-400\/80 { color: #BE123C !important; }
 
+/* Kontrol listesi tamamlanması (purple/cyan sorusu üzerine tüm ailelerin
+   taranması): aşağıdaki 9 aile de aynı sorunu taşıyordu, ölçülüp eklendi.
+   Hedefler (beyaza karşı, ilk AA'yı geçen ton): purple-600 #9333EA 5.38,
+   violet-600 #7C3AED 5.70, fuchsia-600 #C026D3 4.71, pink-600 #DB2777 4.60,
+   teal-700 #0F766E 5.47 (600 3.74 ile yetersiz), green-700 #15803D 5.02
+   (600 3.30 ile yetersiz), orange-700 #C2410C 5.18 (600 3.56 ile yetersiz),
+   yellow-700 #A16207 4.92 (600 2.94 ile yetersiz), gray-400/zinc-300-400 →
+   zaten AA'yı geçen gray-500/zinc-500 hedefine (#6B7280 4.83 / #71717A
+   4.83) bağlandı — ayrı bir ton icat etmek yerine ailenin kendi güvenli
+   tonu kullanıldı.
+   amber KASITLI OLARAK DIŞLANDI: 300+ kullanım, primary/warning ile aynı
+   renk ailesi tartışmasının parçası, ayrı bir turda ele alınmalı.
+   cyan'ın hiç text-*/border-* kullanımı yok (sadece gradient stop), bu
+   yüzden kapsam dışı — override edilecek bir şey yok. */
+.light .text-purple-200,
+.light .text-purple-300,
+.light .text-purple-400,
+.light .text-purple-500 { color: #9333EA !important; }
+
+.light .text-violet-300 { color: #7C3AED !important; }
+
+.light .text-fuchsia-300,
+.light .text-fuchsia-400 { color: #C026D3 !important; }
+
+.light .text-pink-300,
+.light .text-pink-400,
+.light .text-pink-500 { color: #DB2777 !important; }
+
+.light .text-teal-300 { color: #0F766E !important; }
+
+.light .text-green-300,
+.light .text-green-400,
+.light .text-green-500 { color: #15803D !important; }
+
+.light .text-orange-400,
+.light .text-orange-500 { color: #C2410C !important; }
+
+.light .text-yellow-300,
+.light .text-yellow-400,
+.light .text-yellow-500 { color: #A16207 !important; }
+
+.light .text-gray-400 { color: #6B7280 !important; }
+
+.light .text-zinc-300,
+.light .text-zinc-400 { color: #71717A !important; }
+
 /* Aynı aileler kenarlık olarak da kullanılıyor, çoğu opaklık varyantıyla
    (border-error/40 gibi). Tam class eşleşmesi (substring değil) kullanılıyor:
    codebase'de hover:/focus:/dark: önekli aynı renkler ayrı, kasıtlı amaçlarla
@@ -142,6 +188,48 @@
 .light .border-rose-500\/50,
 .light .border-rose-500\/60 { border-color: #BE123C !important; }
 /* focus:border-rose-400 kasıtlı dışlandı — sadece focus'ta görünmeli. */
+
+.light .border-purple-500,
+.light .border-purple-500\/30,
+.light .border-purple-500\/40 { border-color: #9333EA !important; }
+/* focus:border-purple-400 kasıtlı dışlandı. */
+
+.light .border-violet-500\/30 { border-color: #7C3AED !important; }
+
+.light .border-fuchsia-500\/30,
+.light .border-fuchsia-500\/40 { border-color: #C026D3 !important; }
+/* hover:border-fuchsia-500/50 kasıtlı dışlandı; border-fuchsia-600 zaten
+   6.32:1 ile geçiyor, dokunulmadı. */
+
+.light .border-pink-500\/30,
+.light .border-pink-500\/40 { border-color: #DB2777 !important; }
+/* hover:border-pink-500, hover:border-pink-500/50 kasıtlı dışlandı;
+   border-pink-600 zaten 6.04:1 ile geçiyor, dokunulmadı. */
+
+.light .border-teal-500\/40 { border-color: #0F766E !important; }
+
+.light .border-green-500,
+.light .border-green-500\/30,
+.light .border-green-500\/40,
+.light .border-green-500\/50 { border-color: #15803D !important; }
+
+.light .border-orange-500\/30 { border-color: #C2410C !important; }
+
+.light .border-yellow-500,
+.light .border-yellow-500\/30,
+.light .border-yellow-500\/50 { border-color: #A16207 !important; }
+
+.light .border-gray-500\/20,
+.light .border-gray-500\/30 { border-color: #6B7280 !important; }
+/* border-gray-200/300 kasıtlı dışlandı: ConfirmProvider.js/IOSInstallGuide.js/
+   ExpectedKoliSummary.js'in kendi dark: eşleşmesinin (Tailwind native
+   darkMode:["class"]) LIGHT-mode tarafı — zaten doğru çalışıyor. */
+
+.light .border-zinc-300,
+.light .border-zinc-500\/30,
+.light .border-zinc-500\/40,
+.light .border-zinc-600\/40 { border-color: #71717A !important; }
+/* dark:border-zinc-700 aynı üçlünün dark-mode tarafı, kasıtlı dışlandı. */
 
 /* ===== BUTTON ANIMATIONS ===== */
 
