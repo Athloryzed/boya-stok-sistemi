@@ -414,94 +414,118 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
           <p className="section-label mb-3">Makine Durumu</p>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="boyaci-machines-grid">
             {machines.map((m) => {
-              const job = activeJobs.find((j) => j.machine_id === m.id);
+              const machineJobs = activeJobs.filter((j) => j.machine_id === m.id);
+              const currentJob = machineJobs.find((j) => j.status === "in_progress");
+              const pausedJobs = machineJobs.filter((j) => j.status === "paused");
               return (
                 <Card key={m.id} className="panel-industrial" data-testid={`boyaci-machine-${m.id}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-heading font-bold text-text-primary truncate">{m.name}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                        !job ? "bg-surface-highlight/60 text-text-secondary border-border"
-                          : job.status === "paused" ? "bg-warning/15 text-warning border-warning/30"
-                          : "bg-success/15 text-success border-success/30"
+                        currentJob ? "bg-success/15 text-success border-success/30"
+                          : pausedJobs.length > 0 ? "bg-warning/15 text-warning border-warning/30"
+                          : "bg-surface-highlight/60 text-text-secondary border-border"
                       }`}>
-                        {job ? (job.status === "paused" ? "DURDURULDU" : "ÇALIŞIYOR") : "BOŞTA"}
+                        {currentJob ? "ÇALIŞIYOR" : pausedJobs.length > 0 ? "DURDURULDU" : "BOŞTA"}
                       </span>
                     </div>
-                    {job ? (
+                    {currentJob && (
                       <div className="mt-3">
                         <div className="flex gap-3">
-                          <JobThumb job={job} onOpen={openPreview} size={56} />
+                          <JobThumb job={currentJob} onOpen={openPreview} size={56} />
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-text-primary truncate">{job.name}</p>
-                            <JobMeta job={job} />
+                            <p className="font-semibold text-text-primary truncate">{currentJob.name}</p>
+                            <JobMeta job={currentJob} />
                           </div>
                         </div>
                         <div className="mt-3">
                           <div className="flex justify-between text-xs text-text-secondary mb-1">
-                            <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
-                            <span>{job.operator_name || "—"}</span>
+                            <span>{(currentJob.completed_koli || 0) + (currentJob.progress_total || 0)} / {currentJob.koli_count || 0} koli</span>
+                            <span>{currentJob.operator_name || "—"}</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
                             <div className="h-full bg-gradient-to-r from-primary to-amber-600"
-                              style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
+                              style={{ width: `${Math.min(100, Math.round((((currentJob.completed_koli || 0) + (currentJob.progress_total || 0)) / (currentJob.koli_count || 1)) * 100))}%` }} />
                           </div>
                           <p className="text-[11px] text-text-muted mt-1">
-                            {job.progress_last_at ? `Son giriş: ${minutesAgo(job.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                            {currentJob.progress_last_at ? `Son giriş: ${minutesAgo(currentJob.progress_last_at)} dk önce` : "Henüz giriş yok"}
                           </p>
                         </div>
-                        {job.status === "paused" ? (
+                        <div className="flex gap-2 mt-3">
                           <Button
-                            onClick={() => handleResume(job)}
-                            data-testid={`boyaci-resume-${job.id}`}
-                            className="w-full mt-3 bg-info text-white hover:bg-info/90"
+                            variant="outline"
+                            onClick={() => handleAddProgress(currentJob)}
+                            data-testid={`boyaci-progress-add-${currentJob.id}`}
+                            className="flex-1 border-primary/40 text-primary hover:bg-primary/10"
                           >
-                            <Play className="mr-2 h-4 w-4" /> Devam Ettir
+                            <Plus className="mr-1.5 h-4 w-4" /> 5 Koli
                           </Button>
-                        ) : (
-                          <>
-                            <div className="flex gap-2 mt-3">
-                              <Button
-                                variant="outline"
-                                onClick={() => handleAddProgress(job)}
-                                data-testid={`boyaci-progress-add-${job.id}`}
-                                className="flex-1 border-primary/40 text-primary hover:bg-primary/10"
-                              >
-                                <Plus className="mr-1.5 h-4 w-4" /> 5 Koli
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleUndoProgress(job)}
-                                data-testid={`boyaci-progress-undo-${job.id}`}
-                                disabled={!job.progress_total}
-                                className="border-border text-text-secondary hover:bg-surface-highlight shrink-0"
-                                title="Son ara girişi geri al"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="flex gap-2 mt-2">
-                              <Button
-                                variant="outline"
-                                onClick={() => openPauseDialog(job)}
-                                data-testid={`boyaci-pause-${job.id}`}
-                                className="flex-1 border-warning text-warning hover:bg-warning/20"
-                              >
-                                <Pause className="mr-2 h-4 w-4" /> Durdur
-                              </Button>
-                              <Button
-                                onClick={() => handleComplete(job)}
-                                data-testid={`boyaci-complete-${job.id}`}
-                                className="flex-1 bg-success text-white hover:bg-success/90"
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" /> İşi Tamamla
-                              </Button>
-                            </div>
-                          </>
-                        )}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleUndoProgress(currentJob)}
+                            data-testid={`boyaci-progress-undo-${currentJob.id}`}
+                            disabled={!currentJob.progress_total}
+                            className="border-border text-text-secondary hover:bg-surface-highlight shrink-0"
+                            title="Son ara girişi geri al"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => openPauseDialog(currentJob)}
+                            data-testid={`boyaci-pause-${currentJob.id}`}
+                            className="flex-1 border-warning text-warning hover:bg-warning/20"
+                          >
+                            <Pause className="mr-2 h-4 w-4" /> Durdur
+                          </Button>
+                          <Button
+                            onClick={() => handleComplete(currentJob)}
+                            data-testid={`boyaci-complete-${currentJob.id}`}
+                            className="flex-1 bg-success text-white hover:bg-success/90"
+                          >
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> İşi Tamamla
+                          </Button>
+                        </div>
                       </div>
-                    ) : (
+                    )}
+                    {pausedJobs.length > 0 && (
+                      <div className={currentJob ? "mt-3 pt-3 border-t border-border" : "mt-3"}>
+                        <p className="text-xs font-semibold text-warning mb-2">Durdurulmuş:</p>
+                        {pausedJobs.map((pj) => (
+                          <div key={pj.id} className="mb-2 last:mb-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm text-text-primary truncate">{pj.name}</p>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleResume(pj)}
+                                data-testid={`boyaci-resume-${pj.id}`}
+                                className="text-info hover:bg-info/20 text-xs h-7 px-2 shrink-0"
+                              >
+                                <Play className="h-3 w-3 mr-1" /> Devam
+                              </Button>
+                            </div>
+                            <div className="mt-1">
+                              <div className="flex justify-between text-[11px] text-text-secondary mb-0.5">
+                                <span>{(pj.completed_koli || 0) + (pj.progress_total || 0)} / {pj.koli_count || 0} koli</span>
+                              </div>
+                              <div className="h-1 rounded-full bg-surface-highlight overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                  style={{ width: `${Math.min(100, Math.round((((pj.completed_koli || 0) + (pj.progress_total || 0)) / (pj.koli_count || 1)) * 100))}%` }} />
+                              </div>
+                              <p className="text-[10px] text-text-muted mt-0.5">
+                                {pj.progress_last_at ? `Son giriş: ${minutesAgo(pj.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!currentJob && pausedJobs.length === 0 && (
                       <p className="text-sm text-text-secondary mt-3">Bu makinede aktif iş yok.</p>
                     )}
                   </CardContent>
