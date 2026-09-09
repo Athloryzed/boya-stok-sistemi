@@ -9,9 +9,17 @@ from database import db
 from models import Paint, PaintMovement, ActivePaintToMachine
 from emergentintegrations.llm.chat import UserMessage
 from services.ai_config import build_chat
-from auth import get_current_user, require_yonetim
+from auth import get_current_user, require_yonetim, get_user_roles, is_yonetim
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
+
+
+async def _require_boyaci_or_yonetim(current_user: dict) -> None:
+    """Stok değiştiren işlemler için: sadece yonetim veya boyaci — 403 fırlatır."""
+    roles = await get_user_roles(current_user)
+    if not (is_yonetim(roles) or "boyaci" in roles):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
 
 INITIAL_PAINTS = [
     "Siyah", "Beyaz", "Mavi", "Lacivert", "Refleks", "Kırmızı",
@@ -23,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/paints/init")
-async def init_paints():
+async def init_paints(current_user: dict = Depends(get_current_user)):
     """Başlangıç boyalarını oluştur"""
+    await require_yonetim(current_user)
     existing = await db.paints.count_documents({})
     if existing == 0:
         paints = [Paint(name=name).model_dump() for name in INITIAL_PAINTS]
@@ -34,20 +43,22 @@ async def init_paints():
 
 
 @router.get("/paints", response_model=List[Paint])
-async def get_paints():
+async def get_paints(current_user: dict = Depends(get_current_user)):
     paints = await db.paints.find({}, {"_id": 0}).sort("name", 1).to_list(100)
     return paints
 
 
 @router.post("/paints", response_model=Paint)
-async def create_paint(paint: Paint):
+async def create_paint(paint: Paint, current_user: dict = Depends(get_current_user)):
+    await require_yonetim(current_user)
     doc = paint.model_dump()
     await db.paints.insert_one(doc)
     return paint
 
 
 @router.delete("/paints/{paint_id}")
-async def delete_paint(paint_id: str):
+async def delete_paint(paint_id: str, current_user: dict = Depends(get_current_user)):
+    await require_yonetim(current_user)
     result = await db.paints.delete_one({"id": paint_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Boya bulunamadı")
@@ -62,8 +73,9 @@ async def clear_paint_movements(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/paints/transaction")
-async def paint_transaction(data: dict = Body(...)):
+async def paint_transaction(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Boya hareketi kaydet"""
+    await _require_boyaci_or_yonetim(current_user)
     paint_id = data.get("paint_id")
     movement_type = data.get("movement_type")
     amount_kg = float(data.get("amount_kg", 0))
@@ -91,7 +103,8 @@ async def paint_transaction(data: dict = Body(...)):
     movement = PaintMovement(
         paint_id=paint_id, paint_name=paint["name"],
         movement_type=movement_type, amount_kg=amount_kg,
-        machine_id=machine_id, machine_name=machine_name, note=note
+        machine_id=machine_id, machine_name=machine_name, note=note,
+        created_by=current_user.get("display_name") or current_user.get("username")
     )
     await db.paint_movements.insert_one(movement.model_dump())
 
@@ -119,8 +132,9 @@ async def get_paint_movements(paint_id: Optional[str] = None, limit: int = 100):
 
 
 @router.post("/paints/give-to-machine")
-async def give_paint_to_machine(data: dict = Body(...)):
+async def give_paint_to_machine(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Makineye boya ver"""
+    await _require_boyaci_or_yonetim(current_user)
     paint_id = data.get("paint_id")
     machine_id = data.get("machine_id")
     machine_name = data.get("machine_name")
@@ -137,10 +151,13 @@ async def give_paint_to_machine(data: dict = Body(...)):
     if current_stock < given_amount_kg:
         raise HTTPException(status_code=400, detail=f"Yetersiz stok! Mevcut: {current_stock} kg")
 
+    given_by = current_user.get("display_name") or current_user.get("username")
+
     active_paint = ActivePaintToMachine(
         paint_id=paint_id, paint_name=paint["name"],
         machine_id=machine_id, machine_name=machine_name,
-        given_amount_kg=given_amount_kg
+        given_amount_kg=given_amount_kg,
+        created_by=given_by
     )
     await db.active_paints_to_machine.insert_one(active_paint.model_dump())
 
@@ -151,7 +168,8 @@ async def give_paint_to_machine(data: dict = Body(...)):
         paint_id=paint_id, paint_name=paint["name"],
         movement_type="to_machine", amount_kg=given_amount_kg,
         machine_id=machine_id, machine_name=machine_name,
-        note=f"Makineye verildi: {given_amount_kg} kg"
+        note=f"Makineye verildi: {given_amount_kg} kg",
+        created_by=given_by
     )
     await db.paint_movements.insert_one(movement.model_dump())
 
@@ -170,8 +188,9 @@ async def get_active_paints_on_machines():
 
 
 @router.post("/paints/return-from-machine")
-async def return_paint_from_machine(data: dict = Body(...)):
+async def return_paint_from_machine(data: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Makineden boya geri al"""
+    await _require_boyaci_or_yonetim(current_user)
     active_paint_id = data.get("active_paint_id")
     returned_amount_kg = float(data.get("returned_amount_kg", 0))
 
@@ -190,11 +209,14 @@ async def return_paint_from_machine(data: dict = Body(...)):
     if used_amount < 0:
         raise HTTPException(status_code=400, detail="Geri alınan miktar verilen miktardan fazla olamaz")
 
+    returned_by = current_user.get("display_name") or current_user.get("username")
+
     await db.active_paints_to_machine.update_one(
         {"id": active_paint_id},
         {"$set": {
             "returned": True, "returned_amount_kg": returned_amount_kg,
             "used_amount_kg": used_amount,
+            "returned_by": returned_by,
             "returned_at": datetime.now(timezone.utc).isoformat()
         }}
     )
@@ -208,7 +230,8 @@ async def return_paint_from_machine(data: dict = Body(...)):
         paint_id=active_paint["paint_id"], paint_name=active_paint["paint_name"],
         movement_type="from_machine", amount_kg=returned_amount_kg,
         machine_id=active_paint["machine_id"], machine_name=active_paint["machine_name"],
-        note=f"Makineden geri alındı: {returned_amount_kg} kg"
+        note=f"Makineden geri alındı: {returned_amount_kg} kg",
+        created_by=returned_by
     )
     await db.paint_movements.insert_one(movement_return.model_dump())
 
@@ -217,7 +240,8 @@ async def return_paint_from_machine(data: dict = Body(...)):
             paint_id=active_paint["paint_id"], paint_name=active_paint["paint_name"],
             movement_type="used", amount_kg=used_amount,
             machine_id=active_paint["machine_id"], machine_name=active_paint["machine_name"],
-            note=f"Makine kullanımı: {used_amount} kg (Verilen: {given_amount} kg, Kalan: {returned_amount_kg} kg)"
+            note=f"Makine kullanımı: {used_amount} kg (Verilen: {given_amount} kg, Kalan: {returned_amount_kg} kg)",
+            created_by=returned_by
         )
         await db.paint_movements.insert_one(movement_used.model_dump())
 

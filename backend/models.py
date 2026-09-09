@@ -217,6 +217,7 @@ class PaintMovement(BaseModel):
     machine_id: Optional[str] = None
     machine_name: Optional[str] = None
     note: Optional[str] = None
+    created_by: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -231,6 +232,8 @@ class ActivePaintToMachine(BaseModel):
     returned: bool = False
     returned_amount_kg: float = 0.0
     used_amount_kg: float = 0.0
+    created_by: Optional[str] = None
+    returned_by: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     returned_at: Optional[str] = None
 

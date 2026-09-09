@@ -15,7 +15,7 @@ import { API } from "../App";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import UserMenu from "../components/UserMenu";
 import AIAssistant from "../components/AIAssistant";
-import { resumeCentralSession } from "../lib/auth";
+import { resumeCentralSession, hasYonetimRole } from "../lib/auth";
 
 // Boya renk haritası (gerçek renklere yakın)
 const PAINT_COLORS = {
@@ -39,6 +39,7 @@ const LOW_STOCK_THRESHOLD = 5;
 const PaintFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
+  const [isYonetimUser, setIsYonetimUser] = useState(false);
   const [password, setPassword] = useState("");
   const [paints, setPaints] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -68,13 +69,15 @@ const PaintFlow = ({ theme, toggleTheme }) => {
 
   // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
   useEffect(() => {
-    // 1) Merkezi oturum — tek doğruluk kaynağı; /paint yonetim/plan/depo'ya açık
+    // 1) Merkezi oturum — tek doğruluk kaynağı; /paint yonetim/plan/depo/boyaci'ya açık
     const central = resumeCentralSession("/paint");
     if (central) {
       setAuthenticated(true);
+      setIsYonetimUser(hasYonetimRole(central.roles));
       return;
     }
-    // 2) Geriye dönük: eski paint_session (24 saatlik)
+    // 2) Geriye dönük: eski paint_session (24 saatlik) — /management/login ile
+    // alınmış bir şifre, yani her zaman yönetim-eşdeğeri bir giriş.
     const savedSession = localStorage.getItem("paint_session");
     if (savedSession) {
       try {
@@ -82,9 +85,10 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         const sessionTime = session.login_time || 0;
         const now = Date.now();
         const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
-        
+
         if (hoursPassed < 24) {
           setAuthenticated(true);
+          setIsYonetimUser(true);
         } else {
           localStorage.removeItem("paint_session");
         }
@@ -93,6 +97,17 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       }
     }
   }, []);
+
+  // Boya init — sadece SAYFA İLK YÜKLENDİĞİNDE, bir kez, ve sadece yonetim
+  // rolündeyse denenir. Backend zaten idempotent (koleksiyon boşsa oluşturur),
+  // ama yine de her 10sn'lik pollingde tekrar tekrar çağırmanın (ve boyacı/plan/
+  // depo rollerinde artık 403 üretmesinin) bir anlamı yok.
+  useEffect(() => {
+    if (!authenticated || !isYonetimUser) return;
+    axios.post(`${API}/paints/init`, null).catch((e) => {
+      console.warn("Paint init skipped (non-blocking):", e?.message);
+    });
+  }, [authenticated, isYonetimUser]);
 
   useEffect(() => {
     if (authenticated) {
@@ -105,13 +120,6 @@ const PaintFlow = ({ theme, toggleTheme }) => {
 
   const fetchData = async () => {
     try {
-      // /paints/init opsiyonel — fail olursa diğer fetcher'ları bloklamasın
-      try {
-        await axios.post(`${API}/paints/init`, null);
-      } catch (initErr) {
-        console.warn("Paint init skipped (non-blocking):", initErr?.message);
-      }
-      
       const results = await Promise.allSettled([
         axios.get(`${API}/paints`),
         axios.get(`${API}/machines`),
