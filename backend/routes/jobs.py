@@ -8,7 +8,7 @@ import logging
 import base64
 
 from database import db
-from models import Job, JobReturn
+from models import Job, JobReturn, JobProgress
 from services.audit import log_audit
 from services.notifications import (
     send_notification_to_operators, send_notification_to_managers,
@@ -122,6 +122,17 @@ async def get_jobs(status: Optional[str] = None, machine_id: Optional[str] = Non
     with_img = {x["id"] for x in img_ids}
     for j in jobs:
         j["has_image"] = j.get("id") in with_img
+    # Ara ilerleme toplamı — tek aggregate sorgusuyla, N+1 yok (ekranlar 15sn'de
+    # bir yenileniyor). Sadece counted=False kayıtlar bar'a dahil edilir.
+    progress_agg = await db.job_progress.aggregate([
+        {"$match": {"job_id": {"$in": ids}, "counted": False}},
+        {"$group": {"_id": "$job_id", "total": {"$sum": "$amount"}, "last_at": {"$max": "$created_at"}}},
+    ]).to_list(len(ids) or 1)
+    progress_by_job = {p["_id"]: p for p in progress_agg}
+    for j in jobs:
+        p = progress_by_job.get(j.get("id"))
+        j["progress_total"] = p["total"] if p else 0
+        j["progress_last_at"] = p["last_at"] if p else None
     return jobs
 
 
@@ -531,6 +542,12 @@ async def complete_job(job_id: str, data: dict = Body(None), current_user: dict 
         {"$set": {"status": "idle", "current_job_id": None}}
     )
 
+    # Resmi koli sayısı girildi — bu işe ait ara ilerleme kayıtları artık
+    # sayılmış sayılır (bar bir daha bunları eklemesin, log'da kalırlar).
+    await db.job_progress.update_many(
+        {"job_id": job_id, "counted": False}, {"$set": {"counted": True}}
+    )
+
     await log_audit(job.get("operator_name", "Operator"), "complete", "job", job.get("name", ""), f"Koli: {completed_koli}")
 
     asyncio.create_task(_send_completion_notifications(job, job_id, completed_koli))
@@ -650,6 +667,61 @@ async def resume_job(job_id: str, data: dict = Body(...), current_user: dict = D
     await log_audit(operator_name or "Operator", "resume", "job", job.get("name", ""), f"Makine: {job.get('machine_name', '')}")
 
     return {"message": "İşe devam edildi", "job_id": job_id}
+
+
+def _require_boyaci_or_yonetim(roles):
+    if not (is_yonetim(roles) or "boyaci" in roles):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
+
+@router.post("/jobs/{job_id}/progress")
+async def add_job_progress(job_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    """Ara ilerleme girişi — resmi koli sayısına (Job.completed_koli) DOKUNMAZ,
+    sadece vardiya içi canlı tahmin göstergesi besler."""
+    roles = await get_user_roles(current_user)
+    _require_boyaci_or_yonetim(roles)
+
+    job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    if job["status"] != "in_progress":
+        raise HTTPException(status_code=400, detail="Sadece devam eden işlere ara giriş yapılabilir")
+
+    amount = (data or {}).get("amount", 5)
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="amount sayı olmalı")
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="amount pozitif olmalı")
+
+    entry = JobProgress(
+        job_id=job_id,
+        machine_id=job["machine_id"],
+        amount=amount,
+        created_by=current_user.get("display_name") or current_user.get("username") or "Bilinmeyen",
+    )
+    await db.job_progress.insert_one(entry.model_dump())
+
+    return {"message": "Ara giriş kaydedildi", "id": entry.id, "amount": amount}
+
+
+@router.delete("/jobs/{job_id}/progress/last")
+async def delete_last_job_progress(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Son ara girişi geri al — kaza sonucu basılan +5'i düzeltmek için.
+    Sadece counted=False (henüz vardiya sonu raporuna dahil edilmemiş) kayıtları hedefler."""
+    roles = await get_user_roles(current_user)
+    _require_boyaci_or_yonetim(roles)
+
+    last = await db.job_progress.find_one(
+        {"job_id": job_id, "counted": False}, {"_id": 0}, sort=[("created_at", -1)]
+    )
+    if not last:
+        raise HTTPException(status_code=404, detail="Geri alınacak ara giriş yok")
+
+    await db.job_progress.delete_one({"id": last["id"]})
+
+    return {"message": "Son ara giriş geri alındı", "amount": last["amount"]}
 
 
 @router.put("/jobs/{job_id}/reorder")

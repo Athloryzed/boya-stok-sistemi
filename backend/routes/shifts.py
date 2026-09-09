@@ -297,6 +297,13 @@ async def end_shift_with_report(data: dict = Body(...)):
                         }}
                     )
 
+                # Resmi koli sayısı bu vardiya raporuyla girildi — bu işe ait
+                # ara ilerleme kayıtları artık sayılmış sayılır (silinmez,
+                # sadece bar hesabından düşer; log ekranında görünmeye devam eder).
+                await db.job_progress.update_many(
+                    {"job_id": job_id, "counted": False}, {"$set": {"counted": True}}
+                )
+
         if defect_kg > 0:
             defect_log = DefectLog(
                 machine_id=machine_id, machine_name=machine_name,

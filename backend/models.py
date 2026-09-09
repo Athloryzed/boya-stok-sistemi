@@ -74,6 +74,26 @@ class Job(BaseModel):
     total_price: Optional[float] = None
     priced_by: Optional[str] = None
     priced_at: Optional[str] = None
+    # ─── Ara ilerleme (eklendi) — GET /jobs tarafından job_progress'ten
+    # tek bir aggregate sorguyla hesaplanıp buraya iliştirilir; job_progress
+    # koleksiyonunun kendisinde bu alanlar yok. ───
+    progress_total: int = 0
+    progress_last_at: Optional[str] = None
+
+
+class JobProgress(BaseModel):
+    """İş başladıktan sonra vardiya sonu resmi girişe kadar yapılan ara
+    ilerleme kayıtları. Job.completed_koli'ye DOKUNMAZ, sadece bir tahmin
+    göstergesi besler. counted=True olunca (resmi koli girildiğinde) bar
+    hesabından düşer ama kayıt log için silinmez."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    job_id: str
+    machine_id: str
+    amount: int = 5
+    created_by: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    counted: bool = False
 
 
 class JobReturn(BaseModel):

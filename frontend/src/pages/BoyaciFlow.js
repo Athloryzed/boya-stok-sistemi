@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Sun, Moon, LogOut, Brush, Play, CheckCircle2, GripVertical,
+  ArrowLeft, Sun, Moon, LogOut, Brush, Play, CheckCircle2, GripVertical, Pause,
   Clock, User, Factory, StickyNote, Package, RefreshCw, Paintbrush, Search, X,
+  Plus, RotateCcw,
 } from "lucide-react";
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -24,6 +25,7 @@ import JobThumb from "../components/JobThumb";
 import { ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import { useConfirm } from "../components/ConfirmProvider";
 import { resumeCentralSession, clearSession } from "../lib/auth";
+import { minutesAgo } from "../lib/utils";
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -36,8 +38,8 @@ const daysWaiting = (iso) => {
 const WaitingBadge = ({ job }) => {
   const d = daysWaiting(job.created_at);
   if (d === null) return null;
-  const tone = d >= 7 ? "bg-red-500/15 text-red-400 border-red-500/30"
-    : d >= 3 ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+  const tone = d >= 7 ? "bg-error/15 text-error border-error/30"
+    : d >= 3 ? "bg-warning/15 text-warning border-warning/30"
     : "bg-surface-highlight/60 text-text-secondary border-border";
   return (
     <span data-testid={`boyaci-waiting-${job.id}`}
@@ -61,7 +63,7 @@ const JobMeta = ({ job }) => (
         </span>
       )}
       {job.format && (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/30 text-[11px] font-semibold"
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 text-[11px] font-semibold"
           data-testid={`boyaci-format-${job.id}`}>
           {job.format}
         </span>
@@ -119,6 +121,10 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
   const [customOperator, setCustomOperator] = useState("");
   const [previewJob, setPreviewJob] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  const [pauseTarget, setPauseTarget] = useState(null);
+  const [pauseReason, setPauseReason] = useState("");
+  const [pauseProducedKoli, setPauseProducedKoli] = useState("");
 
   const [filterMachine, setFilterMachine] = useState("all");
   const [filterFormat, setFilterFormat] = useState("all");
@@ -291,6 +297,59 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  const openPauseDialog = (job) => {
+    setPauseTarget(job);
+    setPauseReason("");
+    setPauseProducedKoli("");
+  };
+
+  const handlePause = async () => {
+    if (!pauseTarget || !pauseReason) {
+      toast.error("Durdurma sebebi gerekli");
+      return;
+    }
+    try {
+      await axios.put(`${API}/jobs/${pauseTarget.id}/pause`, {
+        pause_reason: pauseReason,
+        produced_koli: parseInt(pauseProducedKoli) || 0,
+      });
+      toast.success("İş durduruldu");
+      setPauseTarget(null);
+      fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "İş durdurulamadı");
+    }
+  };
+
+  const handleResume = async (job) => {
+    try {
+      await axios.put(`${API}/jobs/${job.id}/resume`, { operator_name: job.operator_name });
+      toast.success("İşe devam edildi");
+      fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "İşe devam edilemedi");
+    }
+  };
+
+  const handleAddProgress = async (job) => {
+    try {
+      await axios.post(`${API}/jobs/${job.id}/progress`, { amount: 5 });
+      fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Ara giriş kaydedilemedi");
+    }
+  };
+
+  const handleUndoProgress = async (job) => {
+    try {
+      const res = await axios.delete(`${API}/jobs/${job.id}/progress/last`);
+      toast.info(`Son giriş geri alındı (-${res.data?.amount ?? 5})`);
+      fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Geri alınacak giriş yok");
+    }
+  };
+
   const handleLogout = () => {
     clearSession();
     navigate("/");
@@ -328,12 +387,12 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
 
         {/* Title */}
         <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <div className="icon-tile-glow w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-fuchsia-700 flex items-center justify-center" style={{ "--glow-rgb": "236,72,153" }}>
+          <div className="icon-tile-glow w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-amber-700 flex items-center justify-center" style={{ "--glow-rgb": "255,191,0" }}>
             <Brush className="h-5 w-5 text-white" />
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-heading font-black">
-              <span className="bg-gradient-to-r from-pink-400 to-fuchsia-500 bg-clip-text text-transparent">Boyacı Paneli</span>
+              <span className="text-gradient-gold">Boyacı Paneli</span>
             </h1>
             <p className="text-text-secondary text-sm">{userData?.display_name || userData?.username} · iş sırası, başlatma ve tamamlama</p>
           </div>
@@ -362,7 +421,9 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-heading font-bold text-text-primary truncate">{m.name}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                        job ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-surface-highlight/60 text-text-secondary border-border"
+                        !job ? "bg-surface-highlight/60 text-text-secondary border-border"
+                          : job.status === "paused" ? "bg-warning/15 text-warning border-warning/30"
+                          : "bg-success/15 text-success border-success/30"
                       }`}>
                         {job ? (job.status === "paused" ? "DURDURULDU" : "ÇALIŞIYOR") : "BOŞTA"}
                       </span>
@@ -378,21 +439,67 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                         </div>
                         <div className="mt-3">
                           <div className="flex justify-between text-xs text-text-secondary mb-1">
-                            <span>{job.completed_koli || 0} / {job.koli_count || 0} koli</span>
+                            <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
                             <span>{job.operator_name || "—"}</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-pink-500 to-fuchsia-500"
-                              style={{ width: `${Math.min(100, Math.round(((job.completed_koli || 0) / (job.koli_count || 1)) * 100))}%` }} />
+                            <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                              style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
                           </div>
+                          <p className="text-[11px] text-text-muted mt-1">
+                            {job.progress_last_at ? `Son giriş: ${minutesAgo(job.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                          </p>
                         </div>
-                        <Button
-                          onClick={() => handleComplete(job)}
-                          data-testid={`boyaci-complete-${job.id}`}
-                          className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" /> İşi Tamamla
-                        </Button>
+                        {job.status === "paused" ? (
+                          <Button
+                            onClick={() => handleResume(job)}
+                            data-testid={`boyaci-resume-${job.id}`}
+                            className="w-full mt-3 bg-info text-white hover:bg-info/90"
+                          >
+                            <Play className="mr-2 h-4 w-4" /> Devam Ettir
+                          </Button>
+                        ) : (
+                          <>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                onClick={() => handleAddProgress(job)}
+                                data-testid={`boyaci-progress-add-${job.id}`}
+                                className="flex-1 border-primary/40 text-primary hover:bg-primary/10"
+                              >
+                                <Plus className="mr-1.5 h-4 w-4" /> 5 Koli
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleUndoProgress(job)}
+                                data-testid={`boyaci-progress-undo-${job.id}`}
+                                disabled={!job.progress_total}
+                                className="border-border text-text-secondary hover:bg-surface-highlight shrink-0"
+                                title="Son ara girişi geri al"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => openPauseDialog(job)}
+                                data-testid={`boyaci-pause-${job.id}`}
+                                className="flex-1 border-warning text-warning hover:bg-warning/20"
+                              >
+                                <Pause className="mr-2 h-4 w-4" /> Durdur
+                              </Button>
+                              <Button
+                                onClick={() => handleComplete(job)}
+                                data-testid={`boyaci-complete-${job.id}`}
+                                className="flex-1 bg-success text-white hover:bg-success/90"
+                              >
+                                <CheckCircle2 className="mr-2 h-4 w-4" /> İşi Tamamla
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-text-secondary mt-3">Bu makinede aktif iş yok.</p>
@@ -419,7 +526,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                 onClick={() => setFilterMachine("all")}
                 data-testid="boyaci-filter-machine-all"
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  filterMachine === "all" ? "bg-pink-600 text-white border-pink-600" : "bg-surface text-text-secondary border-border hover:border-pink-500/50"
+                  filterMachine === "all" ? "bg-primary text-black border-primary" : "bg-surface text-text-secondary border-border hover:border-primary/50"
                 }`}
               >Hepsi</button>
               {machineOptions.map((m) => {
@@ -430,7 +537,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                     onClick={() => setFilterMachine(filterMachine === m.id ? "all" : m.id)}
                     data-testid={`boyaci-filter-machine-${m.id}`}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                      filterMachine === m.id ? "bg-pink-600 text-white border-pink-600" : "bg-surface text-text-secondary border-border hover:border-pink-500/50"
+                      filterMachine === m.id ? "bg-primary text-black border-primary" : "bg-surface text-text-secondary border-border hover:border-primary/50"
                     }`}
                   >{m.name} <span className="opacity-60">({count})</span></button>
                 );
@@ -443,7 +550,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                 onClick={() => setFilterFormat("all")}
                 data-testid="boyaci-filter-format-all"
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  filterFormat === "all" ? "bg-fuchsia-600 text-white border-fuchsia-600" : "bg-surface text-text-secondary border-border hover:border-fuchsia-500/50"
+                  filterFormat === "all" ? "bg-primary text-black border-primary" : "bg-surface text-text-secondary border-border hover:border-primary/50"
                 }`}
               >Hepsi</button>
               {formatOptions.map((f) => {
@@ -455,7 +562,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                     onClick={() => setFilterFormat(filterFormat === f ? "all" : f)}
                     data-testid={`boyaci-filter-format-${f}`}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                      filterFormat === f ? "bg-fuchsia-600 text-white border-fuchsia-600" : "bg-surface text-text-secondary border-border hover:border-fuchsia-500/50"
+                      filterFormat === f ? "bg-primary text-black border-primary" : "bg-surface text-text-secondary border-border hover:border-primary/50"
                     }`}
                   >{f} <span className="opacity-60">({count})</span></button>
                 );
@@ -503,7 +610,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                       <Card className="panel-industrial" data-testid={`boyaci-job-${job.id}`}>
                         <CardContent className="p-3 sm:p-4">
                           <div className="flex gap-3">
-                            <div className="shrink-0 w-7 h-7 rounded-lg bg-pink-500/15 text-pink-400 border border-pink-500/30 flex items-center justify-center text-xs font-bold"
+                            <div className="shrink-0 w-7 h-7 rounded-lg bg-primary/15 text-primary border border-primary/30 flex items-center justify-center text-xs font-bold"
                               title="Genel sıradaki yeri">
                               {pendingJobs.findIndex((p) => p.id === job.id) + 1}
                             </div>
@@ -520,7 +627,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                                 <Button
                                   onClick={() => openStartDialog(job)}
                                   data-testid={`boyaci-start-${job.id}`}
-                                  className="bg-pink-600 hover:bg-pink-700 text-white h-9"
+                                  className="bg-primary hover:bg-primary/90 text-black h-9"
                                 >
                                   <Play className="mr-2 h-4 w-4" /> Başlat
                                 </Button>
@@ -528,7 +635,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                                   variant="outline"
                                   onClick={() => handleComplete(job)}
                                   data-testid={`boyaci-queue-complete-${job.id}`}
-                                  className="h-9 border-emerald-500/40 text-emerald-400"
+                                  className="h-9 border-success/40 text-success"
                                 >
                                   <CheckCircle2 className="mr-2 h-4 w-4" /> Tamamla
                                 </Button>
@@ -590,11 +697,64 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                 Vazgeç
               </Button>
               <Button
-                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
+                className="flex-1 bg-primary hover:bg-primary/90 text-black"
                 onClick={handleStart}
                 data-testid="boyaci-start-confirm"
               >
                 <Play className="mr-2 h-4 w-4" /> Başlat
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Durdur dialog — sebep zorunlu, koli sayısı opsiyonel */}
+      <Dialog open={!!pauseTarget} onOpenChange={(o) => !o && setPauseTarget(null)}>
+        <DialogContent className="bg-surface border-border max-w-md" data-testid="boyaci-pause-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-text-primary flex items-center gap-2">
+              <Pause className="h-5 w-5 text-warning" /> İşi Durdur
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-surface-highlight/50 border border-border">
+              <p className="font-semibold text-text-primary">{pauseTarget?.name}</p>
+              <p className="text-xs text-text-secondary mt-0.5">
+                {pauseTarget?.machine_name || "—"} · Hedef: {pauseTarget?.koli_count || 0} koli
+              </p>
+            </div>
+            <div>
+              <Label className="text-text-primary">Şu ana kadar üretilen koli (opsiyonel)</Label>
+              <Input
+                type="number"
+                value={pauseProducedKoli}
+                onChange={(e) => setPauseProducedKoli(e.target.value)}
+                placeholder="0"
+                className="mt-1 bg-background border-border h-11"
+                data-testid="boyaci-pause-produced"
+              />
+            </div>
+            <div>
+              <Label className="text-text-primary">Durdurma Sebebi * <span className="text-[11px] text-text-muted">(zorunlu)</span></Label>
+              <Input
+                value={pauseReason}
+                onChange={(e) => setPauseReason(e.target.value)}
+                placeholder="Neden durduruluyor?"
+                className="mt-1 bg-background border-border h-11"
+                data-testid="boyaci-pause-reason"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPauseTarget(null)} data-testid="boyaci-pause-cancel">
+                Vazgeç
+              </Button>
+              <Button
+                className="flex-1 bg-warning text-black hover:bg-warning/90"
+                onClick={handlePause}
+                disabled={!pauseReason}
+                data-testid="boyaci-pause-confirm"
+              >
+                <Pause className="mr-2 h-4 w-4" /> Durdur
               </Button>
             </div>
           </div>

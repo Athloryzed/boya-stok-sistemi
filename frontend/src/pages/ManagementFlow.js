@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User, Warehouse, HardHat, ClipboardList, Paintbrush, Plus, Pencil, RotateCw, Circle } from "lucide-react";
+import { ArrowLeft, Power, PowerOff, Wrench, Download, Sun, Moon, Edit, Trash2, Play, Droplet, MessageSquare, Send, AlertTriangle, Inbox, Check, Users, Monitor, Smartphone, Tablet, UserPlus, MapPin, Truck, XCircle, Clock, CheckCircle, Pause, LogOut, Bell, FileText, Sparkles, Bot, ChevronUp, X, Link2, Factory, Package, Activity, Layers, ClipboardCheck, TrendingUp, RefreshCw, UtensilsCrossed, Image as ImageIcon, Database, HardDrive, Scale, Shield, User, Warehouse, HardHat, ClipboardList, Paintbrush, Plus, Pencil, RotateCw, RotateCcw, Circle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -30,6 +30,7 @@ import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 import { shouldAlertOnce } from "../utils/alertDedup";
 import { handleWsAuthRejection } from "../lib/wsAuthRetry";
+import { minutesAgo } from "../lib/utils";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -1121,6 +1122,25 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     }
   };
 
+  const handleAddProgress = async (job) => {
+    try {
+      await axios.post(`${API}/jobs/${job.id}/progress`, { amount: 5 });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Ara giriş kaydedilemedi");
+    }
+  };
+
+  const handleUndoProgress = async (job) => {
+    try {
+      const res = await axios.delete(`${API}/jobs/${job.id}/progress/last`);
+      toast.info(`Son giriş geri alındı (-${res.data?.amount ?? 5})`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Geri alınacak giriş yok");
+    }
+  };
+
   const handleToggleMaintenance = async (machine, maintenance) => {
     if (maintenance && !maintenanceReason.trim()) {
       toast.error("Lütfen bakım sebebi girin");
@@ -1951,6 +1971,42 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                               {currentJob.notes && (
                                 <p className="text-xs text-info mt-1">📝 {currentJob.notes}</p>
                               )}
+                              <div className="mt-2">
+                                <div className="flex justify-between text-xs text-text-secondary mb-1">
+                                  <span>{(currentJob.completed_koli || 0) + (currentJob.progress_total || 0)} / {currentJob.koli_count || 0} koli</span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                    style={{ width: `${Math.min(100, Math.round((((currentJob.completed_koli || 0) + (currentJob.progress_total || 0)) / (currentJob.koli_count || 1)) * 100))}%` }} />
+                                </div>
+                                <div className="flex items-center justify-between mt-1">
+                                  <p className="text-[11px] text-text-muted">
+                                    {currentJob.progress_last_at ? `Son giriş: ${minutesAgo(currentJob.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      data-testid={`progress-add-${currentJob.id}`}
+                                      onClick={(e) => { e.stopPropagation(); handleAddProgress(currentJob); }}
+                                      className="h-6 px-2 border-primary/40 text-primary hover:bg-primary/10 text-[11px]"
+                                    >
+                                      <Plus className="h-3 w-3 mr-0.5" /> 5 Koli
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      data-testid={`progress-undo-${currentJob.id}`}
+                                      onClick={(e) => { e.stopPropagation(); handleUndoProgress(currentJob); }}
+                                      disabled={!currentJob.progress_total}
+                                      className="h-6 w-6 border-border text-text-secondary hover:bg-surface-highlight"
+                                      title="Son ara girişi geri al"
+                                    >
+                                      <RotateCcw className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                             {(currentJob.thumb_url || currentJob.image_url || currentJob.has_image) && (
                               <JobThumb job={currentJob} onOpen={() => openImagePreview(currentJob)} size={56} className="border-success" />
@@ -2001,21 +2057,35 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                         <div className="mb-3 p-3 bg-warning/20 border border-warning rounded-md">
                           <p className="text-sm font-semibold text-warning mb-2">Durdurulmuş:</p>
                           {jobs.filter(j => j.machine_id === machine.id && j.status === "paused").map(pj => (
-                            <div key={pj.id} className="flex justify-between items-center text-xs mb-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-text-secondary">{pj.name}</span>
-                                {pj.format && <span className="text-secondary text-xs">({pj.format})</span>}
-                                {pj.queued_at && (
-                                  <span className={`text-xs ${getDaysElapsedColor(calculateDaysElapsed(pj.queued_at))}`}>
-                                    {calculateDaysElapsed(pj.queued_at)}g
-                                  </span>
-                                )}
+                            <div key={pj.id} className="flex justify-between items-start gap-2 text-xs mb-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-text-secondary">{pj.name}</span>
+                                  {pj.format && <span className="text-secondary text-xs">({pj.format})</span>}
+                                  {pj.queued_at && (
+                                    <span className={`text-xs ${getDaysElapsedColor(calculateDaysElapsed(pj.queued_at))}`}>
+                                      {calculateDaysElapsed(pj.queued_at)}g
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1">
+                                  <div className="flex justify-between text-[11px] text-text-secondary mb-0.5">
+                                    <span>{(pj.completed_koli || 0) + (pj.progress_total || 0)} / {pj.koli_count || 0} koli</span>
+                                  </div>
+                                  <div className="h-1 rounded-full bg-surface-highlight overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                      style={{ width: `${Math.min(100, Math.round((((pj.completed_koli || 0) + (pj.progress_total || 0)) / (pj.koli_count || 1)) * 100))}%` }} />
+                                  </div>
+                                  <p className="text-[10px] text-text-muted mt-0.5">
+                                    {pj.progress_last_at ? `Son giriş: ${minutesAgo(pj.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                                  </p>
+                                </div>
                               </div>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="ghost"
                                 onClick={(e) => { e.stopPropagation(); handleResumeJob(pj); }}
-                                className="text-info hover:bg-info/20 text-xs h-6 px-2"
+                                className="text-info hover:bg-info/20 text-xs h-6 px-2 shrink-0"
                                 disabled={!!currentJob}
                               >
                                 <Play className="h-3 w-3 mr-1" /> Devam

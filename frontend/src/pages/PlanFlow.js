@@ -31,6 +31,7 @@ import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
 import { resumeCentralSession, clearSession, hasYonetimRole } from "../lib/auth";
+import { minutesAgo } from "../lib/utils";
 import { shouldAlertOnce } from "../utils/alertDedup";
 
 // Sürüklenebilir İş Kartı Wrapper
@@ -2023,6 +2024,18 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                           <p className="text-xs text-text-secondary">
                             Durdurulma: {job.paused_at ? new Date(job.paused_at).toLocaleString("tr-TR") : "-"}
                           </p>
+                          <div className="mt-2">
+                            <div className="flex justify-between text-xs text-text-secondary mb-1">
+                              <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
+                            </div>
+                            <p className="text-[11px] text-text-muted mt-1">
+                              {job.progress_last_at ? `Son giriş: ${minutesAgo(job.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                            </p>
+                          </div>
                         </div>
                         <Button
                           size="sm"
@@ -2114,6 +2127,20 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                               <p>{job.delivery_date || "-"}</p>
                             </div>
                           </div>
+                          {(job.status === "in_progress" || job.status === "paused") && (
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-text-secondary mb-1">
+                                <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                  style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
+                              </div>
+                              <p className="text-[11px] text-text-muted mt-1">
+                                {job.progress_last_at ? `Son giriş: ${minutesAgo(job.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                              </p>
+                            </div>
+                          )}
                           {job.notes && (
                             <p className="mt-3 text-text-secondary">
                               <span className="font-semibold">Not:</span> {job.notes}
