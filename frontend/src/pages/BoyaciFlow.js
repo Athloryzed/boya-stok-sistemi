@@ -22,6 +22,7 @@ import UserMenu from "../components/UserMenu";
 import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
 import JobThumb from "../components/JobThumb";
+import AnimatedNumber from "../components/AnimatedNumber";
 import { ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import { useConfirm } from "../components/ConfirmProvider";
 import { resumeCentralSession, clearSession } from "../lib/auth";
@@ -279,13 +280,20 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
   };
 
   const handleComplete = async (job) => {
-    const ok = await confirm({
-      title: "İşi tamamla?",
-      description: `"${job.name}" tamamlandı olarak işaretlenecek.`,
-      details: `Makine: ${job.machine_name || "—"} · Hedef: ${job.koli_count || 0} koli · Üretilen: ${job.completed_koli || 0} koli`,
-      confirmText: "Tamamla",
-      variant: "warning",
-    });
+    const ok = job.status === "pending"
+      ? await confirm({
+          title: "İş henüz başlatılmadı",
+          description: `"${job.name}" henüz başlatılmadı. Yine de tamamlandı olarak işaretlensin mi?`,
+          confirmText: "Yine de Tamamla",
+          variant: "warning",
+        })
+      : await confirm({
+          title: "İşi tamamla?",
+          description: `"${job.name}" tamamlandı olarak işaretlenecek.`,
+          details: `Makine: ${job.machine_name || "—"} · Hedef: ${job.koli_count || 0} koli · Üretilen: ${job.completed_koli || 0} koli`,
+          confirmText: "Tamamla",
+          variant: "warning",
+        });
     if (!ok) return;
     try {
       await axios.put(`${API}/jobs/${job.id}/complete`, {});
@@ -441,11 +449,13 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                         </div>
                         <div className="mt-3">
                           <div className="flex justify-between text-xs text-text-secondary mb-1">
-                            <span>{(currentJob.completed_koli || 0) + (currentJob.progress_total || 0)} / {currentJob.koli_count || 0} koli</span>
+                            <AnimatedNumber watch={currentJob.progress_total || 0} className="animate-count">
+                              {(currentJob.completed_koli || 0) + (currentJob.progress_total || 0)} / {currentJob.koli_count || 0} koli
+                            </AnimatedNumber>
                             <span>{currentJob.operator_name || "—"}</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                            <div className="h-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-500"
                               style={{ width: `${Math.min(100, Math.round((((currentJob.completed_koli || 0) + (currentJob.progress_total || 0)) / (currentJob.koli_count || 1)) * 100))}%` }} />
                           </div>
                           <p className="text-[11px] text-text-muted mt-1">
@@ -511,10 +521,12 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
                             </div>
                             <div className="mt-1">
                               <div className="flex justify-between text-[11px] text-text-secondary mb-0.5">
-                                <span>{(pj.completed_koli || 0) + (pj.progress_total || 0)} / {pj.koli_count || 0} koli</span>
+                                <AnimatedNumber watch={pj.progress_total || 0} className="animate-count">
+                                  {(pj.completed_koli || 0) + (pj.progress_total || 0)} / {pj.koli_count || 0} koli
+                                </AnimatedNumber>
                               </div>
                               <div className="h-1 rounded-full bg-surface-highlight overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                <div className="h-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-500"
                                   style={{ width: `${Math.min(100, Math.round((((pj.completed_koli || 0) + (pj.progress_total || 0)) / (pj.koli_count || 1)) * 100))}%` }} />
                               </div>
                               <p className="text-[10px] text-text-muted mt-0.5">

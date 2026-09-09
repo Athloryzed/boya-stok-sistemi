@@ -23,6 +23,7 @@ import ExpectedKoliSummary, { computeExpectedSummary, ExpectedKoliCard } from ".
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
 import JobThumb from "../components/JobThumb";
+import AnimatedNumber from "../components/AnimatedNumber";
 import UserMenu from "../components/UserMenu";
 import AIAssistant from "../components/AIAssistant";
 import HeaderActionsMenu from "../components/HeaderActionsMenu";
@@ -2026,10 +2027,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                           </p>
                           <div className="mt-2">
                             <div className="flex justify-between text-xs text-text-secondary mb-1">
-                              <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
+                              <AnimatedNumber watch={job.progress_total || 0} className="animate-count">
+                                {(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli
+                              </AnimatedNumber>
                             </div>
                             <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                              <div className="h-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-500"
                                 style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
                             </div>
                             <p className="text-[11px] text-text-muted mt-1">
@@ -2130,10 +2133,12 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                           {(job.status === "in_progress" || job.status === "paused") && (
                             <div className="mt-3">
                               <div className="flex justify-between text-xs text-text-secondary mb-1">
-                                <span>{(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli</span>
+                                <AnimatedNumber watch={job.progress_total || 0} className="animate-count">
+                                  {(job.completed_koli || 0) + (job.progress_total || 0)} / {job.koli_count || 0} koli
+                                </AnimatedNumber>
                               </div>
                               <div className="h-1.5 rounded-full bg-surface-highlight overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-primary to-amber-600"
+                                <div className="h-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-500"
                                   style={{ width: `${Math.min(100, Math.round((((job.completed_koli || 0) + (job.progress_total || 0)) / (job.koli_count || 1)) * 100))}%` }} />
                               </div>
                               <p className="text-[11px] text-text-muted mt-1">
