@@ -12,6 +12,7 @@ const DASHBOARD_API = `${BACKEND_URL}/api`;
 
 const LiveDashboard = () => {
   const [data, setData] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [clock, setClock] = useState(new Date());
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -41,6 +42,7 @@ const LiveDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setData(res.data);
+      setLastUpdatedAt(new Date());
     } catch (e) {
       console.error("Dashboard fetch error:", e);
       if (e.response?.status === 401) {
@@ -124,6 +126,8 @@ const LiveDashboard = () => {
     return "Boşta";
   };
 
+  const isDataFresh = lastUpdatedAt && (clock - lastUpdatedAt) < 30000;
+
   return (
     <div className="min-h-screen tv-bg text-white p-4 md:p-6 overflow-hidden" data-testid="live-dashboard">
       {/* Header */}
@@ -134,7 +138,7 @@ const LiveDashboard = () => {
           </div>
           <div>
             <h1 className="text-2xl md:text-4xl font-heading font-black tracking-tight title-gradient-premium">BUSE KÂĞIT</h1>
-            <p className="text-zinc-400 text-sm flex items-center font-medium"><span className="live-dot" aria-hidden="true" />Canlı Üretim Panosu</p>
+            <p className="text-zinc-400 text-sm flex items-center font-medium"><span className="live-dot" style={isDataFresh ? undefined : { animation: "none" }} aria-hidden="true" />Canlı Üretim Panosu</p>
           </div>
         </div>
         <div className="text-right">
