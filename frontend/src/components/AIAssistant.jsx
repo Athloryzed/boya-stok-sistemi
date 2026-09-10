@@ -7,6 +7,7 @@
  * Sohbet geçmişi kullanıcı + panel bazlı kalıcıdır (MongoDB).
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, X, Trash2, Bot, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -98,104 +99,107 @@ const AIAssistant = ({ panel, accent = "#F472B6", label = "AI Asistan" }) => {
         <span className="hidden xl:inline">{label}</span>
       </Button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9998]"
-            />
-            <motion.div
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 260 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[440px] z-[9999] bg-surface border-l border-border flex flex-col"
-              data-testid={`ai-assistant-drawer-${panel}`}
-            >
-              <div className="p-4 border-b border-border flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${accent}, #7C3AED)` }}>
-                    <Bot className="h-4 w-4 text-white" />
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setOpen(false)}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9998]"
+              />
+              <motion.div
+                initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 260 }}
+                className="fixed right-0 top-0 bottom-0 w-full sm:w-[440px] z-[9999] bg-surface border-l border-border flex flex-col"
+                data-testid={`ai-assistant-drawer-${panel}`}
+              >
+                <div className="p-4 border-b border-border flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `linear-gradient(135deg, ${accent}, #7C3AED)` }}>
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-heading font-bold text-text-primary truncate">{label}</p>
+                      <p className="text-[11px] text-text-secondary truncate">{model || "Claude"} · sadece öneri verir</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-heading font-bold text-text-primary truncate">{label}</p>
-                    <p className="text-[11px] text-text-secondary truncate">{model || "Claude"} · sadece öneri verir</p>
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={clearHistory} data-testid={`ai-clear-${panel}`} title="Geçmişi temizle">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} data-testid={`ai-close-${panel}`}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={clearHistory} data-testid={`ai-clear-${panel}`} title="Geçmişi temizle">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} data-testid={`ai-close-${panel}`}>
-                    <X className="h-4 w-4" />
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid={`ai-messages-${panel}`}>
+                  {messages.length === 0 && !sending && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-text-secondary">
+                        Panelin canlı verisiyle konuşabilirsin. Örnek sorular:
+                      </p>
+                      <div className="space-y-2">
+                        {suggestions.map((s, i) => (
+                          <button
+                            key={i}
+                            onClick={() => send(s)}
+                            data-testid={`ai-suggestion-${panel}-${i}`}
+                            className="w-full text-left text-sm p-2.5 rounded-xl bg-surface-highlight/50 border border-border hover:border-fuchsia-500/50 text-text-primary transition-colors"
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {messages.map((m, i) => (
+                    <div key={m.id || i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-line ${
+                        m.role === "user"
+                          ? "bg-fuchsia-600 text-white rounded-br-md"
+                          : "bg-surface-highlight/70 text-text-primary border border-border rounded-bl-md"
+                      }`}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  {sending && (
+                    <div className="flex justify-start">
+                      <div className="rounded-2xl px-3.5 py-2.5 bg-surface-highlight/70 border border-border flex items-center gap-2 text-sm text-text-secondary">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Düşünüyor…
+                      </div>
+                    </div>
+                  )}
+                  <div ref={endRef} />
+                </div>
+
+                <div className="p-3 border-t border-border flex items-center gap-2">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                    placeholder="Sorunu yaz…"
+                    className="bg-background border-border h-11"
+                    data-testid={`ai-input-${panel}`}
+                  />
+                  <Button
+                    onClick={() => send()}
+                    disabled={sending || !input.trim()}
+                    className="h-11 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                    data-testid={`ai-send-${panel}`}
+                  >
+                    <Send className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid={`ai-messages-${panel}`}>
-                {messages.length === 0 && !sending && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-text-secondary">
-                      Panelin canlı verisiyle konuşabilirsin. Örnek sorular:
-                    </p>
-                    <div className="space-y-2">
-                      {suggestions.map((s, i) => (
-                        <button
-                          key={i}
-                          onClick={() => send(s)}
-                          data-testid={`ai-suggestion-${panel}-${i}`}
-                          className="w-full text-left text-sm p-2.5 rounded-xl bg-surface-highlight/50 border border-border hover:border-fuchsia-500/50 text-text-primary transition-colors"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {messages.map((m, i) => (
-                  <div key={m.id || i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-line ${
-                      m.role === "user"
-                        ? "bg-fuchsia-600 text-white rounded-br-md"
-                        : "bg-surface-highlight/70 text-text-primary border border-border rounded-bl-md"
-                    }`}>
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                {sending && (
-                  <div className="flex justify-start">
-                    <div className="rounded-2xl px-3.5 py-2.5 bg-surface-highlight/70 border border-border flex items-center gap-2 text-sm text-text-secondary">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Düşünüyor…
-                    </div>
-                  </div>
-                )}
-                <div ref={endRef} />
-              </div>
-
-              <div className="p-3 border-t border-border flex items-center gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                  placeholder="Sorunu yaz…"
-                  className="bg-background border-border h-11"
-                  data-testid={`ai-input-${panel}`}
-                />
-                <Button
-                  onClick={() => send()}
-                  disabled={sending || !input.trim()}
-                  className="h-11 bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
-                  data-testid={`ai-send-${panel}`}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };
