@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { ArrowLeft, AlertTriangle, Send, RotateCcw, Settings2 } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, AlertTriangle, Send, RotateCcw, Settings2, ScanBarcode } from "lucide-react";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { toast } from "sonner";
+import axios from "axios";
+import { API } from "../App";
 import { minutesAgo } from "../lib/utils";
 import NumericKeypad from "./NumericKeypad";
 
@@ -43,6 +46,12 @@ export default function PaintQuickMode({
   const [returnActive, setReturnActive] = useState(null);
   const [returnAmount, setReturnAmount] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
+
+  // Barkod okuma (opsiyonel kısayol — VERME akışının 1. adımında)
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [unknownBarcode, setUnknownBarcode] = useState(null);
+  const scannerRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
 
   // Son kullanılanlar üstte — movements'tan client-side, yeni endpoint yok.
   const orderedPaints = useMemo(() => {
@@ -88,6 +97,71 @@ export default function PaintQuickMode({
       toast.error(e?.response?.data?.detail || "İşlem başarısız");
     } finally {
       setGiveSubmitting(false);
+    }
+  };
+
+  // ============ BARKOD OKUMA ============
+  useEffect(() => {
+    if (!scannerOpen) {
+      if (html5QrCodeRef.current) {
+        try { html5QrCodeRef.current.stop().catch(() => {}); } catch {}
+        html5QrCodeRef.current = null;
+      }
+      return;
+    }
+    let mounted = true;
+    const initScanner = async () => {
+      try {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        if (!mounted || !scannerRef.current) return;
+        const scanner = new Html5Qrcode("paint-scanner-reader");
+        html5QrCodeRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.5 },
+          (text) => {
+            scanner.stop().catch(() => {});
+            handleBarcodeScanned(text);
+          },
+          () => {}
+        );
+      } catch (e) {
+        console.error("Scanner:", e);
+        toast.error("Kamera erişimi sağlanamadı veya cihaz desteklemiyor");
+        setScannerOpen(false);
+      }
+    };
+    setTimeout(initScanner, 300);
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerOpen]);
+
+  const handleBarcodeScanned = async (code) => {
+    setScannerOpen(false);
+    try {
+      const res = await axios.get(`${API}/paints/barcode/${code}`);
+      const found = paints.find((p) => p.id === res.data.id) || res.data;
+      setGivePaint(found);
+      setGiveStep(2);
+      toast.success(`Barkod okundu: ${found.name}`);
+    } catch (e) {
+      if (e?.response?.status === 404) {
+        setUnknownBarcode(code);
+      } else {
+        toast.error(e?.response?.data?.detail || "Barkod sorgulanamadı");
+      }
+    }
+  };
+
+  const linkBarcodeToPaint = async (paint) => {
+    try {
+      await axios.post(`${API}/paints/${paint.id}/barcode`, { code: unknownBarcode });
+      toast.success(`Barkod ${paint.name} boyasına bağlandı`);
+      setUnknownBarcode(null);
+      setGivePaint(paint);
+      setGiveStep(2);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Barkod bağlanamadı");
     }
   };
 
@@ -172,7 +246,18 @@ export default function PaintQuickMode({
           )}
 
           {giveStep === 1 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3" data-testid="give-step-paint">
+            <div data-testid="give-step-paint">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setScannerOpen(true)}
+                data-testid="quick-barcode-scan-btn"
+                className="mb-3 border-border text-text-secondary hover:bg-surface-highlight"
+              >
+                <ScanBarcode className="h-4 w-4 mr-1.5" /> Barkod Okut
+              </Button>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {orderedPaints.map((p) => {
                 const low = p.stock_kg < lowStockThreshold;
                 return (
@@ -198,6 +283,7 @@ export default function PaintQuickMode({
                   </button>
                 );
               })}
+              </div>
             </div>
           )}
 
@@ -303,6 +389,44 @@ export default function PaintQuickMode({
           )}
         </div>
       )}
+
+      {/* BARKOD SCANNER */}
+      <Dialog open={scannerOpen} onOpenChange={(open) => setScannerOpen(open)}>
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-surface border-border">
+          <DialogHeader>
+            <DialogTitle className="text-text-primary">Barkod Okut</DialogTitle>
+            <DialogDescription>Boyayı seçmek için barkodu okutun</DialogDescription>
+          </DialogHeader>
+          <div id="paint-scanner-reader" ref={scannerRef} className="w-full rounded-lg overflow-hidden" />
+        </DialogContent>
+      </Dialog>
+
+      {/* BİLİNMEYEN BARKOD → BOYA EŞLE */}
+      <Dialog open={!!unknownBarcode} onOpenChange={(open) => !open && setUnknownBarcode(null)}>
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto bg-surface border-border">
+          <DialogHeader>
+            <DialogTitle className="text-text-primary">Bu barkod tanınmıyor</DialogTitle>
+            <DialogDescription>Hangi boyaya bağlansın?</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {orderedPaints.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => linkBarcodeToPaint(p)}
+                data-testid={`link-barcode-${p.name}`}
+                className="rounded-xl border-2 border-border hover:border-primary bg-surface p-2 flex flex-col items-center gap-1.5 transition-colors"
+              >
+                <div
+                  className="w-9 h-9 rounded-full border-2 border-border"
+                  style={{ backgroundColor: paintColors[p.name] || "#888888" }}
+                />
+                <span className="text-xs font-bold text-text-primary text-center leading-tight">{p.name}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

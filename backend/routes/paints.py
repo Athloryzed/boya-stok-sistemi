@@ -48,6 +48,40 @@ async def get_paints(current_user: dict = Depends(get_current_user)):
     return paints
 
 
+@router.get("/paints/barcode/{code}")
+async def get_paint_by_barcode(code: str):
+    """Barkod ile boya bul"""
+    paint = await db.paints.find_one({"barcodes": code}, {"_id": 0})
+    if not paint:
+        raise HTTPException(status_code=404, detail="Bu barkoda ait boya bulunamadı")
+    return paint
+
+
+@router.post("/paints/{paint_id}/barcode")
+async def add_paint_barcode(paint_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """Boyaya barkod bağla"""
+    await _require_boyaci_or_yonetim(current_user)
+    code = (data.get("code") or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Barkod gerekli")
+
+    paint = await db.paints.find_one({"id": paint_id}, {"_id": 0})
+    if not paint:
+        raise HTTPException(status_code=404, detail="Boya bulunamadı")
+
+    existing = await db.paints.find_one({"barcodes": code}, {"_id": 0})
+    if existing and existing["id"] != paint_id:
+        raise HTTPException(status_code=400, detail=f"Bu barkod zaten '{existing['name']}' boyasına bağlı")
+
+    barcodes = paint.get("barcodes") or []
+    if code in barcodes:
+        return {"message": "Barkod zaten bağlı", "barcodes": barcodes}
+
+    barcodes = barcodes + [code]
+    await db.paints.update_one({"id": paint_id}, {"$set": {"barcodes": barcodes}})
+    return {"message": "Barkod eklendi", "barcodes": barcodes}
+
+
 @router.post("/paints", response_model=Paint)
 async def create_paint(paint: Paint, current_user: dict = Depends(get_current_user)):
     await require_yonetim(current_user)
