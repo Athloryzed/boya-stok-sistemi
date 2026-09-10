@@ -31,7 +31,7 @@ import CustomerCombobox from "../components/CustomerCombobox";
 import CustomersManagementPanel from "../components/CustomersManagementPanel";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
-import { resumeCentralSession, clearSession, hasYonetimRole } from "../lib/auth";
+import { resumeCentralSession, hasYonetimRole } from "../lib/auth";
 import { minutesAgo } from "../lib/utils";
 import { shouldAlertOnce } from "../utils/alertDedup";
 
@@ -65,9 +65,6 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -164,54 +161,16 @@ const PlanFlow = ({ theme, toggleTheme }) => {
   const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [selectedJobImage, setSelectedJobImage] = useState(null);
 
-  // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    const remembered = localStorage.getItem("plan_remember");
-    if (remembered) {
-      try {
-        const creds = JSON.parse(remembered);
-        setUsername(creds.username || "");
-        setPassword(creds.password || "");
-        setRememberMe(true);
-      } catch (e) {
-        localStorage.removeItem("plan_remember");
-      }
-    }
-  }, []);
-
-  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
-  useEffect(() => {
-    // 1) Merkezi oturum — tek doğruluk kaynağı (Beni Hatırla / 24h politikası)
     const central = resumeCentralSession("/plan");
     if (central) {
       setUserData(central);
       setAuthenticated(true);
-      return;
+    } else {
+      navigate("/");
     }
-    // 2) Geriye dönük: eski plan_session (24 saatlik)
-    const savedSession = localStorage.getItem("plan_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        // Oturum süresini kontrol et (24 saat)
-        const sessionTime = session.login_time || 0;
-        const now = Date.now();
-        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
-        
-        if (hoursPassed < 24) {
-          setUserData(session);
-          setAuthenticated(true);
-          if (session.token) {
-            localStorage.setItem("auth_token", session.token);
-          }
-        } else {
-          // Oturum süresi dolmuş
-          localStorage.removeItem("plan_session");
-        }
-      } catch (e) {
-        localStorage.removeItem("plan_session");
-      }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // FCM Token kaydı ve bildirim dinleme
@@ -647,53 +606,6 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   }, [searchQuery]);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      toast.error("Kullanıcı adı ve şifre gerekli");
-      return;
-    }
-    try {
-      const response = await axios.post(`${API}/users/login`, {
-        username: username,
-        password: password,
-        role: "plan"
-      });
-      const user = response.data;
-      if (user.token) {
-        localStorage.setItem("auth_token", user.token);
-      }
-      const sessionData = {
-        ...user,
-        login_time: Date.now()
-      };
-      setUserData(user);
-      localStorage.setItem("plan_session", JSON.stringify(sessionData));
-      
-      // Hatırla Beni kaydet/temizle
-      if (rememberMe) {
-        localStorage.setItem("plan_remember", JSON.stringify({ username, password }));
-      } else {
-        localStorage.removeItem("plan_remember");
-      }
-      
-      setAuthenticated(true);
-      toast.success("Giriş başarılı!");
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Giriş başarısız");
-    }
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    localStorage.removeItem("plan_session");
-    setUserData(null);
-    setAuthenticated(false);
-    setUsername("");
-    setPassword("");
-    navigate("/");
-    toast.success("Çıkış yapıldı");
-  };
-
   const getFormatOptions = (machineName) => {
     if (machineName === "24x24" || machineName === "33x33 (Büyük)") {
       return ["1/4", "1/8"];
@@ -1111,67 +1023,7 @@ const PlanFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <Card className="panel-industrial login-glow">
-            <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">PLAN GİRİŞİ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-text-primary">Kullanıcı Adı</Label>
-                <Input
-                  data-testid="plan-username-input"
-                  placeholder="Kullanıcı adı..."
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
-                />
-              </div>
-              <div>
-                <Label className="text-text-primary">Şifre</Label>
-                <Input
-                  data-testid="plan-password-input"
-                  type="password"
-                  placeholder="Şifre..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="plan-remember-me">
-                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-5 h-5 rounded border-border accent-green-600 cursor-pointer" />
-                <span className="text-text-secondary text-sm">Hatırla Beni</span>
-              </label>
-              <Button
-                data-testid="plan-login-button"
-                onClick={handleLogin}
-                className="w-full bg-success text-white hover:bg-success/90 h-14 text-lg font-heading"
-              >
-                Giriş Yap
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="w-full border-border bg-background hover:bg-surface-highlight"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Ana Sayfa
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">

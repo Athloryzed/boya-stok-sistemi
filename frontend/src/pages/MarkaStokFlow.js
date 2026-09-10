@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
@@ -982,26 +981,11 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [role, setRole] = useState("depo");
   const [mainTab, setMainTab] = useState("marka");
 
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    const remembered = localStorage.getItem("marka_stok_remember");
-    if (remembered) {
-      try {
-        const c = JSON.parse(remembered);
-        setUsername(c.username || "");
-        setPassword(c.password || "");
-        setRememberMe(true);
-      } catch (e) { localStorage.removeItem("marka_stok_remember"); }
-    }
-  }, []);
-
-  useEffect(() => {
-    // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı
     const central = resumeCentralSession("/marka-stok");
     if (central) {
       setUserData(central);
@@ -1010,85 +994,20 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
         : "depo";
       setRole(r);
       setAuthenticated(true);
-      return;
+    } else {
+      navigate("/");
     }
-    // 2) Geriye dönük: eski marka_stok_session (24 saatlik)
-    const sess = localStorage.getItem("marka_stok_session");
-    if (sess) {
-      try {
-        const s = JSON.parse(sess);
-        const hours = (Date.now() - (s.login_time || 0)) / 3600000;
-        if (hours < 24 && s.username) {
-          setUserData(s);
-          setRole(s.role || "depo");
-          setAuthenticated(true);
-          if (s.token) localStorage.setItem("auth_token", s.token);
-        } else { localStorage.removeItem("marka_stok_session"); }
-      } catch (e) { localStorage.removeItem("marka_stok_session"); }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) return toast.error("Kullanıcı adı ve şifre gerekli");
-    const tryRoles = ["depo", "plan", "yonetim"];
-    let lastErr = null;
-    for (const r of tryRoles) {
-      try {
-        const res = await axios.post(`${API}/users/login`, { username, password, role: r });
-        const u = res.data;
-        if (u.token) localStorage.setItem("auth_token", u.token);
-        setUserData(u); setRole(r);
-        localStorage.setItem("marka_stok_session", JSON.stringify({ ...u, role: r, login_time: Date.now() }));
-        if (rememberMe) localStorage.setItem("marka_stok_remember", JSON.stringify({ username, password }));
-        else localStorage.removeItem("marka_stok_remember");
-        setAuthenticated(true);
-        toast.success(`Giriş başarılı (${r})`);
-        return;
-      } catch (e) { lastErr = e; }
-    }
-    toast.error(lastErr?.response?.data?.detail || "Giriş başarısız (sadece Depo / Planlama / Yönetim)");
-  };
 
   const handleLogout = () => {
     clearSession();
-    localStorage.removeItem("marka_stok_session");
     setUserData(null); setAuthenticated(false);
-    setUsername(""); setPassword("");
     navigate("/");
     toast.success("Çıkış yapıldı");
   };
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="panel-industrial login-glow">
-            <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center text-emerald-500 flex items-center justify-center gap-2">
-                <div className="flex items-center gap-1">
-                  <Tag className="h-6 w-6" />
-                  <span className="text-text-secondary">/</span>
-                  <Boxes className="h-6 w-6 text-sky-500" />
-                </div>
-                MARKA / KOLİ STOK
-              </CardTitle>
-              <p className="text-text-secondary text-sm text-center mt-1">Bitmiş Ürün + Hammadde Koli Takibi</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div><Label>Kullanıcı Adı</Label><Input data-testid="marka-username-input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="depo1, emrecan..." className="mt-1 bg-background border-border h-12" /></div>
-              <div><Label>Şifre</Label><Input data-testid="marka-password-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleLogin()} className="mt-1 bg-background border-border h-12" /></div>
-              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="marka-remember-me">
-                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-5 h-5 rounded accent-emerald-500 cursor-pointer" />
-                <span className="text-text-secondary text-sm">Hatırla Beni</span>
-              </label>
-              <Button data-testid="marka-login-button" onClick={handleLogin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-lg">Giriş Yap</Button>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" /> Ana Sayfa</Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">

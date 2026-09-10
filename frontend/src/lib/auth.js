@@ -235,7 +235,7 @@ export function resumeCentralSession(routePath) {
     display_name: s.display_name || s.username || "",
     roles,
     role: s.role || roles[0] || "",
-    id: s.id || s.username || "",
+    id: s.user_id || s.id || s.username || "",
     login_time: new Date(s.login_at || Date.now()).getTime(),
     remember_me: !!s.remember_me,
   };

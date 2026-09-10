@@ -20,7 +20,7 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 import { computeExpectedSummary, ExpectedKoliCard } from "../components/ExpectedKoliSummary";
 import NotificationButton from "../components/NotificationButton";
 import { useConfirm } from "../components/ConfirmProvider";
-import { resumeCentralSession, clearSession } from "../lib/auth";
+import { resumeCentralSession } from "../lib/auth";
 import { handleWsAuthRejection } from "../lib/wsAuthRetry";
 import WarehouseSummaryCard from "../components/WarehouseSummaryCard";
 import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog";
@@ -29,9 +29,6 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [warehouseRequests, setWarehouseRequests] = useState([]);
   const [pallets, setPallets] = useState([]);
@@ -83,94 +80,17 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
   const reconnectTimeoutRef = useRef(null);
   const wsAuthRetryRef = useRef(0);
 
-  // Hatırla Beni - sayfa yüklendiğinde kayıtlı bilgileri doldur
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    const remembered = localStorage.getItem("depo_remember");
-    if (remembered) {
-      try {
-        const creds = JSON.parse(remembered);
-        setUsername(creds.username || "");
-        setPassword(creds.password || "");
-        setRememberMe(true);
-      } catch (e) {
-        localStorage.removeItem("depo_remember");
-      }
-    }
-  }, []);
-
-  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
-  useEffect(() => {
-    // 1) Merkezi oturum — tek doğruluk kaynağı (Beni Hatırla / 24h politikası)
     const central = resumeCentralSession("/warehouse");
     if (central) {
       setUserData(central);
       setAuthenticated(true);
-      return;
+    } else {
+      navigate("/");
     }
-    // 2) Geriye dönük: eski depo_session (24 saatlik)
-    const savedSession = localStorage.getItem("depo_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        const sessionTime = session.login_time || 0;
-        const now = Date.now();
-        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
-        
-        if (hoursPassed < 24 && session.username) {
-          setUserData(session);
-          setAuthenticated(true);
-          if (session.token) {
-            localStorage.setItem("auth_token", session.token);
-          }
-        } else {
-          localStorage.removeItem("depo_session");
-        }
-      } catch (e) {
-        localStorage.removeItem("depo_session");
-      }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      toast.error("Kullanıcı adı ve şifre gerekli");
-      return;
-    }
-    try {
-      const response = await axios.post(`${API}/users/login`, {
-        username: username,
-        password: password,
-        role: "depo"
-      });
-      const user = response.data;
-      if (user.token) {
-        localStorage.setItem("auth_token", user.token);
-      }
-      // Hatırla Beni kaydet/temizle
-      if (rememberMe) {
-        localStorage.setItem("depo_remember", JSON.stringify({ username, password }));
-      } else {
-        localStorage.removeItem("depo_remember");
-      }
-      setUserData(user);
-      localStorage.setItem("depo_session", JSON.stringify({ ...user, login_time: Date.now() }));
-      setAuthenticated(true);
-      toast.success("Giriş başarılı!");
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Giriş başarısız");
-    }
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    localStorage.removeItem("depo_session");
-    setUserData(null);
-    setAuthenticated(false);
-    setUsername("");
-    setPassword("");
-    navigate("/");
-    toast.success("Çıkış yapıldı");
-  };
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
@@ -419,70 +339,7 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
     setManualCode("");
   };
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <Card className="panel-industrial login-glow">
-            <CardHeader>
-              <div className="icon-tile-glow w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-amber-400/25 to-amber-600/5 border border-amber-500/40 flex items-center justify-center">
-                <Warehouse className="h-7 w-7 text-warning" />
-              </div>
-              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">DEPO GİRİŞİ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-text-primary">Kullanıcı Adı</Label>
-                <Input
-                  data-testid="warehouse-username-input"
-                  placeholder="Kullanıcı adı..."
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
-                />
-              </div>
-              <div>
-                <Label className="text-text-primary">Şifre</Label>
-                <Input
-                  data-testid="warehouse-password-input"
-                  type="password"
-                  placeholder="Şifre..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                  className="mt-1 bg-background border-border text-text-primary text-lg h-14"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="warehouse-remember-me">
-                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-5 h-5 rounded border-border accent-amber-500 cursor-pointer" />
-                <span className="text-text-secondary text-sm">Hatırla Beni</span>
-              </label>
-              <Button
-                data-testid="warehouse-login-button"
-                onClick={handleLogin}
-                className="w-full bg-warning text-black hover:bg-warning/90 h-14 text-lg font-heading"
-              >
-                Giriş Yap
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="w-full border-border bg-background hover:bg-surface-highlight"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Ana Sayfa
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-6 overflow-x-hidden">

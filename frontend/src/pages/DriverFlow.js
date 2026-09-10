@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Sun, Moon, MapPin, Phone, Package, CheckCircle, XCircle, Navigation, Truck, RefreshCw, LogOut } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
@@ -13,13 +13,12 @@ import axios from "axios";
 import { API } from "../App";
 import UserMenu from "../components/UserMenu";
 import AIAssistant from "../components/AIAssistant";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 const DriverFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
   const [driverData, setDriverData] = useState(null);
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [shipments, setShipments] = useState([]);
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -71,16 +70,18 @@ const DriverFlow = ({ theme, toggleTheme }) => {
     };
   }, [locationWatchId]);
 
-  // Oturum kontrolü
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    const savedDriver = localStorage.getItem("driver_session");
-    if (savedDriver) {
-      const driver = JSON.parse(savedDriver);
-      setDriverData(driver);
+    const central = resumeCentralSession("/driver");
+    if (central) {
+      setDriverData(central);
       setAuthenticated(true);
-      startLocationTracking(driver.id);
+      startLocationTracking(central.id);
+    } else {
+      navigate("/");
     }
-  }, [startLocationTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchShipments = async () => {
     if (!driverData) return;
@@ -102,37 +103,16 @@ const DriverFlow = ({ theme, toggleTheme }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticated, driverData]);
 
-  const handleLogin = async () => {
-    if (!name || !password) {
-      toast.error("Lütfen kullanıcı adı ve şifre girin");
-      return;
-    }
-    try {
-      const response = await axios.post(`${API}/users/login`, { 
-        username: name, 
-        password: password,
-        role: "sofor"
-      });
-      const user = response.data;
-      setDriverData(user);
-      setAuthenticated(true);
-      localStorage.setItem("driver_session", JSON.stringify(user));
-      startLocationTracking(user.id);
-      toast.success("Giriş başarılı!");
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Giriş başarısız");
-    }
-  };
-
   const handleLogout = () => {
     if (locationWatchId) {
       navigator.geolocation.clearWatch(locationWatchId);
     }
-    localStorage.removeItem("driver_session");
+    clearSession();
     setAuthenticated(false);
     setDriverData(null);
     setShipments([]);
     toast.success("Çıkış yapıldı");
+    navigate("/");
   };
 
   const handleStartDelivery = async (shipment) => {
@@ -240,65 +220,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  // Giriş ekranı
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
-          <Card className="panel-industrial login-glow">
-            <CardHeader className="text-center">
-              <div className="icon-tile-glow float-soft w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/25 to-purple-600/5 border border-purple-500/40 flex items-center justify-center" style={{ "--glow-rgb": "168,85,247" }}>
-                <Truck className="w-8 h-8 text-purple-400" />
-              </div>
-              <CardTitle className="text-2xl font-heading text-gradient-custom" style={{ "--tg-from": "#D8B4FE", "--tg-to": "#9333EA" }}>ŞOFÖR GİRİŞİ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Kullanıcı Adı</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Adınız..."
-                  className="bg-background border-border"
-                  data-testid="driver-name-input"
-                />
-              </div>
-              <div>
-                <Label>Şifre</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Şifre..."
-                  className="bg-background border-border"
-                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                  data-testid="driver-password-input"
-                />
-              </div>
-              <Button
-                onClick={handleLogin}
-                className="w-full bg-purple-500 hover:bg-purple-600 text-white"
-                data-testid="driver-login-btn"
-              >
-                Giriş Yap
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/")}
-                className="w-full"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Ana Sayfa
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-4 overflow-x-hidden">
@@ -309,7 +231,7 @@ const DriverFlow = ({ theme, toggleTheme }) => {
           <span className="hidden xl:inline">Ana Sayfa</span>
         </Button>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <span className="text-sm text-text-secondary hidden 2xl:inline truncate max-w-[200px]">{driverData?.name}</span>
+          <span className="text-sm text-text-secondary hidden 2xl:inline truncate max-w-[200px]">{driverData?.display_name || driverData?.username}</span>
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>

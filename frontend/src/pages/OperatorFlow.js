@@ -52,8 +52,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [step, setStep] = useState(1);
   const [qrStartJobId, setQrStartJobId] = useState(null);
   const [operatorName, setOperatorName] = useState("");
-  const [operatorPassword, setOperatorPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [machines, setMachines] = useState([]);
@@ -273,122 +271,50 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     if (startJobId) {
       setQrStartJobId(startJobId);
     }
-    
-    const remembered = localStorage.getItem("operator_remember");
-    if (remembered) {
-      try {
-        const creds = JSON.parse(remembered);
-        setOperatorName(creds.username || "");
-        setOperatorPassword(creds.password || "");
-        setRememberMe(true);
-      } catch (e) {
-        localStorage.removeItem("operator_remember");
-      }
-    }
   }, []);
 
-  // Oturum kontrolü - localStorage'dan
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session.
+  // operator_session burada artık auth değil, sadece "hangi makine seçilmişti"
+  // önbelleği olarak kullanılıyor (bkz. handleMachineSelect).
   useEffect(() => {
     const checkSession = async () => {
-      // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı.
-      //    Geçerliyse şifre SORMADAN devam et; makine seçimi panel session'da
-      //    varsa korunur (yoksa makine seçim adımına geçilir).
       const central = resumeCentralSession("/operator");
-      if (central) {
-        let panel = null;
-        try { panel = JSON.parse(localStorage.getItem("operator_session") || "null"); } catch (_) { panel = null; }
-        const merged = {
-          ...central,
-          machine_id: panel?.machine_id,
-          machine_name: panel?.machine_name,
-        };
-        setUserData(merged);
-        setOperatorName(central.display_name || central.username);
-        // operator_session'ı tazele (makine bilgisi korunur, login_time yenilenir)
-        localStorage.setItem("operator_session", JSON.stringify({ ...merged, login_time: Date.now() }));
-        await fetchMachinesData();
-        setStep(merged.machine_id ? 3 : 2);
-        // Push setup (best-effort)
-        try {
-          if (isNativePlatform()) {
-            await initializePushNotifications(merged.id, "operator");
-          } else {
-            const fcmToken = await requestFCMPermission();
-            if (fcmToken) {
-              await axios.post(`${API}/notifications/register-token`, {
-                token: fcmToken, user_type: "operator", user_id: merged.id, platform: "web",
-              });
-            }
-          }
-        } catch (pushError) {
-          console.error("Push notification setup error:", pushError);
-        }
-        setSessionChecked(true);
+      if (!central) {
+        navigate("/");
         return;
       }
-
-      // 2) Geriye dönük: eski operator_session (24 saatlik)
-      const savedSession = localStorage.getItem("operator_session");
-      if (savedSession) {
-        try {
-          const session = JSON.parse(savedSession);
-          
-          // Oturum süresini kontrol et (24 saat)
-          const sessionTime = session.login_time || 0;
-          const now = Date.now();
-          const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
-          
-          if (hoursPassed >= 24) {
-            // Oturum süresi dolmuş
-            localStorage.removeItem("operator_session");
-            await fetchMachinesData();
-            setSessionChecked(true);
-            return;
-          }
-          
-          setUserData(session);
-          setOperatorName(session.display_name || session.username);
-          // JWT token'ı restore et
-          if (session.token) {
-            localStorage.setItem("auth_token", session.token);
-          }
-          if (session.machine_id) {
-            await fetchMachinesData();
-            setStep(3);
-          } else {
-            setStep(2);
-          }
-          
-          // Push Notification kurulumu - Platform bazlı
-          try {
-            if (isNativePlatform()) {
-              // Android için Capacitor Push Notifications
-              await initializePushNotifications(session.id, "operator");
-              console.log("Native push notifications initialized");
-            } else {
-              // Web için Firebase Web SDK
-              const fcmToken = await requestFCMPermission();
-              if (fcmToken) {
-                await axios.post(`${API}/notifications/register-token`, {
-                  token: fcmToken,
-                  user_type: "operator",
-                  user_id: session.id,
-                  platform: "web"
-                });
-              }
-            }
-          } catch (pushError) {
-            console.error("Push notification setup error:", pushError);
-          }
-        } catch (e) {
-          localStorage.removeItem("operator_session");
-        }
-      }
+      let panel = null;
+      try { panel = JSON.parse(localStorage.getItem("operator_session") || "null"); } catch (_) { panel = null; }
+      const merged = {
+        ...central,
+        machine_id: panel?.machine_id,
+        machine_name: panel?.machine_name,
+      };
+      setUserData(merged);
+      setOperatorName(central.display_name || central.username);
+      // Makine seçim önbelleğini tazele (login_time artık anlamsız, kaldırıldı)
+      localStorage.setItem("operator_session", JSON.stringify(merged));
       await fetchMachinesData();
+      setStep(merged.machine_id ? 3 : 2);
+      // Push setup (best-effort)
+      try {
+        if (isNativePlatform()) {
+          await initializePushNotifications(merged.id, "operator");
+        } else {
+          const fcmToken = await requestFCMPermission();
+          if (fcmToken) {
+            await axios.post(`${API}/notifications/register-token`, {
+              token: fcmToken, user_type: "operator", user_id: merged.id, platform: "web",
+            });
+          }
+        }
+      } catch (pushError) {
+        console.error("Push notification setup error:", pushError);
+      }
       setSessionChecked(true);
     };
     checkSession();
-   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // FCM Foreground mesaj dinleyici
@@ -757,63 +683,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     }
   };
 
-  const handleNameSubmit = async () => {
-    if (!operatorName.trim() || !operatorPassword.trim()) {
-      toast.error("Kullanıcı adı ve şifre gerekli");
-      return;
-    }
-    try {
-      const response = await axios.post(`${API}/users/login`, {
-        username: operatorName,
-        password: operatorPassword,
-        role: "operator"
-      });
-      const user = response.data;
-      // JWT token kaydet
-      if (user.token) {
-        localStorage.setItem("auth_token", user.token);
-      }
-      // 24 saatlik oturum için login zamanını kaydet
-      const sessionData = {
-        ...user,
-        login_time: Date.now()
-      };
-      setUserData(user);
-      setOperatorName(user.display_name || user.username);
-      localStorage.setItem("operator_session", JSON.stringify(sessionData));
-      
-      // Hatırla Beni kaydet/temizle
-      if (rememberMe) {
-        localStorage.setItem("operator_remember", JSON.stringify({ username: operatorName, password: operatorPassword }));
-      } else {
-        localStorage.removeItem("operator_remember");
-      }
-      
-      toast.success("Giriş başarılı!");
-      
-      // FCM Token kaydı (push bildirimleri için)
-      try {
-        const fcmToken = await requestFCMPermission();
-        if (fcmToken) {
-          await axios.post(`${API}/notifications/register-token`, {
-            token: fcmToken,
-            user_type: "operator",
-            user_id: user.id
-          });
-          console.log("Operator FCM token registered");
-        }
-      } catch (fcmError) {
-        console.error("FCM setup error:", fcmError);
-      }
-      
-      // Makineleri çek (ilk session check'te boş kalmış olabilir)
-      await fetchMachinesData();
-      setStep(2);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Giriş başarısız");
-    }
-  };
-
   const handleMachineSelect = (machine) => {
     if (machine.maintenance) {
       toast.error("Bu makine bakımda!");
@@ -834,8 +703,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
     setUserData(null);
     setSelectedMachine(null);
     setOperatorName("");
-    setOperatorPassword("");
-    setStep(1);
     navigate("/");
     toast.success("Çıkış yapıldı");
   };
@@ -1057,9 +924,9 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
       <div className="header-industrial sticky top-0 z-40 px-3 sm:px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <Button variant="outline" size="icon" onClick={() => step > 1 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 xl:w-auto xl:px-3 shrink-0" aria-label={step > 1 ? "Önceki adıma dön" : "Ana sayfaya dön"}>
+            <Button variant="outline" size="icon" onClick={() => step > 2 ? setStep(step - 1) : navigate("/")} data-testid="back-button" className="border-border bg-surface/60 hover:bg-surface-highlight h-9 w-9 xl:w-auto xl:px-3 shrink-0" aria-label={step > 2 ? "Önceki adıma dön" : "Ana sayfaya dön"}>
               <ArrowLeft className="h-4 w-4 xl:mr-1.5" aria-hidden="true" />
-              <span className="hidden xl:inline">{step > 1 ? "Geri" : "Ana Sayfa"}</span>
+              <span className="hidden xl:inline">{step > 2 ? "Geri" : "Ana Sayfa"}</span>
             </Button>
             <div className="h-6 w-px bg-border hidden md:block" />
             <div className="flex items-center gap-2 min-w-0">
@@ -1097,12 +964,10 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
               ]}
             />
             <UserMenu />
-            {step > 1 && (
-              <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 xl:w-auto xl:px-3 shrink-0">
-                <LogOut className="h-4 w-4 xl:mr-1.5" />
-                <span className="hidden xl:inline">Çıkış</span>
-              </Button>
-            )}
+            <Button variant="outline" size="icon" onClick={handleLogout} data-testid="logout-button" className="border-error/40 text-error hover:bg-error/10 h-9 w-9 xl:w-auto xl:px-3 shrink-0">
+              <LogOut className="h-4 w-4 xl:mr-1.5" />
+              <span className="hidden xl:inline">Çıkış</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -1210,36 +1075,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* STEP 1: Kullanıcı Girişi */}
-        {step === 1 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-            <h1 className="text-5xl font-heading font-black text-secondary text-center">OPERATÖR GİRİŞİ</h1>
-            <Card className="bg-surface border-border max-w-md mx-auto">
-              <CardContent className="p-8 space-y-4">
-                <div>
-                  <Label className="text-text-primary text-lg">Kullanıcı Adı</Label>
-                  <Input data-testid="operator-username-input" value={operatorName} onChange={(e) => setOperatorName(e.target.value)}
-                    placeholder="Kullanıcı adınız..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
-                </div>
-                <div>
-                  <Label className="text-text-primary text-lg">Şifre</Label>
-                  <Input data-testid="operator-password-input" type="password" value={operatorPassword || ""} onChange={(e) => setOperatorPassword(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleNameSubmit()}
-                    placeholder="Şifreniz..." className="mt-2 bg-background border-border text-text-primary text-lg h-14" />
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="operator-remember-me">
-                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-5 h-5 rounded border-border accent-secondary cursor-pointer" />
-                  <span className="text-text-secondary text-sm">Hatırla Beni</span>
-                </label>
-                <Button data-testid="name-submit-button" onClick={handleNameSubmit} className="w-full mt-4 bg-secondary text-white hover:bg-secondary/90 h-14 text-lg font-heading">
-                  Giriş Yap
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
 
         {/* STEP 2: Makine Seçimi */}
         {step === 2 && (

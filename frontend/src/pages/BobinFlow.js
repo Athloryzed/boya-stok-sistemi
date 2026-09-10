@@ -43,11 +43,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [loginError, setLoginError] = useState("");
 
   const [bobins, setBobins] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -85,54 +81,18 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   // ============ SESSION ============
   useEffect(() => {
-    // 1) Merkezi oturum (ana sayfa girişi) — tek doğruluk kaynağı.
     const central = resumeCentralSession("/bobin");
     if (central) {
       setUserData(central);
       setAuthenticated(true);
-      return;
+    } else {
+      navigate("/");
     }
-    // 2) Geriye dönük: eski panel-bazlı oturum
-    const saved = localStorage.getItem("bobin_session");
-    if (saved) {
-      try {
-        const session = JSON.parse(saved);
-        const hours = (Date.now() - (session.login_time || 0)) / (1000 * 60 * 60);
-        const sessionRoles = (session.roles && session.roles.length > 0) ? session.roles : (session.role ? [session.role] : []);
-        const hasAccess = sessionRoles.includes("depo") || sessionRoles.includes("plan");
-        if (hours < 24 && session.username && hasAccess) {
-          setUserData(session);
-          setAuthenticated(true);
-          if (session.token) localStorage.setItem("auth_token", session.token);
-        } else { localStorage.removeItem("bobin_session"); }
-      } catch { localStorage.removeItem("bobin_session"); }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleLogin = async () => {
-    setLoginError("");
-    try {
-      const res = await axios.post(`${API}/users/login`, { username, password });
-      const data = res.data;
-      const userRoles = (data.roles && data.roles.length > 0) ? data.roles : (data.role ? [data.role] : []);
-      const hasAccess = userRoles.includes("depo") || userRoles.includes("plan");
-      if (!hasAccess) {
-        setLoginError("Bu sayfaya erisim yetkiniz yok. Bu modul Depo veya Planlama rolu gerektirir.");
-        return;
-      }
-      if (data.token) localStorage.setItem("auth_token", data.token);
-      const session = { ...data, roles: userRoles, login_time: Date.now() };
-      localStorage.setItem("bobin_session", JSON.stringify(session));
-      setUserData(session);
-      setAuthenticated(true);
-    } catch (err) {
-      setLoginError(err.response?.data?.detail || "Giris basarisiz");
-    }
-  };
 
   const handleLogout = () => {
     clearSession();
-    localStorage.removeItem("bobin_session");
     localStorage.removeItem("auth_token");
     setAuthenticated(false);
     setUserData(null);
@@ -464,46 +424,7 @@ const BobinFlow = ({ theme, toggleTheme }) => {
 
   const totalWt = bobins.reduce((s, b) => s + (b.total_weight_kg || 0), 0);
 
-  // ============ LOGIN SCREEN ============
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0f1a] to-[#111827] flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}
-          className="w-full max-w-sm">
-          <div className="bg-surface/80 backdrop-blur-xl border border-border rounded-xl p-8 shadow-2xl">
-            <div className="text-center mb-8">
-              <div className="icon-tile-glow float-soft w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4" style={{ "--glow-rgb": "16,185,129" }}>
-                <Layers className="h-8 w-8 text-emerald-400" />
-              </div>
-              <h1 className="text-xl font-semibold text-text-primary tracking-tight">Bobin Yonetimi</h1>
-              <p className="text-sm text-text-secondary mt-1">Depo veya Plan hesabınızla giriş yapın</p>
-            </div>
-            <div className="space-y-3">
-              <Input data-testid="bobin-login-username" placeholder="Kullanıcı adı" value={username}
-                onChange={e => { setUsername(e.target.value); setLoginError(""); }}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                className="bg-background border-border text-text-primary placeholder:text-zinc-600 h-11" />
-              <Input data-testid="bobin-login-password" type="password" placeholder="Şifre" value={password}
-                onChange={e => { setPassword(e.target.value); setLoginError(""); }}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
-                className="bg-background border-border text-text-primary placeholder:text-zinc-600 h-11" />
-              <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="bobin-remember-me">
-                <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-border bg-surface-highlight text-emerald-500 focus:ring-emerald-500/30" />
-                <span className="text-sm text-text-secondary">Beni hatırla</span>
-              </label>
-              {loginError && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2" data-testid="bobin-login-error">{loginError}</p>}
-              <Button data-testid="bobin-login-btn" onClick={handleLogin}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-11 font-medium">Giriş Yap</Button>
-            </div>
-          </div>
-          <button onClick={() => navigate("/")} className="flex items-center justify-center gap-1.5 text-sm text-zinc-600 hover:text-text-secondary mt-6 mx-auto transition-colors">
-            <ArrowLeft className="h-4 w-4" /> Ana Sayfa
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   // ============ MAIN UI ============
   return (
