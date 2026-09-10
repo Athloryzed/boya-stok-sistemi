@@ -43,7 +43,6 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [isYonetimUser, setIsYonetimUser] = useState(false);
   const [canQuickMode, setCanQuickMode] = useState(false);
   const [viewMode, setViewMode] = useState("quick"); // "quick" | "detailed"
-  const [password, setPassword] = useState("");
   const [paints, setPaints] = useState([]);
   const [machines, setMachines] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -65,59 +64,17 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const [selectedMachine, setSelectedMachine] = useState("");
   const [note, setNote] = useState("");
 
-  // Oturum kontrolü - merkezi oturum (ana sayfa girişi) öncelikli
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    // 1) Merkezi oturum — tek doğruluk kaynağı; /paint yonetim/plan/depo/boyaci'ya açık
     const central = resumeCentralSession("/paint");
     if (central) {
       setAuthenticated(true);
       setIsYonetimUser(hasYonetimRole(central.roles));
       setCanQuickMode(hasYonetimRole(central.roles) || (central.roles || []).includes("boyaci"));
-      return;
+    } else {
+      navigate("/");
     }
-    // 1.5) GEÇİCİ YAMA: eski panel-şifre girişi (ManagementFlow'un kendi
-    // handleLogin'i veya saveSession'ın yonetim-compat yazımı) management_session'a
-    // düşüyor. Bu key'in şekli {managerId, token, expiry} — role alanı YOK (ne
-    // ManagementFlow ne saveSession onu yazıyor), bu yüzden "role === management"
-    // kontrolü hep false kalırdı. Bunun yerine key'in varlığı + süresi dolmamış
-    // olması kontrol ediliyor — bu key zaten SADECE yönetim-eşdeğeri girişlerde
-    // yazılıyor, başka hiçbir yoldan oluşmuyor.
-    const mgmtSessionRaw = localStorage.getItem("management_session");
-    if (mgmtSessionRaw) {
-      try {
-        const mgmtSession = JSON.parse(mgmtSessionRaw);
-        if (mgmtSession.expiry && mgmtSession.expiry > Date.now()) {
-          setAuthenticated(true);
-          setIsYonetimUser(true);
-          setCanQuickMode(true);
-          return;
-        }
-        localStorage.removeItem("management_session");
-      } catch (e) {
-        localStorage.removeItem("management_session");
-      }
-    }
-    // 2) Geriye dönük: eski paint_session (24 saatlik) — /management/login ile
-    // alınmış bir şifre, yani her zaman yönetim-eşdeğeri bir giriş.
-    const savedSession = localStorage.getItem("paint_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        const sessionTime = session.login_time || 0;
-        const now = Date.now();
-        const hoursPassed = (now - sessionTime) / (1000 * 60 * 60);
-
-        if (hoursPassed < 24) {
-          setAuthenticated(true);
-          setIsYonetimUser(true);
-          setCanQuickMode(true);
-        } else {
-          localStorage.removeItem("paint_session");
-        }
-      } catch (e) {
-        localStorage.removeItem("paint_session");
-      }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Boya init — sadece SAYFA İLK YÜKLENDİĞİNDE, bir kez, ve sadece yonetim
@@ -162,23 +119,6 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       const ap = safeArr(results[5]); if (ap) setActivePaintsOnMachines(ap);
     } catch (error) {
       console.error("Data fetch error:", error);
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post(`${API}/management/login`, { password });
-      const data = response.data;
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
-      }
-      localStorage.setItem("paint_session", JSON.stringify({ login_time: Date.now() }));
-      setAuthenticated(true);
-      setIsYonetimUser(true);
-      setCanQuickMode(true);
-      toast.success("Giriş başarılı!");
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Yanlış şifre!");
     }
   };
 
@@ -334,40 +274,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     }));
   };
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="panel-industrial login-glow">
-            <CardHeader>
-              <div className="icon-tile-glow w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-pink-500/25 to-pink-600/5 border border-pink-500/40 flex items-center justify-center" style={{ "--glow-rgb": "236,72,153" }}>
-                <Paintbrush className="h-7 w-7 text-pink-500" />
-              </div>
-              <CardTitle className="text-3xl font-heading text-center text-gradient-custom" style={{ "--tg-from": "#F9A8D4", "--tg-to": "#DB2777" }}>BOYA GİRİŞİ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                data-testid="paint-password-input"
-                type="password"
-                placeholder="Şifre..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                className="mb-4 bg-background border-border text-text-primary text-lg h-14"
-              />
-              <Button data-testid="paint-login-button" onClick={handleLogin} className="w-full bg-pink-500 text-white hover:bg-pink-600 h-14 text-lg font-heading">
-                Giriş Yap
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full mt-4 border-border bg-background hover:bg-surface-highlight">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Ana Sayfa
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-4 md:p-6 overflow-x-hidden">
