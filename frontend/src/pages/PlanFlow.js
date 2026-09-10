@@ -1500,6 +1500,18 @@ const PlanFlow = ({ theme, toggleTheme }) => {
                         <p className="text-xs md:text-sm text-success font-semibold">ÇALIŞIYOR</p>
                         <p className="text-xs text-text-secondary truncate">{currentJob.name}</p>
                         <p className="text-xs text-text-secondary truncate">Op: {currentJob.operator_name}</p>
+                        <div className="mt-1">
+                          <AnimatedNumber watch={currentJob.progress_total || 0} className="animate-count text-[10px] text-text-secondary">
+                            {(currentJob.completed_koli || 0) + (currentJob.progress_total || 0)} / {currentJob.koli_count || 0} koli
+                          </AnimatedNumber>
+                          <div className="h-1 rounded-full bg-surface-highlight overflow-hidden mt-0.5">
+                            <div className="h-full bg-gradient-to-r from-primary to-amber-600 transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.round((((currentJob.completed_koli || 0) + (currentJob.progress_total || 0)) / (currentJob.koli_count || 1)) * 100))}%` }} />
+                          </div>
+                          <p className="text-[10px] text-text-muted mt-0.5 truncate">
+                            {currentJob.progress_last_at ? `${minutesAgo(currentJob.progress_last_at)} dk önce` : "Henüz giriş yok"}
+                          </p>
+                        </div>
                       </div>
                     ) : (
                       <p className="text-xs md:text-sm text-text-secondary">Boşta</p>
