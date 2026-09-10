@@ -330,7 +330,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         className="corner-anchor-tl"
         initial={{ opacity: 0, x: -20, scale: 0.85 }}
         animate={{ opacity: 1, x: 0, scale: 1 }}
-        transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.35, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         data-testid="ataturk-image"
         aria-label="Mustafa Kemal Atatürk"
         role="img"
@@ -347,7 +347,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
 
       {/* Sağ üst: Bayrak + Tema */}
       <div className="corner-anchor-tr flex items-center gap-2">
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
           <WavingFlag />
         </motion.div>
         <button onClick={toggleLiteMode}

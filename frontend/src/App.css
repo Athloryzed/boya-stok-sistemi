@@ -423,7 +423,7 @@ button:hover svg, [role="button"]:hover svg {
 }
 
 .animate-fade-up {
-  animation: fadeSlideUp 0.5s var(--ease-spring) both;
+  animation: fadeSlideUp 0.25s var(--ease-spring) both;
 }
 
 .animate-fade-in {
@@ -435,14 +435,14 @@ button:hover svg, [role="button"]:hover svg {
 }
 
 /* Stagger delays for card grids */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
-.stagger-7 { animation-delay: 0.35s; }
-.stagger-8 { animation-delay: 0.4s; }
+.stagger-1 { animation-delay: 0.025s; }
+.stagger-2 { animation-delay: 0.05s; }
+.stagger-3 { animation-delay: 0.075s; }
+.stagger-4 { animation-delay: 0.1s; }
+.stagger-5 { animation-delay: 0.125s; }
+.stagger-6 { animation-delay: 0.15s; }
+.stagger-7 { animation-delay: 0.175s; }
+.stagger-8 { animation-delay: 0.2s; }
 
 /* ===== DIALOG / MODAL ANIMATIONS ===== */
 /* Note: Shadcn dialogs use translate(-50%,-50%) for centering.
