@@ -1006,7 +1006,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
     if (central) {
       setUserData(central);
       const r = central.roles.includes("yonetim") ? "yonetim"
-        : central.roles.includes("plan") ? "planlama"
+        : central.roles.includes("plan") ? "plan"
         : "depo";
       setRole(r);
       setAuthenticated(true);
@@ -1030,7 +1030,7 @@ const MarkaStokFlow = ({ theme, toggleTheme }) => {
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) return toast.error("Kullanıcı adı ve şifre gerekli");
-    const tryRoles = ["depo", "planlama", "yonetim"];
+    const tryRoles = ["depo", "plan", "yonetim"];
     let lastErr = null;
     for (const r of tryRoles) {
       try {
