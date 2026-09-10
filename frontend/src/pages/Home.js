@@ -153,9 +153,7 @@ const WEATHER_ICON = {
 const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
-  const [yonetimSheetOpen, setYonetimSheetOpen] = useState(false);
   const [session, setSession] = useState(() => (isSessionValid() ? getSession() : null));
-  const isYonetimUser = !!(session && (session.role === "yonetim" || (session.roles || []).includes("yonetim")));
   const [todayMenu, setTodayMenu] = useState(null);
   const [weather, setWeather] = useState(null);
   // Yemek menüsü UI durumu (kalıcı: localStorage)
@@ -842,85 +840,6 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           </motion.div>
         )}
       </div>
-
-      {/* YÖNETİM HIZLI PANEL */}
-      {isYonetimUser && (
-        <>
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.5, type: "spring", stiffness: 250 }}
-            onClick={() => setYonetimSheetOpen(true)}
-            data-testid="yonetim-quick-fab"
-            className="btn-premium-gold fixed bottom-5 right-5 z-40 h-14 px-5 rounded-full flex items-center gap-2 text-sm"
-            aria-label="Yönetim Hızlı Panel geçişi — tüm panellere kısayol"
-          >
-            <span className="text-lg" aria-hidden="true">👑</span>
-            <span className="hidden sm:inline">Hızlı Panel</span>
-            <span className="sm:hidden">Panel</span>
-          </motion.button>
-
-          {yonetimSheetOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                onClick={() => setYonetimSheetOpen(false)}
-                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-                aria-hidden="true"
-              />
-              <motion.div
-                initial={{ y: "100%" }} animate={{ y: 0 }}
-                transition={{ type: "spring", damping: 26, stiffness: 260 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-b from-[#1a1410] to-[#0c0904] border-t border-amber-500/20 rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto"
-                data-testid="yonetim-quick-sheet"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="yonetim-quick-title"
-              >
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 id="yonetim-quick-title" className="text-base font-bold text-white flex items-center gap-2 font-heading">
-                      <span aria-hidden="true">👑</span> Yönetim Hızlı Panel
-                    </h3>
-                    <p className="text-xs text-amber-200/60 mt-0.5">İstediğiniz panele tek dokunuşla geçin</p>
-                  </div>
-                  <button
-                    onClick={() => setYonetimSheetOpen(false)}
-                    className="text-zinc-500 hover:text-white text-2xl leading-none w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-                    aria-label="Hızlı paneli kapat"
-                  >×</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {[
-                    { path: "/management", label: "Yönetim", icon: "📊", color: "from-amber-500/25 to-amber-600/10 border-amber-500/40 text-amber-300" },
-                    { path: "/plan", label: "Planlama", icon: "📋", color: "from-blue-500/25 to-blue-600/10 border-blue-500/40 text-blue-300" },
-                    { path: "/operator", label: "Operatör", icon: "👷", color: "from-emerald-500/25 to-emerald-600/10 border-emerald-500/40 text-emerald-300" },
-                    { path: "/warehouse", label: "Depo", icon: "📦", color: "from-purple-500/25 to-purple-600/10 border-purple-500/40 text-purple-300" },
-                    { path: "/bobin", label: "Bobin", icon: "📜", color: "from-teal-500/25 to-teal-600/10 border-teal-500/40 text-teal-300" },
-                    { path: "/marka-stok", label: "Marka/Koli", icon: "🏷️", color: "from-green-500/25 to-green-600/10 border-green-500/40 text-green-300" },
-                    { path: "/boyaci", label: "Boyacı", icon: "🎨", color: "from-pink-500/25 to-pink-600/10 border-pink-500/40 text-pink-300" },
-                    { path: "/dashboard", label: "Canlı TV", icon: "📺", color: "from-rose-500/25 to-rose-600/10 border-rose-500/40 text-rose-300" },
-                  ].map(p => (
-                    <button
-                      key={p.path}
-                      onClick={() => { setYonetimSheetOpen(false); navigate(p.path); }}
-                      data-testid={`yonetim-quick-${p.path.slice(1)}`}
-                      aria-label={`${p.label} paneline git`}
-                      className={`bg-gradient-to-br ${p.color} border rounded-xl p-4 flex flex-col items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-transform`}
-                    >
-                      <span className="text-2xl" aria-hidden="true">{p.icon}</span>
-                      <span className="text-sm font-semibold">{p.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-amber-200/40 mt-5 text-center leading-relaxed">
-                  Yönetim rolüne sahip olduğunuz için tüm panellere erişebilirsiniz.<br/>
-                  İlk girişinizde şifrenizle giriş yapmanız istenebilir; sonrasında 24 saat boyunca otomatik kalır.
-                </p>
-              </motion.div>
-            </>
-          )}
-        </>
-      )}
 
       {/* Haftalık Yemek Menüsü Dialog'u — kamuya açık (login öncesi de görünür) */}
       <AnimatePresence>
