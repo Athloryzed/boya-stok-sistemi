@@ -16,6 +16,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import UserMenu from "../components/UserMenu";
 import AIAssistant from "../components/AIAssistant";
 import { resumeCentralSession, hasYonetimRole } from "../lib/auth";
+import PaintQuickMode from "../components/PaintQuickMode";
 
 // Boya renk haritası (gerçek renklere yakın)
 const PAINT_COLORS = {
@@ -40,6 +41,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState(false);
   const [isYonetimUser, setIsYonetimUser] = useState(false);
+  const [canQuickMode, setCanQuickMode] = useState(false);
+  const [viewMode, setViewMode] = useState("quick"); // "quick" | "detailed"
   const [password, setPassword] = useState("");
   const [paints, setPaints] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -74,7 +77,30 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     if (central) {
       setAuthenticated(true);
       setIsYonetimUser(hasYonetimRole(central.roles));
+      setCanQuickMode(hasYonetimRole(central.roles) || (central.roles || []).includes("boyaci"));
       return;
+    }
+    // 1.5) GEÇİCİ YAMA: eski panel-şifre girişi (ManagementFlow'un kendi
+    // handleLogin'i veya saveSession'ın yonetim-compat yazımı) management_session'a
+    // düşüyor. Bu key'in şekli {managerId, token, expiry} — role alanı YOK (ne
+    // ManagementFlow ne saveSession onu yazıyor), bu yüzden "role === management"
+    // kontrolü hep false kalırdı. Bunun yerine key'in varlığı + süresi dolmamış
+    // olması kontrol ediliyor — bu key zaten SADECE yönetim-eşdeğeri girişlerde
+    // yazılıyor, başka hiçbir yoldan oluşmuyor.
+    const mgmtSessionRaw = localStorage.getItem("management_session");
+    if (mgmtSessionRaw) {
+      try {
+        const mgmtSession = JSON.parse(mgmtSessionRaw);
+        if (mgmtSession.expiry && mgmtSession.expiry > Date.now()) {
+          setAuthenticated(true);
+          setIsYonetimUser(true);
+          setCanQuickMode(true);
+          return;
+        }
+        localStorage.removeItem("management_session");
+      } catch (e) {
+        localStorage.removeItem("management_session");
+      }
     }
     // 2) Geriye dönük: eski paint_session (24 saatlik) — /management/login ile
     // alınmış bir şifre, yani her zaman yönetim-eşdeğeri bir giriş.
@@ -89,6 +115,7 @@ const PaintFlow = ({ theme, toggleTheme }) => {
         if (hoursPassed < 24) {
           setAuthenticated(true);
           setIsYonetimUser(true);
+          setCanQuickMode(true);
         } else {
           localStorage.removeItem("paint_session");
         }
@@ -152,6 +179,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
       }
       localStorage.setItem("paint_session", JSON.stringify({ login_time: Date.now() }));
       setAuthenticated(true);
+      setIsYonetimUser(true);
+      setCanQuickMode(true);
       toast.success("Giriş başarılı!");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Yanlış şifre!");
@@ -240,6 +269,23 @@ const PaintFlow = ({ theme, toggleTheme }) => {
     } catch (error) {
       toast.error(error.response?.data?.detail || "İşlem başarısız");
     }
+  };
+
+  // Hızlı Mod — mevcut give/return endpoint'lerini sarmalar, hata fırlatır
+  // (PaintQuickMode kendi toast'ını gösterir), fark hesabı backend'den gelir.
+  const quickGiveToMachine = async (paint, machine, amountKg) => {
+    await axios.post(`${API}/paints/give-to-machine`, {
+      paint_id: paint.id, machine_id: machine.id, machine_name: machine.name, amount_kg: amountKg
+    });
+    fetchData();
+  };
+
+  const quickReturnFromMachine = async (activePaint, amountKg) => {
+    const res = await axios.post(`${API}/paints/return-from-machine`, {
+      active_paint_id: activePaint.id, returned_amount_kg: amountKg
+    });
+    fetchData();
+    return res.data;
   };
 
   const closeAllDialogs = () => {
@@ -388,6 +434,30 @@ const PaintFlow = ({ theme, toggleTheme }) => {
           </motion.div>
         )}
 
+        {canQuickMode && viewMode === "quick" ? (
+          <PaintQuickMode
+            paints={paints}
+            machines={machines}
+            movements={movements}
+            activePaintsOnMachines={activePaintsOnMachines}
+            paintColors={PAINT_COLORS}
+            lowStockThreshold={LOW_STOCK_THRESHOLD}
+            onGiveToMachine={quickGiveToMachine}
+            onReturnFromMachine={quickReturnFromMachine}
+            onSwitchToDetailed={() => setViewMode("detailed")}
+          />
+        ) : (
+        <>
+        {canQuickMode && (
+          <Button
+            variant="outline"
+            onClick={() => setViewMode("quick")}
+            data-testid="switch-quick-mode"
+            className="mb-4 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Send className="h-4 w-4 mr-2" /> Hızlı Moda Dön
+          </Button>
+        )}
         <Tabs defaultValue="stock" className="space-y-6">
           <TabsList className="bg-surface border-border grid grid-cols-3 w-full md:w-auto">
             <TabsTrigger value="stock" data-testid="stock-tab" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">
@@ -686,6 +756,8 @@ const PaintFlow = ({ theme, toggleTheme }) => {
             </div>
           </TabsContent>
         </Tabs>
+        </>
+        )}
 
         {/* STOK EKLEME DIALOG */}
         <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
