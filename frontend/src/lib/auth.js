@@ -185,6 +185,19 @@ export function clearSession() {
   try { window.dispatchEvent(new CustomEvent("auth-changed", { detail: { type: "logout" } })); } catch (_) { /* noop */ }
 }
 
+/** Eski panel-bazlı session anahtarlarından biri localStorage'da kaldıysa true.
+ *  SADECE geçiş toast'ı için — erişim kararına karışmaz (ProtectedRoute artık
+ *  tek doğruluk kaynağı olarak app_session'a bakar). */
+export function hasLegacySessionArtifacts() {
+  try {
+    return [...PANEL_SESSION_KEYS, "management_session", "driver_session"].some(
+      (k) => !!localStorage.getItem(k)
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
 export function getRememberedUsername() {
   try {
     return localStorage.getItem(REMEMBER_USERNAME_KEY) || "";
