@@ -2989,7 +2989,6 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
                     <div className="flex items-center gap-2">
                       <Bot className="h-5 w-5 text-emerald-400" />
                       <span className="font-heading font-bold text-text-primary">Yonetim AI</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-success/20 text-emerald-400">GPT-5.2</span>
                     </div>
                     <button onClick={() => setIsMgmtAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
                       <X className="h-5 w-5 text-text-secondary" />

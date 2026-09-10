@@ -1661,7 +1661,6 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                     <div className="flex items-center gap-2">
                       <Bot className="h-5 w-5 text-blue-400" />
                       <span className="font-heading font-bold text-text-primary">AI Asistan</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">GPT-5.2</span>
                     </div>
                     <button onClick={() => setIsAIOpen(false)} className="p-1 hover:bg-surface-highlight rounded-full transition-colors">
                       <X className="h-5 w-5 text-text-secondary" />
