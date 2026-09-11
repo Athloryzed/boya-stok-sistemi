@@ -61,6 +61,7 @@ from routes.backups import router as backups_router, start_scheduler as start_ba
 from routes.auth_refresh import router as auth_refresh_router
 from routes.security_admin import router as security_admin_router
 from routes.chat import router as chat_router
+from routes.camera import router as camera_router
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -119,6 +120,7 @@ api_router.include_router(backups_router)
 api_router.include_router(auth_refresh_router)
 api_router.include_router(security_admin_router)
 api_router.include_router(chat_router)
+api_router.include_router(camera_router)
 
 
 @app.on_event("startup")

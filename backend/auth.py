@@ -1,4 +1,5 @@
 import os
+import time
 import bcrypt
 import jwt
 import uuid
@@ -83,14 +84,45 @@ def create_token(user_id: str, username: str, role: str, display_name: str = "")
 def decode_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        # Refresh token'la korumalı endpoint'e girilmesin
-        if payload.get("type") == "refresh":
-            raise HTTPException(status_code=401, detail="Refresh token doğrudan kullanılamaz")
+        # Sadece access token'lar burada kabul edilir (refresh veya camera gibi
+        # dar amaçlı token'lar normal korumalı endpoint'lere sızmasın). "type"
+        # alanı taşımayan eski token'lar (2026-06-05 öncesi) geriye dönük
+        # uyumluluk için access kabul edilir — o tarihten önce üretilmiş hiçbir
+        # token zaten bugün süresi dolmadan ayakta kalamaz, ama yine de düşülüyor.
+        token_type = payload.get("type")
+        if token_type is not None and token_type != "access":
+            raise HTTPException(status_code=401, detail="Bu token bu işlem için kullanılamaz")
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Oturum süresi doldu")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Geçersiz token")
+
+
+# Kamera erişimi: iframe ile yüklenen kamera stream istekleri Authorization
+# header taşıyamaz, bu yüzden nginx auth_request bu amaca özel kısa ömürlü
+# bir HttpOnly çerez üzerinden doğrulama yapar.
+CAMERA_COOKIE_NAME = "camera_session"
+CAMERA_COOKIE_MINUTES = int(os.environ.get('CAMERA_COOKIE_MINUTES', '5'))
+CAMERA_COOKIE_SECURE = os.environ.get('CAMERA_COOKIE_SECURE', 'true').lower() != 'false'
+
+
+def create_camera_token(user_id: str, username: str, role: str, display_name: str = "") -> str:
+    payload = _build_payload(user_id, username, role, display_name, "camera",
+                             timedelta(minutes=CAMERA_COOKIE_MINUTES))
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_camera_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "camera":
+            raise HTTPException(status_code=401, detail="Geçersiz kamera oturumu")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Kamera oturumu süresi doldu")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Geçersiz kamera oturumu")
 
 
 def decode_refresh_token(token: str) -> dict:
@@ -126,6 +158,12 @@ ALL_PANEL_ROLES = ["operator", "plan", "depo", "sofor", "yonetim", "boyaci"]
 # "management" = /management/login sabit şifre girişinin sentetik rolü — "yonetim" ile eşdeğer.
 YONETIM_ALIASES = ("yonetim", "management")
 
+# get_user_roles için basit in-memory TTL cache: nginx auth_request gibi çok sık
+# çağrılan yerlerde her istekte db.users sorgusu yapılmasın. Rol değişikliği en
+# geç TTL süresi kadar gecikmeli yansır (kabul edilebilir bulundu).
+_ROLES_CACHE_TTL_SECONDS = 60
+_roles_cache: dict = {}  # user_id -> (roles, expires_at_monotonic)
+
 
 async def get_user_roles(current_user: dict) -> list:
     """current_user (JWT payload) için gerçek rol listesini döner.
@@ -140,6 +178,12 @@ async def get_user_roles(current_user: dict) -> list:
     mantığıyla tutarlı olarak — tüm panel rolleri otomatik eklenir.
     """
     user_id = current_user.get("sub")
+    now = time.monotonic()
+    if user_id:
+        cached = _roles_cache.get(user_id)
+        if cached and cached[1] > now:
+            return cached[0]
+
     user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "roles": 1, "role": 1}) if user_id else None
     if user_doc:
         roles = user_doc.get("roles") or ([user_doc.get("role")] if user_doc.get("role") else [])
@@ -156,6 +200,9 @@ async def get_user_roles(current_user: dict) -> list:
         ordered = [r for r in ALL_PANEL_ROLES if r in combined]
         extras = sorted(r for r in combined if r not in ALL_PANEL_ROLES)
         roles = ordered + extras
+
+    if user_id:
+        _roles_cache[user_id] = (roles, now + _ROLES_CACHE_TTL_SECONDS)
     return roles
 
 
