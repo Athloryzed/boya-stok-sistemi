@@ -54,6 +54,7 @@ const TrackingPage = lazy(() => import("./pages/TrackingPage"));
 const BobinFlow = lazy(() => import("./pages/BobinFlow"));
 const MarkaStokFlow = lazy(() => import("./pages/MarkaStokFlow"));
 const BoyaciFlow = lazy(() => import("./pages/BoyaciFlow"));
+const CameraFlow = lazy(() => import("./pages/CameraFlow"));
 
 // Suspense fallback — chunk indirilirken gösterilen yükleyici (industrial tema)
 const RouteLoading = () => (
@@ -361,6 +362,7 @@ function App() {
                 <Route path="/bobin" element={<ErrorBoundary><ProtectedRoute><BobinFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/marka-stok" element={<ErrorBoundary><ProtectedRoute><MarkaStokFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/boyaci" element={<ErrorBoundary><ProtectedRoute><BoyaciFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
+                <Route path="/kamera" element={<ErrorBoundary><ProtectedRoute><CameraFlow theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/dashboard" element={<LiveDashboard />} />
                 <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
               </Routes>

@@ -36,6 +36,7 @@ const ROUTE_META = {
   "/bobin":      { name: "Bobin", emoji: "📜" },
   "/marka-stok": { name: "Marka/Koli", emoji: "🏷️" },
   "/driver":     { name: "Sürücü", emoji: "🚚" },
+  "/kamera":     { name: "Kamera", emoji: "📷" },
 };
 
 function avatarColor(name) {

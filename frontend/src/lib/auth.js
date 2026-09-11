@@ -28,6 +28,7 @@ export const ROUTE_ROLES = {
   "/bobin":      ["yonetim", "plan", "depo"],
   "/marka-stok": ["yonetim", "plan", "depo"],
   "/driver":     ["yonetim", "plan", "sofor"],
+  "/kamera":     ["yonetim", "plan"],
   // Dashboard ve takip her zaman ayrı şifre ile (sabit) erişilir
 };
 

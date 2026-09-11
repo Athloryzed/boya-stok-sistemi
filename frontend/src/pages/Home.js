@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays, Video } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
@@ -126,6 +126,7 @@ const modules = [
   { name: "Bobin", path: "/bobin", icon: Layers, color: "#10B981", desc: "Bobin takibi" },
   { name: "Marka/Koli Stok", path: "/marka-stok", icon: Package, color: "#22C55E", desc: "Stok takibi" },
   { name: "Sürücü", path: "/driver", icon: Truck, color: "#FB7185", desc: "Sevkiyat" },
+  { name: "Kamera", path: "/kamera", icon: Video, color: "#2DD4BF", desc: "Canlı görüntü" },
   { name: "Canlı Pano", path: "/dashboard", icon: Monitor, color: "#38BDF8", desc: "TV Dashboard" },
 ];
 
