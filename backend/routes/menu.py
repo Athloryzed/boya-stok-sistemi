@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 
 from database import db
 from models import DailyMenu
-from auth import get_current_user, MANAGEMENT_PASSWORD
+from auth import get_current_user
 from services.audit import log_audit
 
 router = APIRouter()

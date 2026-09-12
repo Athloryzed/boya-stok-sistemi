@@ -23,7 +23,6 @@ ACCESS_TOKEN_MINUTES = int(os.environ.get('ACCESS_TOKEN_MINUTES', '30'))
 REFRESH_TOKEN_DAYS = int(os.environ.get('REFRESH_TOKEN_DAYS', '7'))
 # Geriye dönük uyumluluk için eski sabit (24 saat) — kullanılmayacak ama referans kalsın
 JWT_EXPIRY_HOURS = 24
-MANAGEMENT_PASSWORD = os.environ.get('MANAGEMENT_PASSWORD', 'buse11993')
 DASHBOARD_PASSWORD = os.environ.get('DASHBOARD_PASSWORD', 'buse4')
 
 security = HTTPBearer(auto_error=False)

@@ -11,10 +11,10 @@ import os
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from /app/memory/test_credentials.md
-MANAGEMENT_PASSWORD = "buse11993"
 OPERATOR_CREDS = {"username": "ali", "password": "134679"}
 PLAN_CREDS = {"username": "emrecan", "password": "testtest12"}
 DEPO_CREDS = {"username": "depo1", "password": "depo123"}
+ADMIN_CREDS = {"username": "adminusr", "password": "admin123", "role": "yonetim"}
 
 
 class TestHealthEndpoints:
@@ -42,30 +42,20 @@ class TestHealthEndpoints:
 class TestAuthenticationEndpoints:
     """Authentication endpoint tests for all user roles"""
     
-    def test_management_login_success(self):
-        """POST /api/management/login with correct password returns JWT"""
+    def test_yonetim_login_success(self):
+        """POST /api/users/login with yonetim credentials returns JWT"""
         response = requests.post(
-            f"{BASE_URL}/api/management/login",
-            json={"password": MANAGEMENT_PASSWORD}
+            f"{BASE_URL}/api/users/login",
+            json=ADMIN_CREDS
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["success"]
         assert "token" in data
-        assert data["role"] == "management"
+        assert data["role"] == "yonetim"
         # Verify JWT format (3 parts separated by dots)
         assert len(data["token"].split(".")) == 3
-        print(f"Management login successful, role: {data['role']}")
-    
-    def test_management_login_wrong_password(self):
-        """POST /api/management/login with wrong password returns 401"""
-        response = requests.post(
-            f"{BASE_URL}/api/management/login",
-            json={"password": "wrongpassword"}
-        )
-        assert response.status_code == 401
-        print("Management login correctly rejected wrong password")
-    
+        print(f"Yonetim login successful, role: {data['role']}")
+
     def test_operator_login_success(self):
         """POST /api/users/login with operator credentials returns JWT"""
         response = requests.post(
@@ -318,8 +308,8 @@ class TestProtectedEndpoints:
         """GET /api/users with valid token returns user list"""
         # First login to get token
         login_response = requests.post(
-            f"{BASE_URL}/api/management/login",
-            json={"password": MANAGEMENT_PASSWORD}
+            f"{BASE_URL}/api/users/login",
+            json=ADMIN_CREDS
         )
         token = login_response.json()["token"]
         

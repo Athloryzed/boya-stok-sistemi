@@ -11,16 +11,16 @@ import pytest
 import requests
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
-MANAGEMENT_PASSWORD = "buse11993"
 DASHBOARD_PASSWORD = "buse4"
 OPERATOR_CREDS = {"username": "ali", "password": "134679"}
 PLAN_CREDS = {"username": "emrecan", "password": "testtest12"}
 DEPO_CREDS = {"username": "depo1", "password": "depo123"}
+ADMIN_CREDS = {"username": "adminusr", "password": "admin123", "role": "yonetim"}
 
 
 # ---------- helpers ----------
 def mgmt_token():
-    r = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
+    r = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
     assert r.status_code == 200, r.text
     return r.json()["token"]
 
@@ -32,7 +32,7 @@ def auth(tok):
 # ---------- 1. JWT Refresh Token flow ----------
 class TestRefreshFlow:
     def test_login_returns_token_pair(self):
-        r = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
+        r = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
         assert r.status_code == 200
         d = r.json()
         assert "token" in d and "refresh_token" in d
@@ -40,7 +40,7 @@ class TestRefreshFlow:
         assert d.get("refresh_expires_in") == 604800, d
 
     def test_refresh_rotation_and_old_revoked(self):
-        r = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
+        r = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
         d = r.json()
         old_refresh = d["refresh_token"]
         old_access = d["token"]
@@ -275,18 +275,13 @@ class TestExistingAuth:
         (OPERATOR_CREDS, "/api/users/login"),
         (PLAN_CREDS, "/api/users/login"),
         (DEPO_CREDS, "/api/users/login"),
+        (ADMIN_CREDS, "/api/users/login"),
     ])
     def test_user_logins(self, creds, endpoint):
         r = requests.post(f"{BASE_URL}{endpoint}", json=creds)
         assert r.status_code == 200, f"{creds['username']}: {r.text}"
         d = r.json()
         assert "token" in d and "refresh_token" in d, d
-
-    def test_management_login(self):
-        r = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
-        assert r.status_code == 200
-        d = r.json()
-        assert "token" in d and "refresh_token" in d
 
     def test_dashboard_login(self):
         r = requests.post(f"{BASE_URL}/api/dashboard/login", json={"password": DASHBOARD_PASSWORD})

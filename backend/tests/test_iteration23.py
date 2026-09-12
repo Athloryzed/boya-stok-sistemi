@@ -80,7 +80,9 @@ class TestBobinAccess:
 class TestManagementAuditLogs:
     @pytest.fixture(scope="class")
     def mgmt_token(self):
-        r = requests.post(f"{API}/management/login", json={"password": "buse11993"}, timeout=20)
+        r = requests.post(f"{API}/users/login", json={
+            "username": "adminusr", "password": "admin123", "role": "yonetim",
+        }, timeout=20)
         assert r.status_code == 200, r.text
         data = r.json()
         return data.get("token")

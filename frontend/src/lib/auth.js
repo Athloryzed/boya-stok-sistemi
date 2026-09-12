@@ -3,8 +3,8 @@
  *
  * Politika:
  *  - localStorage anahtarı: `app_session` JSON: { token, refresh_token, role, roles[], username, display_name, login_at, remember_me }
- *  - Geriye dönük uyumluluk: Eski panel-bazlı session anahtarları (bobin_session, plan_session, vs.)
- *    set/clear edilirken birlikte yazılır/silinir.
+ *  - Eski panel-bazlı session anahtarları (bobin_session, plan_session, vs.) artık
+ *    yazılmıyor/silinmiyor (bkz. PANEL_SESSION_KEYS) — sadece geçiş toast'ı için okunur.
  *  - 24 saat oturum: remember_me=false ise login_at + 24h dolunca session "expired" sayılır.
  *  - remember_me=true ise refresh_token (7g) süresine kadar geçerli; username + password ana sayfa
  *    formunda otomatik dolu gelir (sadece username; şifre güvenlik için tutulmaz).
@@ -42,6 +42,9 @@ export const ROLE_DEFAULT_ROUTE = {
   boyaci: "/boyaci",
 };
 
+// Artık hiçbir kod bu anahtarları yazmıyor/silmiyor. Liste sadece
+// hasLegacySessionArtifacts() için kalıyor: eski sürümlerden tarayıcıda
+// kalmış olabilecek anahtarları tespit edip geçiş toast'ı göstermek amacıyla.
 const PANEL_SESSION_KEYS = [
   "operator_session", "plan_session", "depo_session",
   "warehouse_session", "bobin_session", "yonetim_master",
@@ -136,28 +139,6 @@ export function saveSession({
     if (remember_me && username) {
       localStorage.setItem(REMEMBER_USERNAME_KEY, username);
     }
-    // Geriye dönük uyumluluk: panel-bazlı session keylerini de yaz
-    const nowMs = Date.now();
-    const compat = {
-      username, display_name: display_name || username,
-      roles: session.roles, role: session.role,
-      token, refresh_token,
-      // Panel session formatları için ek alanlar
-      login_time: nowMs,
-      expiry: nowMs + (remember_me ? 7 * 86400000 : 86400000),
-    };
-    for (const k of PANEL_SESSION_KEYS) {
-      localStorage.setItem(k, JSON.stringify(compat));
-    }
-    // Yönetim rolü için management_session (expiry formatlı) ek olarak yaz
-    if (session.roles.includes("yonetim")) {
-      const expiry = Date.now() + (remember_me ? 7 * 86400000 : 86400000);
-      localStorage.setItem("management_session", JSON.stringify({
-        managerId: username || "yonetim",
-        token,
-        expiry,
-      }));
-    }
     // Subscribers (GlobalMessenger vb.) anlık güncellensin
     try { window.dispatchEvent(new CustomEvent("auth-changed", { detail: { type: "login" } })); } catch (_) { /* noop */ }
     return session;
@@ -172,10 +153,6 @@ export function clearSession() {
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("refresh_token");
-    for (const k of PANEL_SESSION_KEYS) {
-      localStorage.removeItem(k);
-    }
-    localStorage.removeItem("management_session");
     localStorage.removeItem("dashboard_token");
     sessionStorage.removeItem("dashboard_token");
     sessionStorage.removeItem("dashboard_session");

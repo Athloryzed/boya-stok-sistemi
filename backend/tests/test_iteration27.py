@@ -17,7 +17,9 @@ API = f"{BASE_URL}/api"
 # -------- Fixtures -------- #
 @pytest.fixture(scope="module")
 def mgmt_token():
-    r = requests.post(f"{API}/management/login", json={"password": "buse11993"}, timeout=15)
+    r = requests.post(f"{API}/users/login", json={
+        "username": "adminusr", "password": "admin123", "role": "yonetim",
+    }, timeout=15)
     assert r.status_code == 200, r.text
     return r.json()["token"]
 

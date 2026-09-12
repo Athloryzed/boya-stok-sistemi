@@ -9,7 +9,7 @@ from models import User
 from auth import (
     hash_password, verify_password,
     create_access_token, create_token_pair,
-    get_current_user, MANAGEMENT_PASSWORD, ALL_PANEL_ROLES, require_yonetim,
+    get_current_user, ALL_PANEL_ROLES, require_yonetim,
     get_user_roles, is_yonetim,
 )
 from services.audit import log_audit
@@ -17,7 +17,7 @@ from services.account_lockout import assert_not_locked, record_failure, record_s
 from services.alarms import raise_alarm
 from services.crypto_utils import encrypt_pii, decrypt_pii
 from services.validators import (
-    LoginRequest, CreateUserRequest, UpdateUserRolesRequest, PasswordRequest,
+    LoginRequest, CreateUserRequest, UpdateUserRolesRequest,
 )
 
 router = APIRouter()
@@ -174,29 +174,6 @@ async def user_login(request: Request, data: LoginRequest = Body(...)):
     user = _public_user(user)
     user["roles"] = effective_roles
     return {**user, **pair, "login_role": login_role}
-
-
-@router.post("/management/login")
-@limiter.limit("60/minute")
-async def management_login(request: Request, data: PasswordRequest = Body(...)):
-    """Yönetim paneli girişi - JWT (refresh dahil)."""
-    # Sabit hesap için lockout key = "__management__"
-    await assert_not_locked("__management__")
-    ip = get_real_client_ip(request) if hasattr(request, "client") else ""
-
-    if data.password != MANAGEMENT_PASSWORD:
-        await record_failure("__management__", ip=ip, reason="invalid_password")
-        from services.account_lockout import is_locked
-        locked, _ = await is_locked("__management__")
-        if locked:
-            await raise_alarm("auth_failed_5x", actor="__management__",
-                              entity_type="management_login", severity="critical",
-                              metadata={"ip": ip})
-        raise HTTPException(status_code=401, detail="Yanlış şifre")
-
-    await record_success("__management__")
-    pair = create_token_pair("management", "yonetim", "management", "Yönetim")
-    return {"success": True, **pair, "role": "management", "display_name": "Yönetim"}
 
 
 @router.delete("/users/{user_id}")

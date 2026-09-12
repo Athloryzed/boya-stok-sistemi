@@ -21,19 +21,16 @@ BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or _load_frontend_env()).rst
 API = f"{BASE_URL}/api"
 
 
-def _login(username_or_password, password=None):
-    """Login helper supporting both role-only (management) and username+password."""
-    if password is None:
-        # management: separate endpoint, password-only
-        return requests.post(f"{API}/management/login", json={"password": username_or_password}, timeout=15)
-    return requests.post(f"{API}/users/login", json={"username": username_or_password, "password": password}, timeout=15)
+def _login(username, password):
+    """Login helper for /api/users/login."""
+    return requests.post(f"{API}/users/login", json={"username": username, "password": password}, timeout=15)
 
 
 @pytest.fixture(scope="module")
 def management_token():
     # rate-limit friendly: small delay
     time.sleep(1)
-    r = _login("buse11993")
+    r = _login("adminusr", "admin123")
     assert r.status_code == 200, f"management login failed: {r.status_code} {r.text}"
     data = r.json()
     assert "token" in data or "access_token" in data
@@ -51,10 +48,9 @@ def auth_headers(management_token):
 
 def test_management_login():
     time.sleep(1)
-    r = _login("buse11993")
+    r = _login("adminusr", "admin123")
     assert r.status_code == 200
     data = r.json()
-    # management/login may not return role
     assert data.get("token") or data.get("access_token"), "no token in response"
 
 

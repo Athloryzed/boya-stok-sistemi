@@ -27,7 +27,7 @@ from database import db
 logger = logging.getLogger(__name__)
 
 PROTECTED_METHODS = ("POST", "PUT", "PATCH", "DELETE")
-SKIP_PATHS = ("/api/auth/", "/api/management/login", "/api/users/login",
+SKIP_PATHS = ("/api/auth/", "/api/users/login",
               "/api/dashboard/login", "/api/visitors/log",
               "/api/notifications/register-token", "/api/upload/")
 

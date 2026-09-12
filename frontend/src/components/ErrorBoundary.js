@@ -45,7 +45,6 @@ class ErrorBoundary extends React.Component {
         await Promise.all(registrations.map(reg => reg.unregister()));
       }
       // localStorage'taki "auth_token" hariç bazı verileri de temizle
-      localStorage.removeItem('management_session');
       localStorage.removeItem('plan_session');
       localStorage.removeItem('operator_session');
       localStorage.removeItem('depo_session');

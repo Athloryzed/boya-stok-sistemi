@@ -5,7 +5,7 @@ Iteration 40 backend tests:
   3) Operator Performansi sheet (Sayfa 3) reflects partial credit (no double counting)
   4) PUT /api/jobs/{id}/change-operator works (Ali → Mehmet Test with prev_produced_koli=25)
      and writes a shift_end_reports record with is_partial=True and transferred_to set
-  5) Regression: management login response contains refresh_token
+  5) Regression: yonetim login response contains refresh_token
 """
 import io
 import os
@@ -20,7 +20,9 @@ BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://depo-tracker-1.previ
 
 @pytest.fixture(scope="module")
 def mgmt_token():
-    r = requests.post(f"{BASE_URL}/api/management/login", json={"password": "buse11993"}, timeout=20)
+    r = requests.post(f"{BASE_URL}/api/users/login", json={
+        "username": "adminusr", "password": "admin123", "role": "yonetim",
+    }, timeout=20)
     assert r.status_code == 200, f"mgmt login failed: {r.status_code} {r.text}"
     data = r.json()
     # regression: refresh_token must exist

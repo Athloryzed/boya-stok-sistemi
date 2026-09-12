@@ -1,7 +1,7 @@
 """
 Iteration 36 Backend tests:
 - Login rate-limits raised (CGNAT-friendly) on /api/users/login (120/min),
-  /api/management/login (60/min), /api/dashboard/login (60/min).
+  /api/dashboard/login (60/min).
 - Bobin module kg-only refactor (quantity removed) + PATCH /bobins/{id} +
   external machine destinations on to-machine.
 """
@@ -41,16 +41,6 @@ class TestLogin:
         body = r.json()
         assert "token" in body and isinstance(body["token"], str)
         assert body["username"] == "depo1"
-
-    def test_management_login_wrong_then_right(self):
-        bad = requests.post(f"{API}/management/login",
-                            json={"password": "wrongpw"}, timeout=15)
-        assert bad.status_code == 401
-
-        good = requests.post(f"{API}/management/login",
-                             json={"password": "buse11993"}, timeout=15)
-        assert good.status_code == 200
-        assert good.json().get("success") is True
 
     def test_dashboard_login_wrong_then_right(self):
         bad = requests.post(f"{API}/dashboard/login",

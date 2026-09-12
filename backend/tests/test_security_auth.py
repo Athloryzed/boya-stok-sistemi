@@ -12,9 +12,9 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 # Test credentials from test_credentials.md
 OPERATOR_CREDS = {"username": "ali", "password": "134679"}
 PLAN_CREDS = {"username": "emrecan", "password": "testtest12"}
-MANAGEMENT_PASSWORD = "buse11993"
 DASHBOARD_PASSWORD = "buse4"
 WAREHOUSE_CREDS = {"username": "depo1", "password": "depo123"}
+ADMIN_CREDS = {"username": "adminusr", "password": "admin123", "role": "yonetim"}
 
 
 class TestPublicEndpoints:
@@ -40,13 +40,13 @@ class TestPublicEndpoints:
         assert "token" in data, "No token in response"
         print("✓ POST /api/users/login (operator ali/134679) returns 200 with token")
     
-    def test_management_login_public(self):
-        """POST /api/management/login should be public and return token"""
-        response = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
-        assert response.status_code == 200, f"Management login failed: {response.text}"
+    def test_yonetim_login_public(self):
+        """POST /api/users/login (yonetim) should be public and return token"""
+        response = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
+        assert response.status_code == 200, f"Yonetim login failed: {response.text}"
         data = response.json()
         assert "token" in data, "No token in response"
-        print("✓ POST /api/management/login with buse11993 returns 200 with token")
+        print("✓ POST /api/users/login (yonetim adminusr) returns 200 with token")
     
     def test_dashboard_login_public(self):
         """POST /api/dashboard/login should be public and return token"""
@@ -172,7 +172,7 @@ class TestProtectedEndpointsWithToken:
     @pytest.fixture(autouse=True)
     def setup_token(self):
         """Get a valid JWT token for authenticated tests"""
-        response = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
+        response = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
         if response.status_code == 200:
             self.token = response.json().get("token")
             self.headers = {"Authorization": f"Bearer {self.token}"}
@@ -291,18 +291,18 @@ class TestAllLoginFlows:
         assert verify.status_code == 200, "Warehouse token should work for protected endpoints"
         print("✓ Warehouse login flow complete - token works for protected endpoints")
     
-    def test_management_login_flow(self):
-        """Management login should return valid token"""
-        response = requests.post(f"{BASE_URL}/api/management/login", json={"password": MANAGEMENT_PASSWORD})
+    def test_yonetim_login_flow(self):
+        """Yonetim login should return valid token"""
+        response = requests.post(f"{BASE_URL}/api/users/login", json=ADMIN_CREDS)
         assert response.status_code == 200
         data = response.json()
         assert "token" in data
-        
+
         # Verify token works
         headers = {"Authorization": f"Bearer {data['token']}"}
         verify = requests.get(f"{BASE_URL}/api/analytics/weekly", headers=headers)
-        assert verify.status_code == 200, "Management token should work for protected endpoints"
-        print("✓ Management login flow complete - token works for protected endpoints")
+        assert verify.status_code == 200, "Yonetim token should work for protected endpoints"
+        print("✓ Yonetim login flow complete - token works for protected endpoints")
     
     def test_dashboard_login_flow(self):
         """Dashboard login should return valid token"""

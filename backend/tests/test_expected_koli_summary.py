@@ -42,8 +42,8 @@ def plan_token(session):
 @pytest.fixture(scope="session")
 def mgmt_token(session):
     r = session.post(
-        f"{BASE_URL}/api/management/login",
-        json={"password": "buse11993"},
+        f"{BASE_URL}/api/users/login",
+        json={"username": "adminusr", "password": "admin123", "role": "yonetim"},
     )
     if r.status_code != 200:
         pytest.skip(f"Management login failed: {r.status_code}")

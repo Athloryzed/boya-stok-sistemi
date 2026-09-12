@@ -24,8 +24,10 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL').rstrip('/')
 # -------------------- Fixtures --------------------
 @pytest.fixture(scope="session")
 def mgmt_token():
-    """Yonetim login token via /api/management/login."""
-    r = requests.post(f"{BASE_URL}/api/management/login", json={"password": "buse11993"}, timeout=15)
+    """Yonetim login token via /api/users/login."""
+    r = requests.post(f"{BASE_URL}/api/users/login", json={
+        "username": "adminusr", "password": "admin123", "role": "yonetim",
+    }, timeout=15)
     if r.status_code != 200:
         pytest.skip(f"Management login failed: {r.status_code} {r.text}")
     return r.json().get("token")
