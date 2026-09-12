@@ -1420,6 +1420,13 @@ h1, h2, h3, .font-heading {
   border-radius: 6px;
 }
 
+/* The inner card lifts 5px on hover. Its button must not clip that
+   movement or shadow; the card keeps its own rounded decoration clipping. */
+button.panel-module-trigger {
+  overflow: visible;
+  border-radius: 18px;
+}
+
 /* ---- Premium Bento kartı v2 (Anasayfa + paneller) ---- */
 .bento-card-premium {
   position: relative;

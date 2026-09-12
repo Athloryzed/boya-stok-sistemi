@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import axios from "axios";
 import "@/App.css";
 import ErrorBoundary from "./components/ErrorBoundary";
+import LoginArrival from "./components/LoginArrival";
 import ConnectionBanner from "./components/ConnectionBanner";
 import { Toaster } from "./components/ui/sonner";
 import { ConfirmProvider } from "./components/ConfirmProvider";
@@ -351,6 +352,7 @@ function App() {
           <BrowserRouter>
             <VisitorTracker />
             <Suspense fallback={<RouteLoading />}>
+              <LoginArrival liteMode={liteMode}>
               <Routes>
                 <Route path="/" element={<Home theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} />} />
                 <Route path="/operator" element={<ErrorBoundary><ProtectedRoute><OperatorFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
@@ -366,6 +368,7 @@ function App() {
                 <Route path="/dashboard" element={<LiveDashboard />} />
                 <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
               </Routes>
+              </LoginArrival>
             </Suspense>
             {/* Global Messenger — tüm oturumlu sayfalarda görünür FAB */}
             <GlobalMessenger />

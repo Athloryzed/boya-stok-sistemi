@@ -1,0 +1,41 @@
+/* Scoped to the existing amber/glass login; no global theme overrides. */
+.login-precision { --login-fast: 120ms; --login-normal: 200ms; }
+.login-precision .login-field input {
+  transition: border-color var(--login-normal) var(--ease-smooth),
+    background-color var(--login-normal) var(--ease-smooth),
+    box-shadow var(--login-normal) var(--ease-smooth);
+}
+.login-field > svg { transition: color var(--login-fast) ease, opacity var(--login-fast) ease; }
+.login-field[data-filled="true"] > svg, .login-field:focus-within > svg { color: #FFD24C; opacity: 1; }
+.login-precision[data-night="false"] .login-field[data-filled="true"] > svg,
+.login-precision[data-night="false"] .login-field:focus-within > svg { color: #B38200; }
+.login-field::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 0;
+  height: 1px; background: #FFBF00; pointer-events: none;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform var(--login-normal) var(--ease-smooth);
+}
+.login-field:focus-within::after { transform: scaleX(1); }
+.login-field input[aria-invalid="true"] { border-color: #F43F5E; }
+.login-precision button:focus-visible { outline: 2px solid #FFBF00; outline-offset: 3px; }
+.login-precision .login-submit { min-height: 46px; }
+/* Motion owns press feedback: neutralize the inherited CSS transform. */
+.login-precision .login-submit:hover:not(:disabled),
+.login-precision .login-submit:active:not(:disabled) { transform: none; }
+.login-precision[data-state="success"] .login-submit { opacity: 1; }
+.login-precision[data-quiet="true"] *,
+.login-precision[data-quiet="true"] *::before,
+.login-precision[data-quiet="true"] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .login-precision *, .login-precision *::before, .login-precision *::after {
+    animation: none !important; transition: none !important;
+  }
+}
+.login-precision .login-submit {
+  transition: box-shadow var(--login-normal) var(--ease-smooth);
+}
+
+.login-precision .login-checking {
+  background: linear-gradient(145deg, #fff8e5, #ffe8a3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 12px 48px rgba(255,191,0,.12);
+}

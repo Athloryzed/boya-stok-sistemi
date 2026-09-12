@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import axios from "axios";
 import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays, Video } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
@@ -155,6 +155,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [session, setSession] = useState(() => (isSessionValid() ? getSession() : null));
+  const reducedLoginMotion = useReducedMotion();
+  const [loginBusy, setLoginBusy] = useState(false);
   const [todayMenu, setTodayMenu] = useState(null);
   const [weather, setWeather] = useState(null);
   // Yemek menüsü UI durumu (kalıcı: localStorage)
@@ -566,11 +568,11 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         <motion.div className="text-center mb-10"
           initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}>
-          <h1
+          {!loginBusy ? <motion.h1 layoutId={liteMode || reducedLoginMotion ? undefined : "login-brand"}
             className={`text-4xl sm:text-5xl lg:text-6xl tracking-tight mb-2 ${isDarkBg ? "title-gradient-premium" : "text-gray-800 font-black"}`}
             style={{ fontFamily: "'Barlow Condensed', sans-serif", textShadow: isDarkBg ? "0 2px 30px rgba(255,191,0,0.25)" : "0 2px 10px rgba(0,0,0,0.1)" }}>
             BUSE KÂĞIT
-          </h1>
+          </motion.h1> : <div className="text-4xl sm:text-5xl lg:text-6xl mb-2 invisible" aria-hidden="true">BUSE KÂĞIT</div>}
           <p className={`text-sm sm:text-base font-medium tracking-wide ${isDarkBg ? "text-amber-200/80" : "text-gray-600"}`}>
             Üretim Yönetim Sistemi
           </p>
@@ -608,6 +610,8 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             transition={{ delay: 0.25, duration: 0.5, type: "spring", stiffness: 120 }}
             className="w-full max-w-xl mb-6"
             data-testid="home-today-menu"
+            style={{ visibility: loginBusy ? "hidden" : "visible" }}
+            aria-hidden={loginBusy || undefined}
           >
             <div className={`menu-card-premium relative overflow-hidden rounded-2xl ring-1 ${isDarkBg ? "ring-amber-500/30 shadow-2xl shadow-black/40" : "ring-amber-300/60 shadow-xl shadow-amber-200/40"}`}>
               {/* Arkaplan — uygulama kimliğiyle uyumlu çelik-altın */}
@@ -757,7 +761,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
                       onClick={() => handleModuleClick(mod.path)}
                       data-testid={`module-${mod.path.slice(1)}`}
                       aria-label={`${mod.name} paneline git: ${mod.desc}`}
-                      className={`group cursor-pointer text-left ${isFeatured ? "col-span-2" : ""}`}
+                      className={`panel-module-trigger group cursor-pointer text-left ${isFeatured ? "col-span-2" : ""}`}
                     >
                       <div className={`bento-card-premium relative h-full p-4 sm:p-5 ${isFeatured ? "flex items-center" : "flex flex-col items-start"}`}>
                         {isFeatured ? (
@@ -809,7 +813,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
 
         {/* Giriş kartı — auth yoksa göster */}
         {!session && (
-          <UnifiedLogin isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
+          <UnifiedLogin onBusyChange={setLoginBusy} liteMode={liteMode} isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
         )}
 
         {/* Hoşgeldin + Çıkış (auth varsa) */}
