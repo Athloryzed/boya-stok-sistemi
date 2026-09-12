@@ -32,6 +32,7 @@ import WarehouseTransferLogDialog from "../components/WarehouseTransferLogDialog
 import { shouldAlertOnce } from "../utils/alertDedup";
 import { handleWsAuthRejection } from "../lib/wsAuthRetry";
 import { minutesAgo } from "../lib/utils";
+import { resumeCentralSession, clearSession } from "../lib/auth";
 
 // Boya renk haritası
 const PAINT_COLORS = {
@@ -139,46 +140,20 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [authenticated, setAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
   const [managerId, setManagerId] = useState(null);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
-  // 1 günlük oturum kontrolü — yeni merkezi app_session VEYA eski management_session
+  // Oturum kontrolü — tek doğruluk kaynağı: app_session
   useEffect(() => {
-    // Önce yeni merkezi session
-    try {
-      const central = JSON.parse(localStorage.getItem("app_session") || "null");
-      if (central && central.token) {
-        const roles = (central.roles && central.roles.length ? central.roles : [central.role]).filter(Boolean);
-        if (roles.includes("yonetim")) {
-          setAuthenticated(true);
-          setManagerId(central.id || central.username || "yonetim");
-          localStorage.setItem("auth_token", central.token);
-          return;
-        }
-      }
-    } catch (_) { /* noop */ }
-
-    const savedSession = localStorage.getItem("management_session");
-    if (savedSession) {
-      try {
-        const session = JSON.parse(savedSession);
-        const now = new Date().getTime();
-        // 24 saat = 86400000 ms
-        if (session.expiry > now) {
-          setAuthenticated(true);
-          setManagerId(session.managerId);
-          if (session.token) {
-            localStorage.setItem("auth_token", session.token);
-          }
-        } else {
-          localStorage.removeItem("management_session");
-        }
-      } catch (e) {
-        localStorage.removeItem("management_session");
-      }
+    const central = resumeCentralSession("/management");
+    if (central) {
+      setAuthenticated(true);
+      setManagerId(central.id);
+    } else {
+      navigate("/");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [currentShift, setCurrentShift] = useState(null);
   const [machines, setMachines] = useState([]);
@@ -741,43 +716,12 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, authenticated, auditLogPage]);
 
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post(`${API}/management/login`, { password });
-      const data = response.data;
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
-      }
-      const newManagerId = `manager_${Date.now()}`;
-      setAuthenticated(true);
-      setManagerId(newManagerId);
-      
-      const session = {
-        expiry: new Date().getTime() + 24 * 60 * 60 * 1000,
-        managerId: newManagerId,
-        token: data.token
-      };
-      localStorage.setItem("management_session", JSON.stringify(session));
-      registerManager(newManagerId);
-      toast.success("Giriş başarılı!");
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Yanlış şifre!");
-    }
-  };
-  
-  const registerManager = async (mgrId) => {
-    try {
-      await axios.post(`${API}/managers/register`, { manager_id: mgrId });
-    } catch (error) {
-      console.error("Manager register error:", error);
-    }
-  };
-
   // Logout fonksiyonu
   const handleLogout = () => {
-    localStorage.removeItem("management_session");
+    clearSession();
     setAuthenticated(false);
     setManagerId(null);
+    navigate("/");
     toast.success("Çıkış yapıldı");
   };
 
@@ -1465,30 +1409,7 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
     mgmtAIChatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mgmtAIMessages]);
 
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="panel-industrial login-glow">
-            <CardHeader>
-              <CardTitle className="text-3xl font-heading text-center text-gradient-gold">YÖNETİM GİRİŞİ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input data-testid="management-password-input" type="password" placeholder="Şifre..." value={password}
-                onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                className="mb-4 bg-background border-border text-text-primary text-lg h-14" />
-              <Button data-testid="management-login-button" onClick={handleLogin} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-14 text-lg font-heading">
-                Giriş Yap
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/")} className="w-full mt-4 border-border bg-background hover:bg-surface-highlight">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Ana Sayfa
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  if (!authenticated) return null;
 
   const machineJobs = selectedMachineDetail ? {
     current: jobs.find(j => j.machine_id === selectedMachineDetail.id && j.status === "in_progress"),
