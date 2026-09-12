@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft, Plus, ShoppingCart, History, Edit, Trash2, Download, Search,
   Sun, Moon, Package, TrendingDown, TrendingUp, Factory, X, Boxes, Tag, Send, LogOut
@@ -540,22 +540,18 @@ const BrandSection = ({ userData, role }) => {
       </Dialog>
 
       {/* DETAIL DRAWER */}
-      <AnimatePresence>
+      <Dialog open={!!detailStock} onOpenChange={(open) => { if (!open) setDetailStock(null); }}>
         {detailStock && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailStock(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 12 }}
-              transition={{ type: "spring", damping: 24, stiffness: 280 }}
-              className="bg-surface w-full max-w-2xl max-h-[85vh] rounded-2xl border border-border overflow-hidden flex flex-col shadow-2xl"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center p-4 border-b border-border bg-gradient-to-r from-emerald-500/15 to-transparent">
+          <DialogContent aria-describedby={undefined}
+            className="bg-surface max-w-2xl max-h-[85vh] max-h-[85dvh] rounded-2xl border-border overflow-hidden flex flex-col gap-0 p-0 max-sm:p-0 shadow-2xl"
+            data-testid="stock-movement-dialog">
+              <div className="flex justify-between items-center p-4 pr-12 shrink-0 border-b border-border bg-gradient-to-r from-emerald-500/15 to-transparent">
                 <div>
-                  <p className="font-bold text-lg">{detailStock.brand}</p>
+                  <DialogTitle className="font-bold text-lg">{detailStock.brand}</DialogTitle>
                   <p className="text-sm text-text-secondary">{detailStock.machine || ""}{detailStock.color ? ` · ${detailStock.color}` : ""} · <span className="text-emerald-500 font-bold">{detailStock.quantity} adet</span></p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setDetailStock(null)}><X className="h-5 w-5" /></Button>
               </div>
-              <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              <div className="overflow-y-auto overscroll-contain min-h-0 flex-1 p-4 space-y-2">
                 {detailMovements.length === 0 ? <p className="text-text-secondary text-center py-8">Hareket bulunamadı.</p> :
                   detailMovements.map(m => (
                     <div key={m.id} className="p-3 bg-background rounded-xl border border-border text-sm">
@@ -572,10 +568,9 @@ const BrandSection = ({ userData, role }) => {
                     </div>
                   ))}
               </div>
-            </motion.div>
-          </motion.div>
+          </DialogContent>
         )}
-      </AnimatePresence>
+      </Dialog>
     </div>
   );
 };
@@ -934,22 +929,18 @@ const KoliSection = ({ userData }) => {
         </DialogContent>
       </Dialog>
 
-      <AnimatePresence>
+      <Dialog open={!!detailStock} onOpenChange={(open) => { if (!open) setDetailStock(null); }}>
         {detailStock && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailStock(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 12 }}
-              transition={{ type: "spring", damping: 24, stiffness: 280 }}
-              className="bg-surface w-full max-w-2xl max-h-[85vh] rounded-2xl border border-border overflow-hidden flex flex-col shadow-2xl"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center p-4 border-b border-border bg-gradient-to-r from-sky-500/15 to-transparent">
+          <DialogContent aria-describedby={undefined}
+            className="bg-surface max-w-2xl max-h-[85vh] max-h-[85dvh] rounded-2xl border-border overflow-hidden flex flex-col gap-0 p-0 max-sm:p-0 shadow-2xl"
+            data-testid="stock-movement-dialog">
+              <div className="flex justify-between items-center p-4 pr-12 shrink-0 border-b border-border bg-gradient-to-r from-sky-500/15 to-transparent">
                 <div>
-                  <p className="font-bold text-lg">{detailStock.name}</p>
+                  <DialogTitle className="font-bold text-lg">{detailStock.name}</DialogTitle>
                   <p className="text-sm text-text-secondary">{detailStock.size ? `${detailStock.size} · ` : ""}<span className="text-sky-500 font-bold">{detailStock.quantity} koli</span></p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setDetailStock(null)}><X className="h-5 w-5" /></Button>
               </div>
-              <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              <div className="overflow-y-auto overscroll-contain min-h-0 flex-1 p-4 space-y-2">
                 {detailMovements.length === 0 ? <p className="text-text-secondary text-center py-8">Hareket bulunamadı.</p> :
                   detailMovements.map(m => (
                     <div key={m.id} className="p-3 bg-background rounded-xl border border-border text-sm">
@@ -966,10 +957,9 @@ const KoliSection = ({ userData }) => {
                     </div>
                   ))}
               </div>
-            </motion.div>
-          </motion.div>
+          </DialogContent>
         )}
-      </AnimatePresence>
+      </Dialog>
     </div>
   );
 };
