@@ -4,14 +4,15 @@ import json
 import logging
 
 from database import db
-from auth import get_current_user
+from auth import get_current_user, require_yonetim
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("/audit-logs")
-async def get_audit_logs(limit: int = 100, skip: int = 0):
+async def get_audit_logs(limit: int = 100, skip: int = 0, current_user: dict = Depends(get_current_user)):
     """Kullanici hareket loglarini getir"""
+    await require_yonetim(current_user)
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     # Legacy kayıtlarda dict/list yazılmış olabilir → UI'da React #31 hatasını önlemek için stringe çevir
     for log in logs:

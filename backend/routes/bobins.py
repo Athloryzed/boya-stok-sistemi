@@ -10,7 +10,7 @@ import logging
 
 from database import db
 from models import Bobin, BobinMovement
-from auth import get_current_user, get_user_roles
+from auth import get_current_user, get_user_roles, is_yonetim
 from services.audit import log_audit
 from pymongo import ReturnDocument
 
@@ -182,8 +182,15 @@ async def update_bobin(bobin_id: str, data: dict = Body(...)):
     return {"bobin": updated, "message": f"{label_new} guncellendi"}
 
 
+def _require_yonetim_or_depo(roles):
+    if not (is_yonetim(roles) or "depo" in roles):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
+
 @router.delete("/bobins/{bobin_id}")
-async def delete_bobin(bobin_id: str, data: dict = Body(None)):
+async def delete_bobin(bobin_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_yonetim_or_depo(roles)
     bobin = await db.bobins.find_one({"id": bobin_id}, {"_id": 0})
     if not bobin:
         raise HTTPException(status_code=404, detail="Bobin bulunamadi")

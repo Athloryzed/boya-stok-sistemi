@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 
 from database import db
 from models import Visitor
-from auth import get_current_user
+from auth import get_current_user, require_yonetim
 
 router = APIRouter()
 
@@ -137,5 +137,6 @@ async def get_visitor_stats(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/visitors/clear")
 async def clear_visitors(current_user: dict = Depends(get_current_user)):
+    await require_yonetim(current_user)
     result = await db.visitors.delete_many({})
     return {"message": f"{result.deleted_count} kayıt silindi"}

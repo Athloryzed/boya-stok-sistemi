@@ -182,8 +182,15 @@ async def update_customer(customer_id: str, payload: dict = Body(...), user=Depe
     return c
 
 
+def _require_yonetim_or_plan(roles):
+    if not (is_yonetim(roles) or "plan" in roles):
+        raise HTTPException(403, "Bu işlem için yetkiniz yok")
+
+
 @router.delete("/customers/{customer_id}")
 async def archive_customer(customer_id: str, user=Depends(get_current_user)):
+    roles = await get_user_roles(user)
+    _require_yonetim_or_plan(roles)
     res = await db.customers.update_one(
         {"id": customer_id},
         {"$set": {"archived": True, "updated_at": _now_iso()}},

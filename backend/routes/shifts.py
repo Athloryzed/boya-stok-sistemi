@@ -98,10 +98,7 @@ async def get_pending_reports():
     return reports
 
 
-@router.post("/shifts/approve-report/{report_id}")
-async def approve_operator_report(report_id: str, data: dict = Body(None)):
-    """Operatör raporunu onayla"""
-    approved_by = data.get("approved_by", "Yönetim") if data else "Yönetim"
+async def _approve_operator_report(report_id: str, approved_by: str):
 
     report = await db.shift_operator_reports.find_one({"id": report_id}, {"_id": 0})
     if not report:
@@ -190,15 +187,24 @@ async def approve_operator_report(report_id: str, data: dict = Body(None)):
     return {"message": "Rapor onaylandı"}
 
 
+@router.post("/shifts/approve-report/{report_id}")
+async def approve_operator_report(report_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    """Operatör raporunu onayla"""
+    await require_yonetim(current_user)
+    approved_by = data.get("approved_by", "Yönetim") if data else "Yönetim"
+    return await _approve_operator_report(report_id, approved_by)
+
+
 @router.post("/shifts/approve-all")
-async def approve_all_reports_and_end_shift():
+async def approve_all_reports_and_end_shift(current_user: dict = Depends(get_current_user)):
     """Tüm raporları onayla ve vardiyayı bitir"""
+    await require_yonetim(current_user)
     pending_reports = await db.shift_operator_reports.find(
         {"status": "pending"}, {"_id": 0}
     ).to_list(100)
 
     for report in pending_reports:
-        await approve_operator_report(report["id"], {"approved_by": "Yönetim (Toplu)"})
+        await _approve_operator_report(report["id"], "Yönetim (Toplu)")
 
     active_shift = await db.shifts.find_one({"status": "pending_reports"}, {"_id": 0}, sort=[("started_at", -1)])
     if active_shift:

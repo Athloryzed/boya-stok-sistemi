@@ -13,7 +13,7 @@ import logging
 
 from database import db
 from models import KoliStock, KoliStockMovement
-from auth import get_current_user
+from auth import get_current_user, get_user_roles, is_yonetim
 from services.audit import log_audit
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -192,8 +192,15 @@ async def edit_koli(stock_id: str, data: dict = Body(...)):
     return {"success": True, "stock": new_stock}
 
 
+def _require_yonetim_plan_depo(roles):
+    if not (is_yonetim(roles) or any(r in roles for r in ("plan", "depo"))):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
+
 @router.delete("/koli-stock/{stock_id}")
-async def delete_koli(stock_id: str, data: dict = Body(None)):
+async def delete_koli(stock_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_yonetim_plan_depo(roles)
     user_name = (data.get("user_name") if data else None) or "Depo"
     stock = await db.koli_stock.find_one({"id": stock_id}, {"_id": 0})
     if not stock:

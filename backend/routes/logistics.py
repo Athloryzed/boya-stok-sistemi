@@ -7,7 +7,7 @@ from rate_limit_utils import get_real_client_ip
 
 from database import db
 from models import Vehicle, Shipment, Driver
-from auth import get_current_user, hash_password, verify_password, create_token, create_token_pair
+from auth import get_current_user, get_user_roles, is_yonetim, hash_password, verify_password, create_token, create_token_pair
 from services.account_lockout import assert_not_locked, record_failure, record_success, is_locked
 from services.alarms import raise_alarm
 from services.crypto_utils import encrypt_pii, decrypt_pii
@@ -15,6 +15,16 @@ from services.validators import DriverLoginRequest, CreateDriverRequest
 
 router = APIRouter()
 limiter = Limiter(key_func=get_real_client_ip)
+
+
+def _require_yonetim_or_plan(roles):
+    if not (is_yonetim(roles) or "plan" in roles):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
+
+def _require_shipment_reader(roles):
+    if not (is_yonetim(roles) or any(r in roles for r in ("plan", "depo", "sofor"))):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
 
 
 # ==================== ARAÇ YÖNETİMİ ====================
@@ -34,6 +44,8 @@ async def get_vehicles(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/vehicles/{vehicle_id}")
 async def delete_vehicle(vehicle_id: str, current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_yonetim_or_plan(roles)
     await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"is_active": False}})
     return {"success": True}
 
@@ -66,7 +78,9 @@ async def create_shipment(data: dict = Body(...), current_user: dict = Depends(g
 
 
 @router.get("/shipments")
-async def get_shipments(status: Optional[str] = None, driver_id: Optional[str] = None):
+async def get_shipments(status: Optional[str] = None, driver_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_shipment_reader(roles)
     query = {}
     if status:
         query["status"] = status
@@ -130,6 +144,8 @@ async def update_shipment_status(shipment_id: str, data: dict = Body(...), curre
 
 @router.delete("/shipments/{shipment_id}")
 async def delete_shipment(shipment_id: str, current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_yonetim_or_plan(roles)
     shipment = await db.shipments.find_one({"id": shipment_id}, {"_id": 0})
     if shipment:
         await db.pallets.update_many(

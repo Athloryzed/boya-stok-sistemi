@@ -421,8 +421,15 @@ async def update_job(job_id: str, updates: dict = Body(...), current_user: dict 
     return Job(**updated_job)
 
 
+def _require_yonetim_or_plan(roles):
+    if not (is_yonetim(roles) or "plan" in roles):
+        raise HTTPException(status_code=403, detail="Bu işlem için yetkiniz yok")
+
+
 @router.delete("/jobs/{job_id}")
 async def delete_job(job_id: str, deleted_by: str = None, current_user: dict = Depends(get_current_user)):
+    roles = await get_user_roles(current_user)
+    _require_yonetim_or_plan(roles)
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     result = await db.jobs.delete_one({"id": job_id})
     if result.deleted_count == 0:
