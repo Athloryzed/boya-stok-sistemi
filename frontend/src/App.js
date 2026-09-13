@@ -366,7 +366,7 @@ function App() {
                 <Route path="/boyaci" element={<ErrorBoundary><ProtectedRoute><BoyaciFlow theme={theme} toggleTheme={toggleTheme} liteMode={liteMode} toggleLiteMode={toggleLiteMode} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/kamera" element={<ErrorBoundary><ProtectedRoute><CameraFlow theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/dashboard" element={<LiveDashboard />} />
-                <Route path="/takip/:token" element={<TrackingPage theme={theme} />} />
+                <Route path="/takip/:token" element={<TrackingPage theme={theme} liteMode={liteMode} />} />
               </Routes>
               </LoginArrival>
             </Suspense>

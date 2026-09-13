@@ -1,6 +1,7 @@
+import SampleApproval from "../components/SampleApproval";
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Package, Clock, CheckCircle, Loader2, ArrowLeft, PlayCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -13,7 +14,9 @@ const steps = [
   { key: "completed", label: "Tamamlandı", icon: CheckCircle },
 ];
 
-const TrackingPage = ({ theme }) => {
+const TrackingPage = ({ theme, liteMode = false }) => {
+  const reducedMotion = useReducedMotion();
+  const quiet = reducedMotion || liteMode;
   const { token } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -30,6 +33,7 @@ const TrackingPage = ({ theme }) => {
       try {
         const res = await axios.get(`${API}/takip/${token}`);
         setData(res.data);
+        setError(null);
       } catch {
         setError("Bu takip linki geçersiz veya süresi dolmuş.");
       } finally {
@@ -37,6 +41,8 @@ const TrackingPage = ({ theme }) => {
       }
     };
     fetchTracking();
+    const poll = setInterval(fetchTracking, 15000);
+    return () => clearInterval(poll);
   }, [token]);
 
   const getStepIndex = (status) => {
@@ -50,9 +56,9 @@ const TrackingPage = ({ theme }) => {
   return (
     <div className={`min-h-screen ${theme === "dark" ? "bg-background" : "bg-gray-50"}`}>
       <div className="max-w-lg mx-auto px-4 py-12">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={quiet ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="text-center mb-8">
-            <div className="float-soft icon-tile-glow w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-600/5 border border-blue-500/40 flex items-center justify-center" style={{ "--glow-rgb": "59,130,246" }}>
+            <div className="icon-tile-glow w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-600/5 border border-blue-500/40 flex items-center justify-center" style={{ "--glow-rgb": "59,130,246" }}>
               <Package className="h-8 w-8 text-blue-500" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-heading font-bold text-text-primary tracking-tight">
@@ -84,7 +90,7 @@ const TrackingPage = ({ theme }) => {
           )}
 
           {data && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={quiet ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="panel-industrial" data-testid="tracking-result">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold text-text-primary text-center mb-6">{data.job_name}</h2>
@@ -112,7 +118,7 @@ const TrackingPage = ({ theme }) => {
                                   : "bg-surface border-2 border-border text-text-secondary"
                               }`}
                             >
-                              <Icon className={`h-5 w-5 ${active && step.key === "in_progress" ? "animate-spin" : ""}`} />
+                              <Icon className={`h-5 w-5 ${!quiet && active && step.key === "in_progress" ? "animate-spin" : ""}`} />
                             </div>
                             <span
                               className={`text-xs mt-2 font-semibold ${
@@ -159,6 +165,7 @@ const TrackingPage = ({ theme }) => {
                   )}
                 </CardContent>
               </Card>
+              <SampleApproval key={token} token={token} />
             </motion.div>
           )}
         </motion.div>

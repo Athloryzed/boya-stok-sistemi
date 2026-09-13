@@ -17,6 +17,7 @@ from services.notifications import (
 from websocket_manager import ws_manager, ws_manager_mgmt
 from auth import get_current_user, get_user_roles, is_yonetim, require_yonetim
 from services.image_utils import create_thumb_data_url
+from routes.samples import require_sample_release
 
 router = APIRouter()
 
@@ -390,6 +391,9 @@ async def update_job(job_id: str, updates: dict = Body(...), current_user: dict 
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    if updates.get("status") in ("in_progress", "completed"):
+        await require_sample_release(job_id)
+
     updated_by = updates.pop("updated_by", None) or "Yonetim"
     # ─── Fiyatlandırma: total_price her zaman sunucuda hesaplanır, istemciden gelen yok sayılır ───
     updates.pop("total_price", None)
@@ -497,6 +501,7 @@ async def list_job_returns(job_id: Optional[str] = None, current_user: dict = De
 
 @router.put("/jobs/{job_id}/start")
 async def start_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    await require_sample_release(job_id)
     operator_name = (data.get("operator_name") or "").strip()
     if not operator_name:
         raise HTTPException(status_code=400, detail="Operatör seçimi zorunlu")
@@ -525,6 +530,7 @@ async def start_job(job_id: str, data: dict = Body(...), current_user: dict = De
 
 @router.put("/jobs/{job_id}/complete")
 async def complete_job(job_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    await require_sample_release(job_id)
     job = await db.jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -641,6 +647,7 @@ async def pause_job(job_id: str, data: dict = Body(...), current_user: dict = De
 
 @router.put("/jobs/{job_id}/resume")
 async def resume_job(job_id: str, data: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    await require_sample_release(job_id)
     """Durdurulan işe devam et"""
     operator_name = data.get("operator_name", "")
 
@@ -683,6 +690,7 @@ def _require_boyaci_or_yonetim(roles):
 
 @router.post("/jobs/{job_id}/progress")
 async def add_job_progress(job_id: str, data: dict = Body(None), current_user: dict = Depends(get_current_user)):
+    await require_sample_release(job_id)
     """Ara ilerleme girişi — resmi koli sayısına (Job.completed_koli) DOKUNMAZ,
     sadece vardiya içi canlı tahmin göstergesi besler."""
     roles = await get_user_roles(current_user)

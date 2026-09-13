@@ -1,3 +1,4 @@
+import SampleApproval from "../components/SampleApproval";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,6 +55,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const [operatorName, setOperatorName] = useState("");
   const [userData, setUserData] = useState(null);
   const [selectedMachine, setSelectedMachine] = useState(null);
+  const [sampleReviewJob, setSampleReviewJob] = useState(null);
   const [machines, setMachines] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1180,6 +1182,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       <JobThumb job={currentJobOnMachine} onOpen={() => openImagePreview(currentJobOnMachine)} size={96} className="border-success border-2" />
                     )}
                   </div>
+                  <SampleApproval key={currentJobOnMachine.id} jobId={currentJobOnMachine.id} />
                   {currentJobOnMachine.notes && (
                     <div className="mt-3 p-2 bg-info/10 border border-info/30 rounded-lg">
                       <p className="text-sm text-info"><span className="font-semibold">Not:</span> {currentJobOnMachine.notes}</p>
@@ -1242,7 +1245,7 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {jobs.filter(j => j.machine_id === selectedMachine.id && j.status === "paused").map(job => (
-                    <div key={job.id} className="flex justify-between items-center p-3 bg-background rounded-lg border border-border">
+                    <div key={job.id} className="flex flex-wrap gap-3 justify-between items-center p-3 bg-background rounded-lg border border-border">
                       <div>
                         <p className="font-semibold text-text-primary">{job.name}</p>
                         <p className="text-sm text-text-secondary">Sebep: {job.pause_reason || "-"}</p>
@@ -1258,6 +1261,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
                       >
                         <Play className="mr-1 h-3 w-3" /> Devam Et
                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSampleReviewJob(sampleReviewJob === job.id ? null : job.id)}>Numune Onayı</Button>
+                      {sampleReviewJob === job.id && <div className="w-full"><SampleApproval key={job.id} jobId={job.id} /></div>}
                     </div>
                   ))}
                 </CardContent>

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from pathlib import Path
 import os
 import logging
+import asyncio
 import uuid
 
 # Logging'i erken yapılandır
@@ -95,6 +96,23 @@ api_router.include_router(health_router)
 api_router.include_router(weather_router)
 api_router.include_router(machines_router)
 api_router.include_router(jobs_router)
+from routes.samples import router as samples_router, expiry_worker
+api_router.include_router(samples_router)
+
+@app.on_event("startup")
+async def start_sample_expiry():
+    app.state.sample_expiry_task = asyncio.create_task(expiry_worker())
+
+@app.on_event("shutdown")
+async def stop_sample_expiry():
+    task = getattr(app.state, "sample_expiry_task", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
 api_router.include_router(shifts_router)
 api_router.include_router(defects_router)
 api_router.include_router(analytics_router)
