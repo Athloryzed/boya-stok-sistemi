@@ -1,3 +1,4 @@
+import { WS_API } from "../lib/api";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -94,13 +95,10 @@ const WarehouseFlow = ({ theme, toggleTheme }) => {
 
   // WebSocket bağlantısı
   const connectWebSocket = useCallback(() => {
-    // WebSocket URL'ini environment variable'dan türet
-    const apiUrl = new URL(API);
-    const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsToken = localStorage.getItem("auth_token");
-    const wsUrl = `${wsProtocol}//${apiUrl.host}/api/ws/warehouse?token=${encodeURIComponent(wsToken || "")}`;
+    const wsUrl = `${WS_API}/ws/warehouse?token=${encodeURIComponent(wsToken || "")}`;
     
-    console.log("Connecting to WebSocket:", wsUrl);
+    console.log("Connecting to warehouse WebSocket");
     
     try {
       const ws = new WebSocket(wsUrl);

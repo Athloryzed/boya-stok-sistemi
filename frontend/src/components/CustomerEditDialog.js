@@ -11,8 +11,7 @@ import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { toast } from "sonner";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "../lib/api";
 
 function authHeaders() {
   try {

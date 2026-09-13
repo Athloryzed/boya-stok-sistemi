@@ -1,3 +1,4 @@
+import { WS_API } from "../lib/api";
 import SampleApproval from "../components/SampleApproval";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -443,10 +444,8 @@ const OperatorFlow = ({ theme, toggleTheme }) => {
   const connectOperatorWs = useCallback(() => {
     if (!selectedMachine?.id) return;
 
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = API.replace('https://', '').replace('http://', '').replace('/api', '');
     const wsToken = localStorage.getItem("auth_token");
-    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/operator/${selectedMachine.id}?token=${encodeURIComponent(wsToken || "")}`;
+    const wsUrl = `${WS_API}/ws/operator/${selectedMachine.id}?token=${encodeURIComponent(wsToken || "")}`;
 
     let ws;
     try {

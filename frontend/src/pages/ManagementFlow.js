@@ -1,3 +1,4 @@
+import { WS_API } from "../lib/api";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -546,9 +547,8 @@ const ManagementFlow = ({ theme, toggleTheme }) => {
   const connectWebSocket = useCallback((mgrId) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
     
-    const wsUrl = API.replace('https://', 'wss://').replace('http://', 'ws://');
     const wsToken = localStorage.getItem("auth_token");
-    const ws = new WebSocket(`${wsUrl}/ws/manager/${mgrId}?token=${encodeURIComponent(wsToken || "")}`);
+    const ws = new WebSocket(`${WS_API}/ws/manager/${mgrId}?token=${encodeURIComponent(wsToken || "")}`);
     
     ws.onopen = () => {
       console.log("Manager WebSocket connected");

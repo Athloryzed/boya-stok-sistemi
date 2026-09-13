@@ -1,14 +1,10 @@
-// Backend URL belirleme:
-// - Eğer alt domain'den geliniyorsa (app.*, panel.*, portal.*) Worker proxy aktif demektir
-//   → same-origin kullan
-// - Eğer ana domain'lerimizden geliniyorsa (bksistem.space, www., yeni.) → same-origin
-// - Aksi durumda .env'deki REACT_APP_BACKEND_URL kullanılır
-const isProxiedSubdomain = typeof window !== "undefined" &&
-  /^(app|panel|portal)\./.test(window.location.hostname);
-const isCanonicalHost = typeof window !== "undefined" &&
-  /^(www\.|yeni\.)?bksistem\.space$/.test(window.location.hostname);
-const BACKEND_URL = (isProxiedSubdomain || isCanonicalHost)
-  ? window.location.origin
-  : process.env.REACT_APP_BACKEND_URL;
+// All application traffic shares this resolver (including native builds).
+export function resolveBackendUrl(location, configuredUrl) {
+  const canonical = /^(www\.|yeni\.)?bksistem\.space$/.test(location.hostname);
+  const proxied = /^(app|panel|portal)\./.test(location.hostname);
+  const base = canonical || proxied ? location.origin : (configuredUrl || location.origin);
+  return new URL(base, location.origin).href.replace(/\/+$/, "");
+}
+export const BACKEND_URL = resolveBackendUrl(window.location, process.env.REACT_APP_BACKEND_URL);
 export const API = `${BACKEND_URL}/api`;
-
+export const WS_API = API.replace(/^http/, "ws");

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Zap, Package, Paintbrush, Wrench, AlertOctagon, X, Send } from "lucide-react";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import { API } from "../../lib/api";
 
 const PAINT_COLORS = ["Beyaz", "Siyah", "Mavi", "Lacivert", "Refleks", "Kırmızı", "Magenta", "Rhodam", "Sarı", "Gold", "Gümüş", "Pasta"];
 const BOBIN_QUICK_QTY = [3, 5, 10, 20];

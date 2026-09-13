@@ -15,8 +15,7 @@ import { User, Phone, MapPin, Mail, Calendar, Package, X as XIcon, Edit2, Loader
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "../lib/api";
 
 function authHeaders() {
   try {

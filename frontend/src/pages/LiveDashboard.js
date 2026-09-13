@@ -5,10 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import axios from "axios";
 import ExpectedKoliSummary from "../components/ExpectedKoliSummary";
 
-const _isCanonical = typeof window !== "undefined" &&
-  /^(www\.|yeni\.)?bksistem\.space$/.test(window.location.hostname);
-const BACKEND_URL = _isCanonical ? window.location.origin : process.env.REACT_APP_BACKEND_URL;
-const DASHBOARD_API = `${BACKEND_URL}/api`;
+import { API as DASHBOARD_API } from "../lib/api";
 
 const LiveDashboard = () => {
   const [data, setData] = useState(null);

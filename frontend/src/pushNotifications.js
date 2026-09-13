@@ -1,9 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 
-const _isCanonical = typeof window !== "undefined" &&
-  /^(www\.|yeni\.)?bksistem\.space$/.test(window.location.hostname);
-const API_URL = _isCanonical ? window.location.origin : process.env.REACT_APP_BACKEND_URL;
+import { BACKEND_URL as API_URL } from "./lib/api";
 
 // Platform kontrolü
 export const isNativePlatform = () => {

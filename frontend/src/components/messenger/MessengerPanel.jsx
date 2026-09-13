@@ -1,3 +1,4 @@
+import { BACKEND_URL } from "../../lib/api";
 /**
  * MessengerPanel — Global FAB + Drawer ile gelen messenger arayüzü.
  * Premium endüstriyel temaya uyumlu, mobil-öncelikli, WCAG AAA.
@@ -440,7 +441,7 @@ const MessengerPanel = () => {
     setUploading(true);
     try {
       const att = await chatApi.uploadFile(file);
-      const fullUrl = att.url.startsWith("http") ? att.url : `${process.env.REACT_APP_BACKEND_URL}${att.url}`;
+      const fullUrl = att.url.startsWith("http") ? att.url : new URL(att.url, `${BACKEND_URL}/`).href;
       await sendMessage({ text: text, attachments: [{ ...att, url: fullUrl }] });
     } catch (e) {
       toast.error("Dosya yüklenemedi");

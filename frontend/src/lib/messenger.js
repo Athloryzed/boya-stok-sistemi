@@ -6,9 +6,8 @@
  */
 import axios from "axios";
 
-import { API as APP_API } from "./api";
+import { API as APP_API, WS_API } from "./api";
 
-const BACKEND_URL = new URL(APP_API, window.location.origin).origin;
 const API = `${APP_API}/chat`;
 
 function requireList(data) {
@@ -135,7 +134,7 @@ export async function tryRefreshAuthToken() {
   try {
     const refreshToken = localStorage.getItem("refresh_token");
     if (!refreshToken) return null;
-    const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+    const res = await fetch(`${APP_API}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -166,7 +165,7 @@ export function connectChatWS() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return ws;
   }
-  const wsUrl = BACKEND_URL.replace(/^http/, "ws") + `/api/ws/chat?token=${encodeURIComponent(token)}`;
+  const wsUrl = `${WS_API}/ws/chat?token=${encodeURIComponent(token)}`;
   try {
     ws = new WebSocket(wsUrl);
   } catch (e) {
