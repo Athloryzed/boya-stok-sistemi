@@ -6,8 +6,17 @@
  */
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api/chat`;
+import { API as APP_API } from "./api";
+
+const BACKEND_URL = new URL(APP_API, window.location.origin).origin;
+const API = `${APP_API}/chat`;
+
+function requireList(data) {
+  if (!Array.isArray(data) || data.some(item => !item || typeof item !== "object")) {
+    throw new Error("Mesajlaşma sunucusundan geçersiz liste yanıtı alındı");
+  }
+  return data;
+}
 
 // Token sağlayıcısı — auth.js'ten gelir, dinamik okur (refresh sonrası taze token)
 function getToken() {
@@ -30,13 +39,13 @@ function authHeaders() {
 export const chatApi = {
   async listConversations() {
     const { data } = await axios.get(`${API}/conversations`, { headers: authHeaders() });
-    return data;
+    return requireList(data);
   },
   async listMessages(convId, { limit = 50, before } = {}) {
     const params = { limit };
     if (before) params.before = before;
     const { data } = await axios.get(`${API}/conversations/${convId}/messages`, { params, headers: authHeaders() });
-    return data;
+    return requireList(data);
   },
   async sendMessage(convId, body) {
     const { data } = await axios.post(`${API}/conversations/${convId}/messages`, body, { headers: authHeaders() });
@@ -57,11 +66,11 @@ export const chatApi = {
   },
   async listUsers() {
     const { data } = await axios.get(`${API}/users`, { headers: authHeaders() });
-    return data;
+    return requireList(data);
   },
   async getTemplates() {
     const { data } = await axios.get(`${API}/templates`, { headers: authHeaders() });
-    return data;
+    return requireList(data);
   },
   async toggleReaction(messageId, emoji) {
     const { data } = await axios.post(`${API}/messages/${messageId}/reaction`, { emoji }, { headers: authHeaders() });
