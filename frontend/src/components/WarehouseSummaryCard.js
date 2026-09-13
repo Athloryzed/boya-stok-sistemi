@@ -11,8 +11,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { Warehouse, Package, Layers, AlertTriangle, RefreshCw } from "lucide-react";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "../App";
 function auth() {
   try { return { Authorization: `Bearer ${JSON.parse(localStorage.getItem("app_session"))?.token}` }; }
   catch { return {}; }
@@ -62,7 +61,13 @@ export default function WarehouseSummaryCard({ compact = false, className = "", 
   }
   if (err) {
     return (
-      <div className={`rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-300 ${className}`} data-testid="wh-summary-error">{err}</div>
+      <div className={`rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-300 ${className}`} data-testid="wh-summary-error">
+        <span>{err}</span>
+        <button type="button" onClick={load} disabled={loading}
+          className="ml-3 underline font-medium disabled:opacity-50" data-testid="wh-summary-retry">
+          {loading ? "Yükleniyor…" : "Tekrar dene"}
+        </button>
+      </div>
     );
   }
   if (!data) return null;

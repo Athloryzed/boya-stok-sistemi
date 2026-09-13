@@ -9,8 +9,7 @@ import { ArrowRight, RefreshCw, History as HistoryIcon, Search } from "lucide-re
 import { Input } from "./ui/input";
 import { getWHStyle } from "./WarehouseBadgePicker";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { API } from "../App";
 function auth() {
   try { return { Authorization: `Bearer ${JSON.parse(localStorage.getItem("app_session"))?.token}` }; }
   catch { return {}; }
