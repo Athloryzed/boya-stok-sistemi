@@ -151,6 +151,20 @@ const WEATHER_ICON = {
   rain: CloudRain, snow: CloudSnow, thunder: CloudLightning,
 };
 
+// Hex → rgb (bento-icon-tile'ın --icon-from/--icon-to/--icon-border/--icon-glow
+// CSS custom property'lerinde kullanılır — modül kartları ve giriş seçim kartları ortak).
+const hexToRgb = (hex) => {
+  const v = hex.replace("#", "");
+  return [parseInt(v.substr(0, 2), 16), parseInt(v.substr(2, 2), 16), parseInt(v.substr(4, 2), 16)].join(",");
+};
+
+// Giriş seçim kartları — modül paletindeki mevcut renkler yeniden kullanılıyor
+// (Plan mavisi, Yönetim altını), yeni bir renk icat edilmiyor.
+const TRACKING_ICON_COLOR = "#60A5FA";
+const STAFF_ICON_COLOR = "#FFBF00";
+const TRACKING_ICON_RGB = hexToRgb(TRACKING_ICON_COLOR);
+const STAFF_ICON_RGB = hexToRgb(STAFF_ICON_COLOR);
+
 const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
@@ -754,11 +768,6 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             : [];
           if (!session) return null;
           const featured = new Set(["/management", "/dashboard"]);
-          // Hex → rgb (premium ikon karoları için)
-          const hexToRgb = (hex) => {
-            const v = hex.replace("#", "");
-            return [parseInt(v.substr(0, 2), 16), parseInt(v.substr(2, 2), 16), parseInt(v.substr(4, 2), 16)].join(",");
-          };
           return (
             <nav aria-label="Panel modülleri" className="w-full max-w-4xl">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -824,47 +833,79 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         })()}
 
         {/* Giriş yapılmamışken: sadece "Sipariş Takip" / "Personel Girişi" seçimi.
-            Başka hiçbir şey (menü, hava durumu, panel kartları) burada görünmez. */}
+            Başka hiçbir şey (menü, hava durumu, panel kartları) burada görünmez.
+            Kartlar, oturum açıkken görünen modül kartlarıyla (bento-card-premium)
+            aynı sözleşmeyi kullanır — yeni renk icat edilmiyor. */}
         {!session && !showStaffLogin && (
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="w-full max-w-md flex flex-col gap-4"
+            className="w-full max-w-3xl flex flex-col items-center gap-5"
             data-testid="home-entry-choice"
           >
-            <button
-              onClick={() => navigate("/siparis-takip")}
-              data-testid="entry-order-tracking"
-              className={`group flex items-center gap-4 p-5 rounded-2xl backdrop-blur-md border transition-all hover:-translate-y-0.5 text-left ${
-                isDarkBg ? "bg-white/10 border-amber-500/25 hover:bg-white/15 text-white" : "bg-white/70 border-amber-300/50 hover:bg-white/90 text-zinc-800"
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDarkBg ? "bg-blue-500/20" : "bg-blue-100"}`}>
-                <Package className={`h-6 w-6 ${isDarkBg ? "text-blue-300" : "text-blue-600"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-base">Sipariş Takip</h3>
-                <p className="text-xs opacity-70 mt-0.5">Takip kodunuzla siparişlerinizi görüntüleyin</p>
-              </div>
-              <ArrowRight className="h-5 w-5 opacity-60 shrink-0 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <motion.button
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                onClick={() => navigate("/siparis-takip")}
+                data-testid="entry-order-tracking"
+                className="group cursor-pointer text-left"
+              >
+                <div className="bento-card-premium relative h-full p-6 sm:p-8 flex flex-col items-start gap-3">
+                  <div
+                    className="bento-icon-tile"
+                    style={{
+                      "--icon-from": `rgba(${TRACKING_ICON_RGB}, 0.4)`,
+                      "--icon-to": `rgba(${TRACKING_ICON_RGB}, 0.08)`,
+                      "--icon-border": `rgba(${TRACKING_ICON_RGB}, 0.5)`,
+                      "--icon-glow": `rgba(${TRACKING_ICON_RGB}, 0.35)`,
+                    }}
+                  >
+                    <Package className="h-7 w-7 sm:h-8 sm:w-8" style={{ color: TRACKING_ICON_COLOR }} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold font-heading tracking-tight text-amber-50">Sipariş Takip</h3>
+                    <p className="text-sm text-amber-200/80 mt-1">Siparişinizin durumunu takip kodunuzla görüntüleyin</p>
+                  </div>
+                  <div className="bento-arrow-premium absolute top-5 right-5 sm:top-6 sm:right-6" aria-hidden="true">
+                    <ArrowRight className="h-4 w-4 text-amber-300" />
+                  </div>
+                </div>
+              </motion.button>
 
-            <button
-              onClick={() => setShowStaffLogin(true)}
-              data-testid="entry-staff-login"
-              className={`group flex items-center gap-4 p-5 rounded-2xl backdrop-blur-md border transition-all hover:-translate-y-0.5 text-left ${
-                isDarkBg ? "bg-white/10 border-amber-500/25 hover:bg-white/15 text-white" : "bg-white/70 border-amber-300/50 hover:bg-white/90 text-zinc-800"
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDarkBg ? "bg-amber-500/20" : "bg-amber-100"}`}>
-                <KeyRound className={`h-6 w-6 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-base">Personel Girişi</h3>
-                <p className="text-xs opacity-70 mt-0.5">Kullanıcı adı ve şifre ile giriş yapın</p>
-              </div>
-              <ArrowRight className="h-5 w-5 opacity-60 shrink-0 group-hover:translate-x-1 transition-transform" />
-            </button>
+              <motion.button
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.18 }}
+                onClick={() => setShowStaffLogin(true)}
+                data-testid="entry-staff-login"
+                className="group cursor-pointer text-left"
+              >
+                <div className="bento-card-premium relative h-full p-6 sm:p-8 flex flex-col items-start gap-3">
+                  <div
+                    className="bento-icon-tile"
+                    style={{
+                      "--icon-from": `rgba(${STAFF_ICON_RGB}, 0.4)`,
+                      "--icon-to": `rgba(${STAFF_ICON_RGB}, 0.08)`,
+                      "--icon-border": `rgba(${STAFF_ICON_RGB}, 0.5)`,
+                      "--icon-glow": `rgba(${STAFF_ICON_RGB}, 0.35)`,
+                    }}
+                  >
+                    <KeyRound className="h-7 w-7 sm:h-8 sm:w-8" style={{ color: STAFF_ICON_COLOR }} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold font-heading tracking-tight text-amber-50">Personel Girişi</h3>
+                    <p className="text-sm text-amber-200/80 mt-1">Çalışan hesabınızla sisteme giriş yapın</p>
+                  </div>
+                  <div className="bento-arrow-premium absolute top-5 right-5 sm:top-6 sm:right-6" aria-hidden="true">
+                    <ArrowRight className="h-4 w-4 text-amber-300" />
+                  </div>
+                </div>
+              </motion.button>
+            </div>
+
+            <p className={`text-xs text-center ${isDarkBg ? "text-amber-200/50" : "text-zinc-500"}`}>
+              Takip kodunuzu bilmiyorsanız bizimle iletişime geçin.
+            </p>
           </motion.div>
         )}
 
