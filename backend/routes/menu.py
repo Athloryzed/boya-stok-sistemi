@@ -1,8 +1,8 @@
 """
 Günlük Yemek Menüsü API.
 
-- GET  /api/menu/today   → Bugünün menüsü (auth gerekmez, herkese açık)
-- GET  /api/menu?date=YYYY-MM-DD → Belirli günün menüsü (auth gerekmez)
+- GET  /api/menu/today   → Bugünün menüsü (personel girişi gerekir)
+- GET  /api/menu?date=YYYY-MM-DD → Belirli günün menüsü (personel girişi gerekir)
 - GET  /api/menu/upcoming → Bu hafta+gelecek menüler (yönetim listeleme için)
 - POST /api/menu          → Menü ekle/güncelle (yönetim)
 - DELETE /api/menu/{date} → Menü sil (yönetim)
@@ -24,11 +24,13 @@ def _today_str() -> str:
     return (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%Y-%m-%d")
 
 
-# ==================== KAMU (login gerektirmez) ====================
+# ==================== PERSONEL (login gerekir) ====================
+# Not: giriş yapmamış ziyaretçiler (ör. portal müşterileri) yemek listesini
+# görmemeli — bu yüzden aşağıdaki üç endpoint de personel token'ı ister.
 
 @router.get("/menu/today")
-async def get_today_menu():
-    """Bugünün yemek menüsü — tüm ziyaretçiler için açık."""
+async def get_today_menu(data: dict = Depends(get_current_user)):
+    """Bugünün yemek menüsü — personel girişi ister."""
     today = _today_str()
     menu = await db.daily_menu.find_one({"date": today}, {"_id": 0})
     if not menu:
@@ -38,7 +40,7 @@ async def get_today_menu():
 
 
 @router.get("/menu")
-async def get_menu_by_date(date: Optional[str] = None):
+async def get_menu_by_date(date: Optional[str] = None, data: dict = Depends(get_current_user)):
     """Belirli günün menüsü."""
     if not date:
         date = _today_str()
@@ -50,9 +52,9 @@ async def get_menu_by_date(date: Optional[str] = None):
 
 
 @router.get("/menu/week")
-async def get_week_menus(days_back: int = 1, days_forward: int = 6):
+async def get_week_menus(days_back: int = 1, days_forward: int = 6, data: dict = Depends(get_current_user)):
     """
-    Bu haftanın menüleri (kamuya açık, login gerekmez).
+    Bu haftanın menüleri (personel girişi ister).
     Varsayılan: dün + bugün + sonraki 5 gün = 7 gün.
     days_back / days_forward parametreleri ile aralık ayarlanabilir.
     """

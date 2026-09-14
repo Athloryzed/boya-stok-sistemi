@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException, Body, Depends, Query
 from typing import Optional, List
 from datetime import datetime, timezone
 import re
+import secrets
 import uuid
 
 from database import db
@@ -24,6 +25,22 @@ router = APIRouter()
 
 # Yonetim dışına gösterilmeyecek fiyat alanları
 PRICING_FIELDS = ["unit_price", "extra_charge", "extra_charge_note", "total_price", "priced_by", "priced_at"]
+
+# Yonetim/plan dışına gösterilmeyecek portal kodu alanları — bu, müşterinin
+# sipariş takip portalına giriş kimlik bilgisidir, panel personeli genelinde
+# görünmemeli.
+PORTAL_CODE_FIELDS = ["portal_code", "portal_code_updated_at"]
+
+# Sipariş takip portalı kodu için karakter kümesi — karışabilecek karakterler
+# hariç: 0/O, 1/l/I.
+PORTAL_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+PORTAL_CODE_LENGTH = 10
+
+
+def _strip_portal_fields(doc: dict) -> dict:
+    for f in PORTAL_CODE_FIELDS:
+        doc.pop(f, None)
+    return doc
 
 
 def _now_iso() -> str:
@@ -46,6 +63,16 @@ async def _generate_code() -> str:
     return f"{prefix}{next_num:03d}"
 
 
+async def _generate_portal_code() -> str:
+    """10 haneli, karışmayan karakterlerden rastgele portal takip kodu üret."""
+    for _ in range(20):
+        code = "".join(secrets.choice(PORTAL_CODE_ALPHABET) for _ in range(PORTAL_CODE_LENGTH))
+        existing = await db.customers.find_one({"portal_code": code}, {"_id": 0, "id": 1})
+        if not existing:
+            return code
+    raise HTTPException(500, "Portal kodu üretilemedi, tekrar deneyin")
+
+
 @router.get("/customers")
 async def list_customers(
     q: Optional[str] = None,
@@ -63,6 +90,9 @@ async def list_customers(
             {"code": {"$regex": q_safe, "$options": "i"}},
         ]
     items = await db.customers.find(query, {"_id": 0}).sort("name", 1).to_list(1000)
+    roles = await get_user_roles(user)
+    if not (is_yonetim(roles) or "plan" in roles):
+        items = [_strip_portal_fields(c) for c in items]
     return items
 
 
@@ -75,19 +105,22 @@ async def search_customers(q: str = "", limit: int = 20, user=Depends(get_curren
             {"archived": {"$ne": True}, "last_order_at": {"$ne": None}},
             {"_id": 0},
         ).sort("last_order_at", -1).limit(limit).to_list(limit)
-        return items
-    q_safe = re.escape(q.strip())
-    items = await db.customers.find(
-        {
-            "archived": {"$ne": True},
-            "$or": [
-                {"name": {"$regex": q_safe, "$options": "i"}},
-                {"phone": {"$regex": q_safe, "$options": "i"}},
-                {"code": {"$regex": q_safe, "$options": "i"}},
-            ],
-        },
-        {"_id": 0},
-    ).sort("name", 1).limit(limit).to_list(limit)
+    else:
+        q_safe = re.escape(q.strip())
+        items = await db.customers.find(
+            {
+                "archived": {"$ne": True},
+                "$or": [
+                    {"name": {"$regex": q_safe, "$options": "i"}},
+                    {"phone": {"$regex": q_safe, "$options": "i"}},
+                    {"code": {"$regex": q_safe, "$options": "i"}},
+                ],
+            },
+            {"_id": 0},
+        ).sort("name", 1).limit(limit).to_list(limit)
+    roles = await get_user_roles(user)
+    if not (is_yonetim(roles) or "plan" in roles):
+        items = [_strip_portal_fields(c) for c in items]
     return items
 
 
@@ -96,6 +129,9 @@ async def get_customer(customer_id: str, user=Depends(get_current_user)):
     c = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     if not c:
         raise HTTPException(404, "Müşteri bulunamadı")
+    roles = await get_user_roles(user)
+    if not (is_yonetim(roles) or "plan" in roles):
+        c = _strip_portal_fields(c)
     return c
 
 
@@ -138,10 +174,15 @@ async def create_customer(payload: dict = Body(...), user=Depends(get_current_us
         {"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}, "archived": {"$ne": True}},
         {"_id": 0},
     )
+    roles = await get_user_roles(user)
+    caller_can_see_portal_code = is_yonetim(roles) or "plan" in roles
     if existing:
         # Aynı isimde varsa onu geri döndür (idempotent + UX dostu)
+        if not caller_can_see_portal_code:
+            existing = _strip_portal_fields(existing)
         return {**existing, "_existed": True}
     code = await _generate_code()
+    portal_code = await _generate_portal_code()
     customer = Customer(
         name=name,
         phone=(payload.get("phone") or "").strip() or None,
@@ -149,6 +190,8 @@ async def create_customer(payload: dict = Body(...), user=Depends(get_current_us
         email=(payload.get("email") or "").strip() or None,
         notes=(payload.get("notes") or "").strip() or None,
         code=code,
+        portal_code=portal_code,
+        portal_code_updated_at=_now_iso(),
     )
     doc = customer.model_dump()
     await db.customers.insert_one(doc)
@@ -158,6 +201,8 @@ async def create_customer(payload: dict = Body(...), user=Depends(get_current_us
         await log_audit(user.get("username"), "create", "customer", name, f"Kod: {code or '—'}")
     except Exception:
         pass
+    if not caller_can_see_portal_code:
+        doc = _strip_portal_fields(doc)
     return doc
 
 
@@ -179,6 +224,9 @@ async def update_customer(customer_id: str, payload: dict = Body(...), user=Depe
         await log_audit(user.get("username"), "update", "customer", c.get("name", customer_id), f"Guncellenen: {', '.join(update.keys())}")
     except Exception:
         pass
+    roles = await get_user_roles(user)
+    if not (is_yonetim(roles) or "plan" in roles):
+        c = _strip_portal_fields(c)
     return c
 
 
@@ -202,6 +250,27 @@ async def archive_customer(customer_id: str, user=Depends(get_current_user)):
     except Exception:
         pass
     return {"ok": True, "archived": True}
+
+
+@router.post("/customers/{customer_id}/portal-code/regenerate")
+async def regenerate_portal_code(customer_id: str, user=Depends(get_current_user)):
+    """Portal takip kodunu yenile — eski kod anında geçersiz olur (yonetim/plan)."""
+    roles = await get_user_roles(user)
+    _require_yonetim_or_plan(roles)
+    customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not customer:
+        raise HTTPException(404, "Müşteri bulunamadı")
+    new_code = await _generate_portal_code()
+    now = _now_iso()
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {"portal_code": new_code, "portal_code_updated_at": now}},
+    )
+    try:
+        await log_audit(user.get("username"), "update", "customer", customer.get("name", customer_id), "Portal kodu yenilendi")
+    except Exception:
+        pass
+    return {"portal_code": new_code, "portal_code_updated_at": now}
 
 
 # ============== JOB hook helpers ===========

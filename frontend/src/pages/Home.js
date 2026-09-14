@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import axios from "axios";
-import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays, Video } from "lucide-react";
+import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, Sun, Moon, Monitor, Layers, UtensilsCrossed, Package, Gauge, LogOut, ArrowRight, ArrowLeft, KeyRound, Cloud, CloudSun, CloudFog, CloudRain, CloudSnow, CloudLightning, ChevronDown, ChevronRight, X as XIcon, CalendarDays, Video } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
@@ -166,6 +166,9 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const [weekMenuOpen, setWeekMenuOpen] = useState(false);
   const [weekMenus, setWeekMenus] = useState(null);
   const [weekMenusLoading, setWeekMenusLoading] = useState(false);
+  // Giriş yapılmamışken anasayfa iki seçenekle sınırlı (Sipariş Takip / Personel Girişi);
+  // bu state personel giriş formunun o iki seçenek ekranının arkasında açılmasını sağlar.
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
 
   const toggleMenuCollapsed = () => {
     setMenuCollapsed(v => {
@@ -191,24 +194,33 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 60000);
+    const reloadSession = () => setSession(isSessionValid() ? getSession() : null);
+    window.addEventListener("storage", reloadSession);
+    return () => { clearInterval(t); window.removeEventListener("storage", reloadSession); };
+  }, []);
+
+  // Yemek menüsü + hava durumu SADECE personel giriş yapınca çekilir — giriş
+  // yapılmamışken anasayfada bu bilgiler hiç görünmemeli (menü endpoint'leri
+  // artık auth istiyor, anonim istek zaten 401 dönerdi).
+  useEffect(() => {
+    if (!session) return;
     axios.get(`${API}/menu/today`)
       .then(res => setTodayMenu(res.data))
       .catch(() => setTodayMenu(null));
-    // İstanbul hava durumu — 30 dakikada bir yenile (backend 30 dk önbellekli)
     const fetchWeather = () =>
       axios.get(`${API}/weather/istanbul`)
         .then(res => setWeather(res.data))
         .catch(() => {});
     fetchWeather();
     const w = setInterval(fetchWeather, 30 * 60000);
-    const reloadSession = () => setSession(isSessionValid() ? getSession() : null);
-    window.addEventListener("storage", reloadSession);
-    return () => { clearInterval(t); clearInterval(w); window.removeEventListener("storage", reloadSession); };
-  }, []);
+    return () => clearInterval(w);
+  }, [session]);
 
   const handleLogout = () => {
     clearSession();
     setSession(null);
+    setTodayMenu(null);
+    setWeather(null);
     toast.info("Çıkış yapıldı");
   };
 
@@ -811,9 +823,64 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           );
         })()}
 
-        {/* Giriş kartı — auth yoksa göster */}
-        {!session && (
-          <UnifiedLogin onBusyChange={setLoginBusy} liteMode={liteMode} isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
+        {/* Giriş yapılmamışken: sadece "Sipariş Takip" / "Personel Girişi" seçimi.
+            Başka hiçbir şey (menü, hava durumu, panel kartları) burada görünmez. */}
+        {!session && !showStaffLogin && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="w-full max-w-md flex flex-col gap-4"
+            data-testid="home-entry-choice"
+          >
+            <button
+              onClick={() => navigate("/siparis-takip")}
+              data-testid="entry-order-tracking"
+              className={`group flex items-center gap-4 p-5 rounded-2xl backdrop-blur-md border transition-all hover:-translate-y-0.5 text-left ${
+                isDarkBg ? "bg-white/10 border-amber-500/25 hover:bg-white/15 text-white" : "bg-white/70 border-amber-300/50 hover:bg-white/90 text-zinc-800"
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDarkBg ? "bg-blue-500/20" : "bg-blue-100"}`}>
+                <Package className={`h-6 w-6 ${isDarkBg ? "text-blue-300" : "text-blue-600"}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-base">Sipariş Takip</h3>
+                <p className="text-xs opacity-70 mt-0.5">Takip kodunuzla siparişlerinizi görüntüleyin</p>
+              </div>
+              <ArrowRight className="h-5 w-5 opacity-60 shrink-0 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <button
+              onClick={() => setShowStaffLogin(true)}
+              data-testid="entry-staff-login"
+              className={`group flex items-center gap-4 p-5 rounded-2xl backdrop-blur-md border transition-all hover:-translate-y-0.5 text-left ${
+                isDarkBg ? "bg-white/10 border-amber-500/25 hover:bg-white/15 text-white" : "bg-white/70 border-amber-300/50 hover:bg-white/90 text-zinc-800"
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isDarkBg ? "bg-amber-500/20" : "bg-amber-100"}`}>
+                <KeyRound className={`h-6 w-6 ${isDarkBg ? "text-amber-300" : "text-amber-700"}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-base">Personel Girişi</h3>
+                <p className="text-xs opacity-70 mt-0.5">Kullanıcı adı ve şifre ile giriş yapın</p>
+              </div>
+              <ArrowRight className="h-5 w-5 opacity-60 shrink-0 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </motion.div>
+        )}
+
+        {!session && showStaffLogin && (
+          <div className="w-full max-w-md" data-testid="home-staff-login-panel">
+            <button
+              onClick={() => setShowStaffLogin(false)}
+              data-testid="entry-back"
+              className={`mb-3 flex items-center gap-1 text-xs font-semibold transition-colors ${
+                isDarkBg ? "text-amber-200/80 hover:text-amber-100" : "text-zinc-600 hover:text-zinc-800"
+              }`}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Geri
+            </button>
+            <UnifiedLogin onBusyChange={setLoginBusy} liteMode={liteMode} isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
+          </div>
         )}
 
         {/* Hoşgeldin + Çıkış (auth varsa) */}

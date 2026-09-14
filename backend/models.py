@@ -26,6 +26,10 @@ class Customer(BaseModel):
     notes: Optional[str] = None
     # Otomatik üretilen kısa kod — BK-2026-001 gibi
     code: Optional[str] = None
+    # Müşteri sipariş takip portalı girişi — 10 haneli, karışabilecek karakterler
+    # hariç (0/O/1/l/I yok). Şifre değil, kalıcı bir giriş kodu.
+    portal_code: Optional[str] = None
+    portal_code_updated_at: Optional[str] = None
     # Aggregate metrics — sipariş geçmişi indeksi
     total_jobs: int = 0
     last_order_at: Optional[str] = None

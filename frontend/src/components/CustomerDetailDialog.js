@@ -11,19 +11,35 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Phone, MapPin, Mail, Calendar, Package, X as XIcon, Edit2, Loader2, ClipboardList, CheckCircle, Tag } from "lucide-react";
+import { toast } from "sonner";
+import { User, Phone, MapPin, Mail, Calendar, Package, X as XIcon, Edit2, Loader2, ClipboardList, CheckCircle, Tag, KeyRound, Copy, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { useConfirm } from "./ConfirmProvider";
 
 import { API } from "../lib/api";
 
-function authHeaders() {
+function currentSession() {
   try {
-    const sess = JSON.parse(localStorage.getItem("app_session") || "null");
-    return sess?.token ? { Authorization: `Bearer ${sess.token}` } : {};
+    return JSON.parse(localStorage.getItem("app_session") || "null");
   } catch {
-    return {};
+    return null;
   }
+}
+
+function authHeaders() {
+  const sess = currentSession();
+  return sess?.token ? { Authorization: `Bearer ${sess.token}` } : {};
+}
+
+/** Portal kodunu görebilme/yenileyebilme — sadece yonetim/plan (backend'deki
+ * is_yonetim(roles) or "plan" in roles kuralıyla birebir aynı). Backend zaten
+ * bu alanları yetkisiz rollere hiç göndermiyor; bu kontrol sadece "kodu yok"
+ * boş durumunu yanlışlıkla yetkisiz kullanıcıya göstermemek için. */
+function canManagePortalCode() {
+  const sess = currentSession();
+  const roles = sess?.roles?.length ? sess.roles : (sess?.role ? [sess.role] : []);
+  return roles.includes("yonetim") || roles.includes("management") || roles.includes("plan");
 }
 
 function fmtDate(iso) {
@@ -48,10 +64,12 @@ function statusBadge(s) {
 }
 
 export default function CustomerDetailDialog({ customerId, open, onClose, onEdit }) {
+  const confirm = useConfirm();
   const [customer, setCustomer] = useState(null);
   const [jobs, setJobs] = useState({ active: [], history: [], active_count: 0, history_count: 0, total_jobs: 0 });
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("active");
+  const [regeneratingCode, setRegeneratingCode] = useState(false);
 
   useEffect(() => {
     if (!open || !customerId) return;
@@ -72,6 +90,46 @@ export default function CustomerDetailDialog({ customerId, open, onClose, onEdit
     })();
     return () => { cancelled = true; };
   }, [open, customerId]);
+
+  const handleCopyPortalCode = async () => {
+    if (!customer?.portal_code) return;
+    try {
+      await navigator.clipboard.writeText(customer.portal_code);
+      toast.success("Takip kodu kopyalandı");
+    } catch {
+      toast.error("Kopyalanamadı");
+    }
+  };
+
+  const handleRegeneratePortalCode = async () => {
+    if (!customer) return;
+    const ok = await confirm({
+      title: "Portal Kodunu Yenile",
+      description: `${customer.name} için yeni bir takip kodu üretilecek. Eski kod anında geçersiz olur — müşteri artık onunla giriş yapamaz.`,
+      confirmText: "Evet, Yenile",
+      cancelText: "Vazgeç",
+      variant: "warning",
+    });
+    if (!ok) return;
+    setRegeneratingCode(true);
+    try {
+      const res = await axios.post(
+        `${API}/customers/${customerId}/portal-code/regenerate`,
+        {},
+        { headers: authHeaders() }
+      );
+      setCustomer((prev) => prev && ({
+        ...prev,
+        portal_code: res.data.portal_code,
+        portal_code_updated_at: res.data.portal_code_updated_at,
+      }));
+      toast.success("Portal kodu yenilendi");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Kod yenilenemedi");
+    } finally {
+      setRegeneratingCode(false);
+    }
+  };
 
   if (!open) return null;
 
@@ -163,6 +221,44 @@ export default function CustomerDetailDialog({ customerId, open, onClose, onEdit
                 <div className="sm:col-span-2 flex items-start gap-2 px-2 py-1.5 rounded-lg bg-amber-500/5">
                   <Tag className="h-3.5 w-3.5 text-amber-300 mt-0.5 shrink-0" />
                   <span className="text-amber-100/90 italic">{customer.notes}</span>
+                </div>
+              )}
+              {!loading && customer && canManagePortalCode() && (
+                <div className="sm:col-span-2 flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-blue-500/5 ring-1 ring-blue-500/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <KeyRound className="h-3.5 w-3.5 text-blue-300 shrink-0" />
+                    {customer.portal_code ? (
+                      <span className="font-mono text-sm tracking-[0.25em] text-blue-100" data-testid="customer-portal-code">
+                        {customer.portal_code}
+                      </span>
+                    ) : (
+                      <span className="text-blue-200/60 italic text-xs">Sipariş takip kodu henüz oluşturulmadı</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {customer.portal_code && (
+                      <Button
+                        variant="outline" size="icon" onClick={handleCopyPortalCode}
+                        data-testid="customer-portal-code-copy"
+                        className="h-7 w-7 border-blue-500/30 text-blue-200 hover:bg-blue-500/10"
+                        title="Kodu kopyala"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline" size="sm" onClick={handleRegeneratePortalCode} disabled={regeneratingCode}
+                      data-testid="customer-portal-code-regenerate"
+                      className="h-7 border-blue-500/30 text-blue-200 hover:bg-blue-500/10 text-[11px] px-2"
+                    >
+                      {regeneratingCode ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                      )}
+                      {customer.portal_code ? "Kodu Yenile" : "Kod Oluştur"}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

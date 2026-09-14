@@ -57,6 +57,7 @@ const BobinFlow = lazy(() => import("./pages/BobinFlow"));
 const MarkaStokFlow = lazy(() => import("./pages/MarkaStokFlow"));
 const BoyaciFlow = lazy(() => import("./pages/BoyaciFlow"));
 const CameraFlow = lazy(() => import("./pages/CameraFlow"));
+const PortalFlow = lazy(() => import("./pages/PortalFlow"));
 
 // Suspense fallback — chunk indirilirken gösterilen yükleyici (industrial tema)
 const RouteLoading = () => (
@@ -356,6 +357,7 @@ function App() {
                 <Route path="/kamera" element={<ErrorBoundary><ProtectedRoute><CameraFlow theme={theme} toggleTheme={toggleTheme} /></ProtectedRoute></ErrorBoundary>} />
                 <Route path="/dashboard" element={<LiveDashboard />} />
                 <Route path="/takip/:token" element={<TrackingPage theme={theme} liteMode={liteMode} />} />
+                <Route path="/siparis-takip" element={<ErrorBoundary><PortalFlow theme={theme} /></ErrorBoundary>} />
               </Routes>
               </LoginArrival>
             </Suspense>

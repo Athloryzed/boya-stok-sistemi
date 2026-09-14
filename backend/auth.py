@@ -124,6 +124,45 @@ def decode_camera_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Geçersiz kamera oturumu")
 
 
+# Müşteri sipariş takip portalı: portal_code ile giriş yapan müşteriye
+# 12 saatlik, sadece o müşterinin verilerine erişebilen kısa ömürlü bir token
+# verilir. Kamera token'ındaki desenin aynısı — decode_token "type" alanı
+# "access" olmayan hiçbir token'ı kabul etmediği için bu token personel
+# endpoint'lerine asla sızamaz.
+PORTAL_TOKEN_MINUTES = int(os.environ.get('PORTAL_TOKEN_MINUTES', '720'))  # 12 saat
+
+
+def create_portal_token(customer_id: str, customer_name: str = "") -> str:
+    payload = _build_payload(customer_id, "", "", customer_name, "portal",
+                             timedelta(minutes=PORTAL_TOKEN_MINUTES))
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_portal_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "portal":
+            raise HTTPException(status_code=401, detail="Geçersiz takip oturumu")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Takip oturumu süresi doldu")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Geçersiz takip oturumu")
+
+
+async def get_current_customer(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Portal token'ını doğrular ve SADECE o müşterinin dokümanını döner."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Kimlik doğrulama gerekli")
+    payload = decode_portal_token(credentials.credentials)
+    customer = await db.customers.find_one(
+        {"id": payload.get("sub"), "archived": {"$ne": True}}, {"_id": 0}
+    )
+    if not customer:
+        raise HTTPException(status_code=401, detail="Geçersiz takip oturumu")
+    return customer
+
+
 def decode_refresh_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, JWT_REFRESH_SECRET, algorithms=[JWT_ALGORITHM])
