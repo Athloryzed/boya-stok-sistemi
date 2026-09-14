@@ -6,6 +6,7 @@ import { Factory, ClipboardList, HardHat, Warehouse, Paintbrush, Brush, Truck, S
 import { AnimatePresence } from "framer-motion";
 import { API } from "../App";
 import UnifiedLogin from "../components/UnifiedLogin";
+import PortalPanel from "../components/PortalPanel";
 import { getSession, isSessionValid, clearSession, canAccessRoute } from "../lib/auth";
 import { toast } from "sonner";
 
@@ -180,9 +181,10 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
   const [weekMenuOpen, setWeekMenuOpen] = useState(false);
   const [weekMenus, setWeekMenus] = useState(null);
   const [weekMenusLoading, setWeekMenusLoading] = useState(false);
-  // Giriş yapılmamışken anasayfa iki seçenekle sınırlı (Sipariş Takip / Personel Girişi);
-  // bu state personel giriş formunun o iki seçenek ekranının arkasında açılmasını sağlar.
-  const [showStaffLogin, setShowStaffLogin] = useState(false);
+  // Giriş yapılmamışken anasayfa iki seçenekle sınırlı (Sipariş Takip / Personel Girişi).
+  // "choice": iki kart görünür. "staff"/"portal": ilgili kart yerinde genişler,
+  // diğer kart gizlenir, üstte "Geri" butonu çıkar — ikisi de aynı davranışta.
+  const [entryMode, setEntryMode] = useState("choice");
 
   const toggleMenuCollapsed = () => {
     setMenuCollapsed(v => {
@@ -835,8 +837,11 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
         {/* Giriş yapılmamışken: sadece "Sipariş Takip" / "Personel Girişi" seçimi.
             Başka hiçbir şey (menü, hava durumu, panel kartları) burada görünmez.
             Kartlar, oturum açıkken görünen modül kartlarıyla (bento-card-premium)
-            aynı sözleşmeyi kullanır — yeni renk icat edilmiyor. */}
-        {!session && !showStaffLogin && (
+            aynı sözleşmeyi kullanır — yeni renk icat edilmiyor.
+            panel-module-trigger: butonun global overflow:hidden'ı olmasa
+            bento-card-premium'un hover kalkışı/glow'u ve oku buton sınırında
+            kesilir (modül kartlarındaki aynı düzeltme). */}
+        {!session && entryMode === "choice" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
@@ -847,9 +852,9 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
               <motion.button
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 }}
-                onClick={() => navigate("/siparis-takip")}
+                onClick={() => setEntryMode("portal")}
                 data-testid="entry-order-tracking"
-                className="group cursor-pointer text-left"
+                className="panel-module-trigger group cursor-pointer text-left"
               >
                 <div className="bento-card-premium relative h-full p-6 sm:p-8 flex flex-col items-start gap-3">
                   <div
@@ -876,9 +881,9 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
               <motion.button
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.18 }}
-                onClick={() => setShowStaffLogin(true)}
+                onClick={() => setEntryMode("staff")}
                 data-testid="entry-staff-login"
-                className="group cursor-pointer text-left"
+                className="panel-module-trigger group cursor-pointer text-left"
               >
                 <div className="bento-card-premium relative h-full p-6 sm:p-8 flex flex-col items-start gap-3">
                   <div
@@ -909,10 +914,33 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
           </motion.div>
         )}
 
-        {!session && showStaffLogin && (
-          <div className="w-full max-w-md" data-testid="home-staff-login-panel">
+        {!session && entryMode === "portal" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-md" data-testid="home-portal-panel"
+          >
             <button
-              onClick={() => setShowStaffLogin(false)}
+              onClick={() => setEntryMode("choice")}
+              data-testid="entry-back"
+              className={`mb-3 flex items-center gap-1 text-xs font-semibold transition-colors ${
+                isDarkBg ? "text-amber-200/80 hover:text-amber-100" : "text-zinc-600 hover:text-zinc-800"
+              }`}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Geri
+            </button>
+            <PortalPanel />
+          </motion.div>
+        )}
+
+        {!session && entryMode === "staff" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-md" data-testid="home-staff-login-panel"
+          >
+            <button
+              onClick={() => setEntryMode("choice")}
               data-testid="entry-back"
               className={`mb-3 flex items-center gap-1 text-xs font-semibold transition-colors ${
                 isDarkBg ? "text-amber-200/80 hover:text-amber-100" : "text-zinc-600 hover:text-zinc-800"
@@ -921,7 +949,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
               <ArrowLeft className="w-3.5 h-3.5" /> Geri
             </button>
             <UnifiedLogin onBusyChange={setLoginBusy} liteMode={liteMode} isNight={isDarkBg} onAuthenticated={(u) => setSession(getSession())} />
-          </div>
+          </motion.div>
         )}
 
         {/* Hoşgeldin + Çıkış (auth varsa) */}
