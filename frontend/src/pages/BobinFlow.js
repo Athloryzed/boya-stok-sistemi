@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Sun, Moon, Plus, Package, History, Download, ShoppingCart, Factory, Layers, LogOut, ScanBarcode, Search, Weight, Hash, Ruler, Pencil, Archive, Calendar, ChevronRight, Circle } from "lucide-react";
@@ -1017,7 +1018,11 @@ const BobinFlow = ({ theme, toggleTheme }) => {
         </DialogContent>
       </Dialog>
 
-      {/* DETAY MODALI (bobin kartına tıklayınca — merkez modal) */}
+      {/* DETAY MODALI (bobin kartına tıklayınca — merkez modal). createPortal: bu
+          modal fixed konumlandırıyor; sayfanın herhangi bir yerinde ileride
+          eklenebilecek backdrop-filter/transform taşıyan bir sarmalayıcının
+          içine düşüp viewport yerine o kutuya göre konumlanmasını önler. */}
+      {createPortal(
       <AnimatePresence>
         {drawerBobin && (
           <>
@@ -1086,7 +1091,9 @@ const BobinFlow = ({ theme, toggleTheme }) => {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 };

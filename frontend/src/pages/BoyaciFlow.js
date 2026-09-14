@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -798,6 +799,7 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
       </Dialog>
 
       {/* Görsel önizleme */}
+      {createPortal(
       <AnimatePresence>
         {previewJob && (
           <motion.div
@@ -827,7 +829,9 @@ const BoyaciFlow = ({ theme, toggleTheme }) => {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 };

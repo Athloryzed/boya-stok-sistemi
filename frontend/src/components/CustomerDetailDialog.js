@@ -9,6 +9,7 @@
  *   onEdit?: (customer) => void  (opsiyonel — düzenleme dialog'u açar)
  */
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -133,7 +134,7 @@ export default function CustomerDetailDialog({ customerId, open, onClose, onEdit
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -333,6 +334,7 @@ export default function CustomerDetailDialog({ customerId, open, onClose, onEdit
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

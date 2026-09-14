@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import axios from "axios";
@@ -983,6 +984,7 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
       </div>
 
       {/* Haftalık Yemek Menüsü Dialog'u — kamuya açık (login öncesi de görünür) */}
+      {createPortal(
       <AnimatePresence>
         {weekMenuOpen && (
           <>
@@ -1097,7 +1099,9 @@ const Home = ({ theme, toggleTheme, liteMode, toggleLiteMode }) => {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { BACKEND_URL } from "../../lib/api";
  *           otomatik bot mesajları (Bobin/Boya istek vb.), Web Push.
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Send, X, Users, Search, ArrowLeft, Smile, Paperclip,
@@ -495,7 +496,7 @@ const MessengerPanel = () => {
 
   if (!userId) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Global Floating Action Button */}
       <motion.button
@@ -640,7 +641,8 @@ const MessengerPanel = () => {
           </>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body
   );
 };
 

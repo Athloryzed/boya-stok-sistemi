@@ -13,6 +13,7 @@
  *   open, onClose, onSaved?
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { UtensilsCrossed, X as XIcon, Loader2, ChevronLeft, ChevronRight, Plus, Trash2, Copy, Save, GripVertical, Calendar } from "lucide-react";
@@ -220,7 +221,7 @@ export default function WeeklyMenuEditor({ open, onClose, onSaved }) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -418,6 +419,7 @@ export default function WeeklyMenuEditor({ open, onClose, onSaved }) {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

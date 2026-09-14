@@ -2,6 +2,7 @@
  * CustomerEditDialog — Yeni müşteri ekle / mevcudunu düzenle.
  */
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, X as XIcon, Loader2, Save } from "lucide-react";
@@ -64,7 +65,7 @@ export default function CustomerEditDialog({ open, customer, onClose, onSaved })
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -171,6 +172,7 @@ export default function CustomerEditDialog({ open, customer, onClose, onSaved })
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -3,6 +3,7 @@
  * Her olay tipi için aç/kapa + hedef rol/kanal seçimi + eşik (low_stock için)
  */
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Bell, X, Save, Package, Paintbrush, AlertTriangle, ClipboardList, CheckCircle, RotateCcw } from "lucide-react";
@@ -114,7 +115,7 @@ export default function NotificationSettings({ open, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -288,6 +289,7 @@ export default function NotificationSettings({ open, onClose }) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

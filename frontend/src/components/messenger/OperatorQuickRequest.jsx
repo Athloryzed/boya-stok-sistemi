@@ -3,6 +3,7 @@
  * Tek dokunuşla Bobin / Boya / Bakım / Acil Yardım talebi
  */
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -58,7 +59,7 @@ export default function OperatorQuickRequest({ machine, operatorName }) {
     }
   };
 
-  return (
+  return createPortal(
     <>
       {/* FAB — Sağ alt (Messenger sol altta, çakışmaz) */}
       <motion.button
@@ -314,6 +315,7 @@ export default function OperatorQuickRequest({ machine, operatorName }) {
           </>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body
   );
 }

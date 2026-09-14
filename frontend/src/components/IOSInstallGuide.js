@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { X, Share, Plus, BellRing, AlertCircle, CheckCircle2 } from "lucide-react";
 
 /**
@@ -17,7 +18,7 @@ const IOSInstallGuide = ({ open, onClose, status = "needs_install" }) => {
 
   const isOldVersion = status === "version_old";
 
-  return (
+  return createPortal(
     <div
       data-testid="ios-install-guide"
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -160,7 +161,8 @@ const IOSInstallGuide = ({ open, onClose, status = "needs_install" }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

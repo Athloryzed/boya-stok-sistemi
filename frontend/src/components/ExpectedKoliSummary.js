@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Package, Layers, Activity, ChevronRight, Factory, X, ArrowLeft, Plus, Play, Pause, Clock } from "lucide-react";
 
 /**
@@ -216,7 +217,7 @@ export const ExpectedKoliBreakdownDialog = ({
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
       data-testid={testId}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -353,7 +354,8 @@ export const ExpectedKoliBreakdownDialog = ({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
